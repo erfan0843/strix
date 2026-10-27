@@ -343,6 +343,8 @@ table.t{width:100%; border-collapse:collapse; font-size:var(--fs-sub); min-width
   .sheet.on{transform:none;opacity:1;pointer-events:auto}
   /* انتخاب‌گر فیلد روی دسکتاپ: ورقهٔ پهن‌تر، دسته‌ها به‌صورت نوار کناری ثابت و فهرست کنار آن (موبایل همان فهرست تک‌ستونه می‌ماند) */
   .sheet.picker{width:min(760px,64vw)}
+  /* ویرایشگر فیلد روی دسکتاپ: پهن‌تر از ورقهٔ پیش‌فرض تا فهرست گزینه‌ها و جفت‌کنترل‌ها در یک ردیف جا بگیرند */
+  .sheet.editor{width:min(560px,46vw)}
   .sheet.picker .picker-body{display:grid;grid-template-columns:196px minmax(0,1fr);gap:var(--sp-4);align-items:start}
   .sheet.picker .picker-cats{flex-direction:column;align-items:stretch;position:sticky;top:0;margin-bottom:0;flex-wrap:nowrap;overflow:visible}
   .sheet.picker .picker-cats .chip{width:100%;justify-content:space-between;border-radius:var(--r-md)}
@@ -653,8 +655,25 @@ html[data-motion="off"] *{animation:none!important;transition:none!important}
 .cat-item:active{transform:scale(.99)}
 .cat-item .ic{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:var(--surface-sunk);color:var(--ink-2);flex:0 0 auto}
 .cat-item .nm{font-size:var(--fs-sub);font-weight:600}
-.cat-item .hint{font-size:var(--fs-cap);color:var(--ink-3)}
+.cat-item .cat-body{flex:1;min-width:0;text-align:start;display:flex;flex-direction:column;gap:2px}
+.cat-item .hint{font-size:var(--fs-cap);color:var(--ink-3);line-height:1.5}
+.cat-item .hint.warn{color:var(--warn)}
+.cat-item.is-blocked{opacity:.78;box-shadow:none;background:var(--surface-2)}
+.cat-item.is-blocked .ic{color:var(--ink-4)}
+.cat-item .cat-add{opacity:0;transition:opacity var(--t-fast) var(--ease)}
+.cat-item:hover .cat-add,.cat-item:focus-visible .cat-add{opacity:1}
+@media (hover:none){.cat-item .cat-add{opacity:1}}
 .cat-group{margin:14px 0 6px;font-size:var(--fs-cap);color:var(--ink-3);font-weight:600}
+.cat-list-grid{display:flex;flex-direction:column;gap:8px}
+/* خطای کنار کنترل (ویرایشگر فیلد و فرم‌ها): همان الگوی form.html، به‌صورت مشترک */
+.field-error{margin:8px 0 0;padding:8px 11px;border-radius:var(--r-sm);color:var(--stop);background:var(--stop-tint);font-size:var(--fs-cap);line-height:1.6}
+.field-error[hidden]{display:none}
+/* اثر مدل انتخابی: فعال (✓) و نبود/ساخته‌نشده (–) در یک فهرست کوتاه */
+.model-fx{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:4px;font-size:var(--fs-cap);color:var(--ink-2)}
+.model-fx li{position:relative;padding-inline-start:18px}
+.model-fx li::before{content:'✓';position:absolute;inset-inline-start:0;color:var(--ok,#1E7F4F);font-weight:700}
+.model-fx li.off::before{content:'–';color:var(--ink-3)}
+.model-fx li.off{color:var(--ink-3)}
 
 /* ── رنگ دلخواه ──────────────────────────────────────────────────────── */
 .swatches{display:flex;gap:8px;flex-wrap:wrap}

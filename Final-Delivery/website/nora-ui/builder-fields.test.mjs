@@ -602,5 +602,48 @@ const html=readFileSync(DIR+'create.html','utf8');
   ok(p.ev("addField('text');S.fields[S.fields.length-1].t==='text'"),'بستن انتخاب‌گر بدون افزودن، جایگاه را برای افزودن بعدی نگه نمی‌دارد');
   ok(p.errors.length===0,'بدون خطای کنسول');
 }
+/* ── ۱۷) ارتقای UX ۱۴۰۵/۰۸/۰۵: کارت کاتالوگ آرام‌تر، راهنمای «تنظیم ≠ نوع» در جست‌وجو، اثر مدل، رسانهٔ بی‌کنترل، خطای کنار کنترل ── */
+{
+  console.log('\n── ارتقای UX انتخاب‌گر و ویرایشگر ──');
+  const p=await load({api:makeApi()}); await new Promise(r=>setTimeout(r,60)); p.ev('renderTiles()');
+  /* اثر مدل: پیش از ساخت فرم، فعال/غیرفعال هر مدل دیده می‌شود و با انتخاب مدل عوض می‌شود */
+  ok(!p.doc.querySelector('#modelEffects').hidden&&p.txt('#modelEffects').includes('با انتخاب «ثبت‌نام»')&&p.txt('#modelEffects').includes('همراهان'),'جعبهٔ اثر مدل برای ثبت‌نام: همراهان/بلیت/پرداخت فعال');
+  p.click('[data-model="survey"]');
+  ok(p.txt('#modelEffects').includes('با انتخاب «نظرسنجی»')&&p.txt('#modelEffects').includes('فقط در پیش‌نمایش محلی')&&p.doc.querySelectorAll('#modelEffects li.off').length>=2,'نظرسنجی: امتیاز فقط محلی و نبود همراهان/بلیت، پیش از انتخاب روشن است');
+  ok(p.ev("Object.keys(MODEL_EFFECTS).sort().join()===MODELS.map(m=>m.k).sort().join()"),'هر مدل یک رکورد اثر دارد (بدون مدل بی‌توضیح)');
+  ok(p.txt('#modelEffects').includes('فیلدهای قابل‌افزودن در همهٔ مدل‌ها یکسان'),'یکسان‌بودن فیلدها بین مدل‌ها صریح گفته می‌شود');
+  p.click('[data-model="registration"]');
+  /* کاتالوگ: برچسب وضعیت فقط برای غیر «پشتیبانی سروری»؛ راهنما و نوع پاسخ در دو خط جدا؛ دلیل محدودیت کنار همان کارت */
+  p.ev("go('s2');openSheet('shAdd');renderCatalog()");
+  ok(!p.doc.querySelector('#catList [data-add="text"] .cap-tag')&&p.doc.querySelector('#catList [data-add="mobile"] .cap-tag.limited'),'برچسب وضعیت فقط روی نوع‌های محدود/غیرفعال است (کارت سروری بی‌برچسب)');
+  ok(p.doc.querySelector('#catList [data-add="birth-date"] .hint').textContent.includes('تاریخ تولد را به شمسی')&&p.doc.querySelector('#catList [data-add="birth-date"] .hint.meta').textContent.includes('پاسخ: تاریخ شمسی'),'کارت الگو: راهنمای خودِ الگو، سپس نوع پاسخ و مثال');
+  ok(p.doc.querySelector('#catList [data-add="image"].is-blocked .hint.warn').textContent.includes('وصل نیست'),'دلیل غیرفعال‌بودن انسانی و کنار همان کارت است');
+  ok(p.all('#catList .cat-group').length>=8&&p.all('#catList .cat-list-grid').length===p.all('#catList .cat-group').length,'هر دسته عنوان و فهرست خودش را دارد');
+  /* جست‌وجوی «تنظیم» به‌جای نوع: راهنما + نوع‌های میزبان */
+  p.input('#catSearch','عدد صحیح');
+  ok(p.doc.querySelector('#catSettingHint')&&p.txt('#catSettingHint').includes('یک تنظیم است، نه نوع فیلد')&&p.all('#catList [data-add]').map(b=>b.dataset.add).includes('number'),'«عدد صحیح»: راهنمای تنظیم‌بودن + نوع «عدد» پیشنهاد می‌شود');
+  p.input('#catSearch','اجباری');
+  ok(p.doc.querySelector('#catSettingHint')&&p.txt('#catSettingHint').includes('اجباری'),'«اجباری»: به‌جای نتیجهٔ خالی، مسیر تنظیم گفته می‌شود');
+  p.input('#catSearch','گزینه پیش‌فرض');
+  ok(p.doc.querySelector('#catSettingHint')&&p.txt('#catSettingHint').includes('پیاده‌سازی نشده'),'«پیش‌فرض»: صادقانه «پیاده‌سازی نشده» (نه کنترل تزئینی)');
+  p.input('#catSearch','تأیید قوانین');
+  ok(!p.doc.querySelector('#catSettingHint')&&p.all('#catList [data-add]')[0].dataset.add==='terms','«تأیید قوانین» → پذیرش قوانین (بدون راهنمای اضافی)');
+  p.input('#catSearch','');
+  /* رسانهٔ همراه: بدون مقدار قدیمی هیچ چیپی نیست؛ با مقدار قدیمی چیپ‌ها برای پاک‌کردن دیده می‌شوند */
+  p.click('#catList [data-add="text"]');
+  ok(p.doc.querySelector('#shField').classList.contains('editor')&&p.doc.querySelector('#fdMediaChips').hidden&&p.txt('#fdMediaNote0').includes('کنترلی برای آن نشان داده نمی‌شود'),'ویرایشگر: رسانهٔ در دست ساخت بدون چیپ‌های بی‌اثر');
+  p.ev("FIELD_DRAFT.media='image';FIELD_DRAFT.mediaNote='x';renderFieldEditor()");
+  ok(!p.doc.querySelector('#fdMediaChips').hidden&&p.txt('#fdMediaNote0').includes('نسخهٔ قدیمی')&&p.doc.querySelector('#shField [data-media="none"]'),'مقدار قدیمی رسانه: چیپ‌ها و دکمهٔ «بدون» (مقصد پرش readiness) ظاهر می‌شوند');
+  p.ev("FIELD_DRAFT.media='none';FIELD_DRAFT.mediaNote='';renderFieldEditor()");
+  /* خطای ذخیره کنار همان کنترل: گزینهٔ تکراری */
+  p.ev("cancelFieldEdit()");
+  p.ev("openSheet('shAdd')"); p.click('#catList [data-add="choice"]');
+  p.ev("FIELD_DRAFT.opts=[{l:'الف'},{l:'الف'}];renderFieldOptions()");
+  ok(p.ev('saveField()')===false&&p.doc.querySelector('#fdInlineError')&&p.doc.querySelector('#fdOptions [data-optl="1"][aria-invalid="true"]')&&p.doc.querySelector('#fdOptions [data-opt-row="1"]+#fdInlineError'),'گزینهٔ تکراری: ذخیره نمی‌شود و خطا زیر همان گزینه با aria-invalid می‌نشیند');
+  p.input('#fdOptions [data-optl="1"]','ب');
+  ok(!p.doc.querySelector('#fdInlineError')&&!p.doc.querySelector('#shField [aria-invalid="true"]'),'با اصلاح همان کنترل، خطای کنار کنترل پاک می‌شود');
+  ok(p.ev('saveField()')===true&&!p.doc.querySelector('#fdInlineError'),'پس از اصلاح، ذخیره می‌شود');
+  ok(p.errors.length===0,'بدون خطای کنسول');
+}
 console.log(`\nbuilder-fields: ${checks} بررسی، ${fails} خطا`);
 process.exit(fails?1:0);

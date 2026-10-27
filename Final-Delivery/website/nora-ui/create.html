@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex,nofollow,noarchive"/>
 <link rel="preload" href="fonts/Vazirmatn-UI-FD-Regular.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="fonts/Estedad-Variable.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="stylesheet" href="glass.css?v=108"/>
+<link rel="stylesheet" href="glass.css?v=109"/>
 <style>
   .session-strip{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap;padding:var(--sp-2) var(--sp-3);margin:0 0 var(--sp-2h);border:.5px solid var(--hairline);border-radius:var(--r-md);background:var(--surface);font-size:var(--fs-sub)}
   .session-strip #ownerApiMessage{flex:1 1 240px;min-width:0;color:var(--ink-3)}
@@ -302,6 +302,7 @@
         <div class="head" style="margin-bottom:10px">مدل فرم</div>
         <div class="capability-box" id="modelCapabilitySummary" role="status" aria-live="polite">وضعیت مدل‌ها هنوز از API همین سامانه دریافت نشده است؛ امکانات نمایش‌داده‌شده را آمادهٔ انتشار فرض نکنید.</div>
         <div class="tiles" id="tiles"></div>
+        <div class="capability-box" id="modelEffects" role="status" aria-live="polite" hidden></div>
       </div>
 
       <div class="card paper" style="margin-top:12px">
@@ -355,14 +356,14 @@
             <div class="mnote">بارگذاری تصویر یا ویدیو برای فرم هنوز در سرور فراهم نیست؛ انتخاب رسانه فقط در پیش‌نمایش محلی دیده می‌شود و مانع انتشار است. جایگزین: توضیح متنی بالا.</div>
           </div>
 
-          <div class="plusline"><span class="line"></span><button id="addTop" aria-label="افزودن فیلد"><svg class="i"><use href="#i-plus"/></svg></button><span class="line"></span></div>
+          <div class="plusline"><span class="line"></span><button id="addTop" aria-label="افزودن پرسش در ابتدا"><svg class="i"><use href="#i-plus"/></svg></button><span class="line"></span></div>
           <p class="mnote" id="fieldReorderHelp">برای مرتب‌سازی، فیلد را بکشید یا از دکمه‌های «بالا» و «پایین» استفاده کنید؛ دکمه‌ها با صفحه‌کلید هم کار می‌کنند.</p>
           <div class="sr-only" id="fieldReorderStatus" role="status" aria-live="polite" aria-atomic="true"></div>
           <div class="blocks" id="fieldList" role="list" aria-label="پرسش‌های فرم"></div>
           <hr class="hr"/>
           <div class="row tight" style="margin-bottom:8px"><span class="cap">بسته‌های پیش‌فرض همین فرم</span></div>
           <div class="row tight" id="quickPacks"></div>
-          <div class="plusline" style="margin-top:10px"><span class="line"></span><button id="addBottom" aria-label="افزودن فیلد"><svg class="i"><use href="#i-plus"/></svg></button><span class="line"></span></div>
+          <div class="plusline" style="margin-top:10px"><span class="line"></span><button id="addBottom" aria-label="افزودن پرسش در انتها"><svg class="i"><use href="#i-plus"/></svg></button><span class="line"></span></div>
       </div>
     </section>
 
@@ -648,11 +649,11 @@
 </nav>
 <div class="scrim" id="scrim"></div>
 
-<aside class="sheet picker" id="shAdd" role="dialog" aria-label="افزودن فیلد">
+<aside class="sheet picker" id="shAdd" role="dialog" aria-label="افزودن پرسش">
   <div class="grabber"></div>
-  <div class="row"><span class="head">افزودن فیلد</span><span class="sp"></span><button class="icon-btn" data-close aria-label="بستن"><svg class="i"><use href="#i-close"/></svg></button></div>
+  <div class="row"><span class="head">افزودن پرسش</span><span class="sp"></span><button class="icon-btn" data-close aria-label="بستن"><svg class="i"><use href="#i-close"/></svg></button></div>
   <div class="row tight" style="margin:12px 0"><input class="input" id="catSearch" aria-label="جست‌وجوی نوع فیلد" style="flex:1;min-width:0" placeholder="جستجو؛ مثلاً شماره همراه، کد ملی، تاریخ تولد"/><button type="button" class="icon-btn" id="catClear" aria-label="پاک‌کردن جست‌وجو" hidden><svg class="i"><use href="#i-close"/></svg></button></div>
-  <div class="cap" style="margin-bottom:6px">اول نوع پاسخ را انتخاب کنید؛ تنظیم‌های همان نوع بعد از افزودن باز می‌شود.</div>
+  <div class="cap" style="margin-bottom:6px">نوع پاسخ را انتخاب کنید؛ تنظیم‌هایش بلافاصله باز می‌شود.</div>
   <div class="cap brand" id="catPositionNote" style="margin-bottom:6px" hidden></div>
   <div class="picker-body">
     <div class="row tight picker-cats" id="catChips" role="group" aria-label="دسته‌های فیلد" style="margin-bottom:6px;row-gap:6px"></div>
@@ -707,7 +708,7 @@
   <div class="row" style="margin-top:14px"><button class="btn primary" id="packSave"><svg class="i"><use href="#i-check"/></svg> ذخیرهٔ محلی</button><button class="btn quiet" data-close>انصراف</button></div>
 </aside>
 
-<aside class="sheet" id="shField" role="dialog" aria-label="تنظیمات فیلد" aria-describedby="fdIssues">
+<aside class="sheet editor" id="shField" role="dialog" aria-label="تنظیمات فیلد" aria-describedby="fdIssues">
   <div class="grabber"></div>
   <div class="row"><span class="head">تنظیمات فیلد</span><span class="sp"></span><button class="icon-btn" data-close aria-label="بستن بدون ذخیره"><svg class="i"><use href="#i-close"/></svg></button></div>
   <div class="fd-issues" id="fdIssues" role="alert" hidden></div>
@@ -789,7 +790,7 @@
       <h3 class="fd-h" id="fdSecScore">امتیازدهی نظرسنجی <span class="cap-tag local">فقط پیش‌نمایش محلی</span></h3>
       <div class="mnote" id="fdScoreServerNote">سرور امتیاز را محاسبه، ذخیره یا در گزارش پاسخ‌ها نشان نمی‌دهد؛ وزن و امتیاز گزینه‌ها فقط در پیش‌نمایش محلی همین صفحه به‌کار می‌رود.</div>
       <div class="row tight" style="margin-top:8px;flex-wrap:wrap">
-        <label class="fld"><span>وزن پرسش (۱ تا ۵)</span><input class="input num" id="fdWeight" type="number" min="1" max="5" value="۱"/></label>
+        <label class="fld"><span>وزن پرسش (۱ تا ۵)</span><input class="input num" id="fdWeight" type="number" min="1" max="5" value="1"/></label>
         <span class="sp"></span><span class="sub">وزن بیشتر، اثر پاسخ را بیشتر می‌کند.</span>
       </div>
       <div class="row"><span class="sub">در امتیاز کلی پیش‌نمایش محاسبه شود</span><span class="sp"></span><span class="switch on" id="fdScoreOn" role="switch" aria-label="در امتیاز کلی پیش‌نمایش محاسبه شود" aria-checked="true" tabindex="0"></span></div>
@@ -806,13 +807,13 @@
       <div class="mnote" id="fdColNote">خاموش: این پرسش در فایل CSV پاسخ‌ها (مجوز خروجی) نمی‌آید؛ در فهرست پاسخ‌های پنل همچنان دیده و ذخیره می‌شود.</div>
       <div>
         <div class="lbl">رسانهٔ همراه پرسش <span class="cap-tag unavailable">در دست ساخت</span></div>
-        <div class="row tight">
+        <div class="row tight" id="fdMediaChips" hidden>
           <button type="button" class="chip on" data-media="none">بدون</button>
           <button type="button" class="chip" data-media="image" disabled aria-disabled="true"><svg class="i"><use href="#i-image"/></svg> تصویر</button>
           <button type="button" class="chip" data-media="file" disabled aria-disabled="true"><svg class="i"><use href="#i-file-up"/></svg> فایل</button>
           <button type="button" class="chip" data-media="video" disabled aria-disabled="true"><svg class="i"><use href="#i-play"/></svg> ویدیو</button>
         </div>
-        <div class="mnote">بارگذاری تصویر/فایل/ویدیو برای پرسش در سرور فراهم نیست؛ تا راه‌اندازی، غیرفعال است.</div>
+        <div class="mnote" id="fdMediaNote0">بارگذاری تصویر/فایل/ویدیو برای پرسش در سرور فراهم نیست؛ تا راه‌اندازی، کنترلی برای آن نشان داده نمی‌شود.</div>
         <div id="fdMediaNoteBox" style="display:none;margin-top:8px"><label class="lbl" for="fdMediaNote">توضیح رسانهٔ قدیمی</label><input id="fdMediaNote" class="input" maxlength="160" placeholder="عنوان یا توضیح کوتاه؛ فایل واقعی پیوست نمی‌شود"/><div class="mnote">این پرسش از نسخهٔ قدیمی رسانه دارد؛ تا برداشتن آن («بدون») فرم منتشر نمی‌شود.</div></div>
       </div>
       <div id="fdTypeBox">
@@ -850,6 +851,27 @@ const MODELS=[
   {k:'order',ic:'i-bag',tn:'سفارش',d:'گردش سفارش و پرداخت آن هنوز در سرور ساخته نشده است؛ قابل انتشار نیست'},
   {k:'election',ic:'i-key',tn:'رأی‌گیری',d:'دریافت رأی با فرم؛ یکتا و محرمانه‌بودن رأی تضمین نمی‌شود'}
 ];
+/* اثر انتخاب هر مدل در همین صفحه و سرور (از کد و قرارداد: form_capabilities + responses)؛ پیش از ساخت فرم دیده می‌شود.
+   هر مدل: on = چه چیزی واقعاً فعال است، off = چه چیزی در این مدل نیست یا ساخته نشده، path = چه چیزی در گام‌های بعد تغییر می‌کند */
+const MODEL_EFFECTS={
+  registration:{on:['ظرفیت، صف انتظار، همراهان، بلیت و فیش/پرداخت سروری در گام «تنظیمات و رفتار»','اتصال به رویداد برای دکمهٔ ثبت‌نام در صفحهٔ رویداد'],off:['نمره، رتبه یا رأی‌شماری ندارد'],path:'گام ۳ بخش‌های همراهان، بلیت و پرداخت را نشان می‌دهد.'},
+  questionnaire:{on:['دریافت و ذخیرهٔ پاسخ، خروجی CSV، شرط نمایش و همهٔ نوع‌های قابل‌افزودن'],off:['همراهان، بلیت و پرداخت','تحلیل تخصصی پاسخ‌ها ساخته نشده است'],path:'گام ۳ بخش‌های ثبت‌نامی (همراهان/بلیت/پرداخت) را پنهان می‌کند.'},
+  survey:{on:['دریافت و ذخیرهٔ پاسخ، خروجی CSV، شرط نمایش'],off:['همراهان، بلیت و پرداخت','امتیاز گزینه‌ها فقط در پیش‌نمایش محلی حساب می‌شود؛ سرور امتیاز ذخیره نمی‌کند','ناشناس‌بودن پاسخ تضمین نمی‌شود'],path:'بخش «امتیازدهی نظرسنجی» در ویرایشگر پرسش‌های انتخابی باز می‌شود (فقط پیش‌نمایش محلی).'},
+  contest:{on:['دریافت و ذخیرهٔ پاسخ مثل پرسشنامه'],off:['همراهان، بلیت و پرداخت','رتبه‌بندی، داوری و قرعه‌کشی ساخته نشده است'],path:'هیچ تنظیم اختصاصی مسابقه در گام‌های بعد نیست.'},
+  exam:{on:['دریافت و ذخیرهٔ پاسخ مثل پرسشنامه'],off:['همراهان، بلیت و پرداخت','کلید پاسخ، نمره‌دهی سروری و زمان‌سنجی ساخته نشده است'],path:'هیچ تنظیم اختصاصی آزمون در گام‌های بعد نیست؛ نتیجه‌ای به پاسخ‌دهنده نشان داده نمی‌شود.'},
+  attendance:{on:['دریافت اعلام حضور به‌شکل پاسخ فرم'],off:['همراهان، بلیت و پرداخت','حضور واقعی و یکتایی هر نفر تأیید نمی‌شود؛ حضور رسمی از پروندهٔ رویداد در پنل ثبت می‌شود'],path:'هیچ تنظیم اختصاصی حضور در گام‌های بعد نیست.'},
+  datacollect:{on:['دریافت و ذخیرهٔ اطلاعات، خروجی CSV، شرط نمایش'],off:['همراهان، بلیت و پرداخت'],path:'گام ۳ فقط تنظیم‌های عمومی را نشان می‌دهد.'},
+  order:{on:[],off:['گردش سفارش، سبد و پرداخت در سرور ساخته نشده است'],path:'این مدل قابل انتشار نیست؛ برای فروش محتوای ضبط‌شده از فرم خرید (مدل ثبت‌نام) استفاده کنید.'},
+  election:{on:['دریافت رأی به‌شکل پاسخ فرم'],off:['همراهان، بلیت و پرداخت','یکتایی و محرمانه‌بودن رأی و شمارش رسمی تضمین نمی‌شود'],path:'هیچ تنظیم اختصاصی رأی‌گیری در گام‌های بعد نیست.'}
+};
+function renderModelEffects(){
+  const box=document.getElementById('modelEffects'); if(!box)return;
+  const m=MODELS.find(x=>x.k===S.model), fx=MODEL_EFFECTS[S.model]; if(!m||!fx){box.hidden=true;return}
+  const li=(items,cls)=>items.map(t=>`<li class="${cls}">${esc(t)}</li>`).join('');
+  box.hidden=false;
+  box.innerHTML=`<div class="row tight" style="flex-wrap:wrap;gap:6px 10px"><b class="sub">با انتخاب «${esc(m.tn)}»</b><span class="cap">فیلدهای قابل‌افزودن در همهٔ مدل‌ها یکسان‌اند</span></div>
+    <ul class="model-fx">${li(fx.on,'on')}${li(fx.off,'off')}</ul><div class="cap" style="margin-top:4px">${esc(fx.path)}</div>`;
+}
 let FORM_CAPABILITIES=null, FORM_CAPABILITY_STATE='checking', FORM_CAPABILITY_PROMISE=null;
 function modelCapability(model){
   const rows=FORM_CAPABILITIES&&Array.isArray(FORM_CAPABILITIES.models)?FORM_CAPABILITIES.models:[];
@@ -924,8 +946,8 @@ const categoryName=id=>(FIELD_CATEGORIES.find(c=>c.id===id)||{n:String(id||'')})
 const FIELD_TYPES={
   text:{n:'متن کوتاه',ic:'i-text',g:'text',ans:'متن یک‌خطی',ctl:['placeholder'],tags:'نوشتاری,یک خطی,پاسخ کوتاه,اسم,عنوان,نام مستعار',ex:'نام مستعار شما؟'},
   area:{n:'متن بلند',ic:'i-lines',g:'text',ans:'متن چندخطی',ctl:['placeholder'],tags:'نوشتاری,توضیح,چند خطی,پاراگراف,نظر,پیشنهاد,انتقاد,شرح',ex:'توضیح بدهید چرا…'},
-  number:{n:'عدد',ic:'i-number',g:'number',ans:'عدد',ctl:['placeholder','bounds'],tags:'عددی,رقم,تعداد,سن,مقدار,شمارش',ex:'چند نفر می‌آیید؟'},
-  amount:{n:'مبلغ',ic:'i-wallet',g:'number',ans:'عدد (تومان)',ctl:['placeholder','bounds'],tags:'پول,تومان,ریال,هزینه,قیمت,مبلغ پیشنهادی,کمک مالی',ex:'مبلغ پیشنهادی شما؟'},
+  number:{n:'عدد',ic:'i-number',g:'number',ans:'عدد',ctl:['placeholder','bounds'],tags:'عددی,رقم,تعداد,سن,مقدار,شمارش,عدد صحیح,اعشاری,کمیت',ex:'چند نفر می‌آیید؟'},
+  amount:{n:'مبلغ',ic:'i-wallet',g:'number',ans:'عدد (تومان)',ctl:['placeholder','bounds'],tags:'پول,تومان,ریال,هزینه,قیمت,مبلغ پیشنهادی,کمک مالی,عدد صحیح',ex:'مبلغ پیشنهادی شما؟'},
   choice:{n:'تک‌انتخاب',ic:'i-radio',g:'choice',ans:'یک گزینه',ctl:['options'],opts:1,tags:'رادیو,یکی از,انتخاب یک گزینه,چندگزینه ای,تست,گزینه',ex:'کدام روز مناسب‌تر است؟'},
   multi:{n:'چندانتخاب',ic:'i-checkbox',g:'choice',ans:'چند گزینه',ctl:['options','multiLimits'],opts:1,tags:'چک باکس,تیک,چند گزینه,چند مورد,انتخاب چند مورد,علاقه مندی,چندتایی',ex:'به کدام موضوع‌ها علاقه دارید؟'},
   dropdown:{n:'فهرست کشویی',ic:'i-chev-down',g:'choice',ans:'یک گزینه از فهرست',ctl:['options'],opts:1,tags:'کشویی,لیست,منو,سلکت,انتخاب از فهرست',ex:'شهر محل سکونت؟'},
@@ -1100,7 +1122,10 @@ const FIELD_SETTINGS=[
   {id:'csvColumn',keys:['col'],box:null,common:true,cap:'csv_column',
     render:f=>setSwitch('fdCol',f.col!==false),apply:f=>{f.col=switchOn('fdCol')},dirty:f=>switchOn('fdCol')!==(f.col!==false)},
   {id:'media',keys:['media','mediaNote'],box:null,common:true,cap:'media',
-    render:f=>{$$('#shField [data-media]').forEach(ch=>ch.classList.toggle('on',(f.media||'none')===ch.dataset.media));$('#fdMediaNoteBox').style.display=f.media&&f.media!=='none'?'':'none';$('#fdMediaNote').value=f.mediaNote||''},
+    render:f=>{const legacy=!!(f.media&&f.media!=='none');$$('#shField [data-media]').forEach(ch=>ch.classList.toggle('on',(f.media||'none')===ch.dataset.media));
+      /* چیپ‌ها فقط وقتی مقدار قدیمی باید پاک شود دیده می‌شوند (دکمهٔ «بدون» مقصد پرش readiness است)؛ در حالت عادی کنترلِ بی‌اثر نشان داده نمی‌شود */
+      const chips=$('#fdMediaChips');if(chips)chips.hidden=!legacy;const n0=$('#fdMediaNote0');if(n0)n0.textContent=legacy?'این پرسش از نسخهٔ قدیمی رسانه دارد؛ سرور آن را بارگذاری نمی‌کند و تا پاک‌شدن («بدون»)، فرم منتشر نمی‌شود.':'بارگذاری تصویر/فایل/ویدیو برای پرسش در سرور فراهم نیست؛ تا راه‌اندازی، کنترلی برای آن نشان داده نمی‌شود.';
+      $('#fdMediaNoteBox').style.display=legacy?'':'none';$('#fdMediaNote').value=f.mediaNote||''},
     validate:()=>textLimitIssue('fdMediaNote',160,'توضیح رسانه'),
     apply:f=>{f.mediaNote=$('#fdMediaNote').value.trim().slice(0,160);const m=$('#shField [data-media].on');f.media=m?m.dataset.media:'none'}},
   {id:'typeChange',keys:['t','preset'],box:'#fdTypeBox',display:'',cap:null,when:(t,f)=>typeChangeChoices(t,f&&f.preset).length>0,
@@ -1751,6 +1776,7 @@ function renderTiles(){
       <div class="h"><span class="ic"><svg class="i lg"><use href="#${m.ic}"/></svg></span><b>${m.tn}</b>${capability?capabilityTag(capability.status,capability.reason):''}</div>
       <div class="d">${esc(m.d)}</div></button>`;
   }).join('');
+  renderModelEffects();
   const summary=document.getElementById('modelCapabilitySummary');
   if(summary){
     const live=FORM_CAPABILITIES&&FORM_CAPABILITIES.api_configured===true;
@@ -2251,31 +2277,53 @@ function catalogRow(c){
   const support=fieldSupport(c.t), capReached=S.fields.length>=MAX_FIELDS, blocked=!support.addable||capReached;
   const reason=capReached?'سقف '+faN(MAX_FIELDS)+' فیلد پر شده است؛ برای افزودن، یک فیلد را حذف کنید.':
     !support.addable?(support.reason||capabilityLabel(support.status)):(support.status!=='server'?support.reason:'');
-  return `<button type="button" class="cat-item" data-add="${esc(c.k)}" data-type="${esc(c.t)}" ${blocked?'disabled aria-disabled="true"':''} aria-label="${esc((blocked?'غیرقابل‌افزودن: ':'افزودن ')+c.n)}">
+  /* کارت: نام + (برچسب وضعیت فقط وقتی چیزی جز «پشتیبانی سروری» است) / یک خط راهنما / نوع پاسخ و مثال / دلیل محدودیت کنار همان گزینه */
+  const tag=support.status==='server'?'':capabilityTag(support.status,support.reason);
+  const help=c.help||STRUCT[c.t]||'';
+  return `<button type="button" class="cat-item${blocked?' is-blocked':''}" data-add="${esc(c.k)}" data-type="${esc(c.t)}" ${blocked?'disabled aria-disabled="true"':''} aria-label="${esc((blocked?'غیرقابل‌افزودن: ':'افزودن ')+c.n)}">
       <span class="ic"><svg class="i"><use href="#${c.ic}"/></svg></span>
-      <span style="flex:1;min-width:0;text-align:start">
-        <span class="nm">${esc(c.n)}</span> <span class="cap">· پاسخ: ${esc(c.ans)}</span>${capabilityTag(support.status,support.reason)}
-        <br><span class="hint">${esc(STRUCT[c.t]||'')}${c.ex&&c.ex!=='—'?' · مثال: «'+esc(c.ex)+'»':''}</span>
-        ${reason?`<br><span class="hint ${blocked?'warn':''}" style="color:${blocked?'var(--warn)':'var(--ink-3)'}">${esc(reason)}</span>`:''}
+      <span class="cat-body">
+        <span class="row tight" style="flex-wrap:wrap;gap:4px 8px"><span class="nm">${esc(c.n)}</span>${tag}</span>
+        ${help?`<span class="hint">${esc(help)}</span>`:''}
+        <span class="hint meta">پاسخ: ${esc(c.ans)}${c.ex&&c.ex!=='—'?' · مثال: «'+esc(c.ex)+'»':''}</span>
+        ${reason?`<span class="hint ${blocked?'warn':''}">${esc(reason)}</span>`:''}
       </span>
-      ${blocked?'<span class="tag warn">غیرفعال</span>':'<span class="tag quiet">افزودن</span>'}</button>`;
+      ${blocked?'<span class="tag warn">غیرفعال</span>':'<span class="tag quiet cat-add">افزودن</span>'}</button>`;
 }
+/* عبارت‌هایی که «تنظیم» هستند نه «نوع فیلد»؛ جست‌وجو به‌جای نتیجهٔ خالی، مسیر درست را نشان می‌دهد */
+const SETTING_SEARCH_HINTS=[
+  {re:/صحیح|اعشار/,n:'«فقط عدد صحیح» یک تنظیم است، نه نوع فیلد: «عدد» یا «مبلغ» را بیفزایید و در بخش «اعتبارسنجی و محدودیت» روشنش کنید.',types:['number','amount']},
+  {re:/حداقل|حداکثر|بازه|محدوده/,n:'حداقل/حداکثر در ویرایشگر همان فیلد تنظیم می‌شود: عدد و مبلغ (مقدار)، متن (شمار نویسه)، چندانتخاب (تعداد انتخاب)، ستاره و بازه (دامنه).',types:['number','amount','text','area','multi','rating','scale','bars']},
+  {re:/اجباری|الزامی|ضروری/,n:'«اجباری» تنظیم هر فیلد است؛ هر نوعی را بیفزایید و در بخش «اصلی» کلید اجباری را روشن کنید.',types:[]},
+  {re:/شرط|شرطی|وابسته|نمایش شرطی/,n:'شرط نمایش در بخش «نمایش و رفتار» ویرایشگر هر فیلد تعریف می‌شود و به پرسش‌های قبلی ارجاع می‌دهد.',types:[]},
+  {re:/^(طول|نویسه|کاراکتر)/,n:'حداقل/حداکثر نویسه تنظیمِ فیلدهای متنی است: «متن کوتاه» یا «متن بلند» را بیفزایید.',types:['text','area']},
+  {re:/پیش ?فرض/,n:'گزینهٔ پیش‌فرض برای پاسخ‌دهنده در این نسخه پیاده‌سازی نشده است (فهرست شکاف‌ها).',types:[]},
+  {re:/زمان ?بندی|مهلت|تاریخ شروع|تاریخ پایان/,n:'زمان‌بندی باز/بسته‌شدن فرم در سرور پیاده‌سازی نشده است؛ این یک نوع فیلد نیست.',types:[]}];
+function settingSearchHint(q){const nq=normFa(q); if(!nq)return null; return SETTING_SEARCH_HINTS.find(h=>h.re.test(nq))||null}
 function renderCatalog(){
   const search=$('#catSearch'), list=$('#catList'); if(!list)return;
   const q=(search&&search.value||'').trim();
   renderCatalogChips();
-  const items=catalogSearch(q,catGroup);
+  const hint=settingSearchHint(q);
+  let items=catalogSearch(q,catGroup);
+  /* اگر عبارت، نام یک تنظیم است و نتیجهٔ مستقیمی ندارد، نوع‌های میزبان همان تنظیم نشان داده می‌شوند */
+  if(hint&&!items.length&&hint.types.length)items=CATALOG.filter(c=>!c.hidden&&hint.types.includes(c.k)&&(catGroup==='all'||c.g===catGroup));
   let html='',last='';
+  if(hint)html+=`<div class="mnote" id="catSettingHint" role="note" style="margin:0 0 8px">${esc(hint.n)}</div>`;
   if(items.length){
     html+=`<div class="row tight" style="margin:4px 0 6px"><span class="cap" id="catCount" role="status" aria-live="polite">${faN(items.length)} ${q?'نتیجه برای «'+esc(q)+'»':'نوع فیلد'}</span>`+
       (S.fields.length>=MAX_FIELDS?`<span class="sp"></span><span class="tag warn">سقف ${faN(MAX_FIELDS)} فیلد پر است</span>`:'')+`</div>`;
+    /* هر دسته: عنوان + فهرست کارت‌ها */
+    let open=false;
     items.forEach(c=>{
       const g=q?'':c.g;
-      if(g!==last&&catGroup==='all'&&!q){html+=`<div class="cat-group">${esc(categoryName(c.g))}${c.g==='future'?' <span class="cap">· در فرم عمومی سرور اجرا نمی‌شود</span>':''}</div>`;last=g}
+      if(g!==last&&catGroup==='all'&&!q){if(open)html+='</div>';html+=`<div class="cat-group">${esc(categoryName(c.g))}${c.g==='future'?' <span class="cap">· در فرم عمومی سرور اجرا نمی‌شود</span>':''}</div><div class="cat-list-grid">`;open=true;last=g}
+      else if(!open){html+='<div class="cat-list-grid">';open=true}
       html+=catalogRow(c);
     });
+    if(open)html+='</div>';
   }else{
-    html=`<div class="empty"><div class="body">چیزی با «${esc(q)}» پیدا نشد</div><div class="cap" style="margin-top:4px">با واژهٔ ساده‌تر بگردید (مثل «شماره»، «تاریخ»، «انتخاب») یا دستهٔ «همه» را ببینید.</div>
+    html+=`<div class="empty"><div class="body">چیزی با «${esc(q)}» پیدا نشد</div><div class="cap" style="margin-top:4px">با واژهٔ ساده‌تر بگردید (مثل «شماره»، «تاریخ»، «انتخاب») یا دستهٔ «همه» را ببینید.</div>
       <div class="row tight" style="justify-content:center;margin-top:10px"><button type="button" class="btn sm quiet" data-cat-reset>نمایش همهٔ انواع</button></div></div>`;
   }
   list.innerHTML=html;
@@ -2521,6 +2569,16 @@ function editField(id){
   openSheet('shField');
   const title=$('#fdTitle'); if(title&&!TEST_FIXTURE_MODE)setTimeout(()=>{try{title.focus({preventScroll:true})}catch(e){}},0);
 }
+/* خطای ذخیرهٔ ویرایشگر کنار همان کنترل: aria-invalid + یک خط خطا زیر کنترل؛ با تغییر بعدی همان کنترل پاک می‌شود */
+function clearFieldEditorError(){const old=$('#fdInlineError');if(old)old.remove();$$('#shField [aria-invalid="true"]').forEach(el=>{el.removeAttribute('aria-invalid');el.removeAttribute('aria-describedby')})}
+function markFieldEditorError(target,message){
+  clearFieldEditorError(); if(!target||!target.parentNode)return;
+  const err=document.createElement('div');err.id='fdInlineError';err.className='field-error';err.setAttribute('role','alert');err.textContent=message;
+  const host=target.closest('.fld,.g2>div,#fdOptions .fd-opt')||target;
+  host.insertAdjacentElement('afterend',err);
+  if(/^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName)){target.setAttribute('aria-invalid','true');target.setAttribute('aria-describedby','fdInlineError');
+    target.addEventListener('input',()=>{if(target.getAttribute('aria-invalid')==='true')clearFieldEditorError()},{once:true})}
+}
 function setFieldIssues(list){
   const box=$('#fdIssues'); if(!box)return;
   box.hidden=!list.length; box.innerHTML=list.length?'<ul>'+list.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>':'';
@@ -2560,6 +2618,7 @@ function renderProfileControl(f){
     :support.reason;
 }
 function renderFieldEditor(){
+  clearFieldEditorError();
   const f=FIELD_DRAFT; if(!f)return;
   const c=byT(f.t), d=typeOf(f.t), support=fieldSupport(f.t), issues=fieldIssues(f);
   $('#fdType').textContent=c.n; $('#fdStruct').textContent=STRUCT[f.t]||(d.legacy?'نوع ناشناخته':'—');
@@ -2666,10 +2725,12 @@ function saveField(){
   for(const def of FIELD_SETTINGS){
     if(!def.validate||!settingVisible(def,t,draft))continue;
     const issue=def.validate(draft); if(!issue)continue;
-    toast(issue.message); setFieldIssues([issue.message+'.']);
-    const target=typeof issue.target==='string'?$(issue.target):issue.target; if(target&&target.focus)target.focus();
+    toast(issue.message,'warn'); setFieldIssues([issue.message+'.']);
+    const target=typeof issue.target==='string'?$(issue.target):issue.target;
+    markFieldEditorError(target,issue.message); if(target&&target.focus)target.focus();
     return false;
   }
+  clearFieldEditorError();
   /* ۲) نوشتن کنترل‌ها در پیش‌نویس (تنظیم‌های پنهان برای این نوع پاک می‌شوند) */
   FIELD_SETTINGS.forEach(def=>{if(settingVisible(def,t,draft)){if(def.apply)def.apply(draft)}else if(def.clear)def.clear(draft)});
   let typeChanged=false; try{typeChanged=JSON.parse(FIELD_ORIGINAL||'{}').t!==f.t}catch(e){}
