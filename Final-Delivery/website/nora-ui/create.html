@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex,nofollow,noarchive"/>
 <link rel="preload" href="fonts/Vazirmatn-UI-FD-Regular.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="fonts/Estedad-Variable.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="stylesheet" href="glass.css?v=111"/>
+<link rel="stylesheet" href="glass.css?v=112"/>
 <style>
   .session-strip{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap;padding:var(--sp-2) var(--sp-3);margin:0 0 var(--sp-2h);border:.5px solid var(--hairline);border-radius:var(--r-md);background:var(--surface);font-size:var(--fs-sub)}
   .session-strip #ownerApiMessage{flex:1 1 240px;min-width:0;color:var(--ink-3)}
@@ -27,7 +27,20 @@
   #s3 .stack>.card{padding:var(--sp-4)}
   #s3 .sec-head h3{font-size:var(--fs-head)}
   /* ردیف پرسش: فشرده، اقدام اصلی برچسب‌دار، بقیه در «بیشتر» */
-  .block{padding:var(--sp-2h) var(--sp-3);box-shadow:none;align-items:center;gap:var(--sp-2)}
+  .block{padding:var(--sp-2h) var(--sp-3);box-shadow:none;align-items:center;gap:var(--sp-2);flex-wrap:wrap}
+  .block .body{flex:1 1 200px}
+  .block-dock{flex:1 1 100%;min-width:100%}
+  .block-dock:empty{display:none}
+  .block.is-editing{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-tint)}
+  .block .qact .btn.on{background:var(--brand-tint);color:var(--brand-ink)}
+  /* سوییچ «اجباری» روی کارت: همان مقدار f.req ویرایشگر؛ نقطهٔ قرمز فقط وقتی روشن است */
+  .req-toggle{display:inline-flex;align-items:center;gap:5px;min-height:32px;padding:4px 10px;border:.5px solid var(--hairline);border-radius:var(--r-pill);background:var(--surface);font:inherit;font-size:var(--fs-cap);color:var(--ink-3);cursor:pointer;white-space:nowrap}
+  .req-toggle .required-dot{opacity:.3}
+  .req-toggle.on{border-color:var(--req);color:var(--ink-1);background:var(--surface-sunk)}
+  .req-toggle.on .required-dot{opacity:1}
+  .req-toggle:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+  /* ویرایشگر لنگرشده داخل کارت: نوار ذخیره تا لبهٔ کارت کشیده می‌شود و چسبان به پایین صفحه می‌ماند */
+  .sheet.docked .fd-foot{margin:0 calc(-1 * var(--sp-3)) calc(-1 * var(--sp-2h));padding:10px var(--sp-3);bottom:0;border-radius:0 0 var(--r-lg) var(--r-lg)}
   .block:hover{box-shadow:none;border-color:var(--ink-4)}
   .block .qline{font-size:var(--fs-body)}
   .block .qmeta{display:flex;gap:var(--sp-1h);flex-wrap:wrap;align-items:center;margin-top:2px;font-size:var(--fs-cap);color:var(--ink-3)}
@@ -42,7 +55,7 @@
   details.rowmore .menu button:hover{background:var(--surface-sunk)}
   details.rowmore .menu button:disabled{opacity:.45;cursor:not-allowed}
   details.rowmore .menu button.stop{color:var(--stop)}
-  @media (max-width:560px){.block{flex-wrap:wrap}.block .qact{width:100%;justify-content:flex-end;border-top:.5px solid var(--hairline);padding-top:var(--sp-1h)}}
+  @media (max-width:560px){.block .qact{width:100%;justify-content:flex-end;border-top:.5px solid var(--hairline);padding-top:var(--sp-1h)}}
   .stepper4{display:flex;gap:var(--sp-1);padding:5px}
   .stepper4 button{flex:1;border:0;background:none;display:flex;align-items:center;justify-content:center;gap:var(--sp-2);
     padding:9px 6px;border-radius:var(--r-pill);font-size:var(--fs-sub);color:var(--ink-3);cursor:pointer;white-space:nowrap}
@@ -712,7 +725,7 @@
 
 <aside class="sheet editor" id="shField" role="dialog" aria-label="تنظیمات فیلد" aria-describedby="fdIssues">
   <div class="grabber"></div>
-  <div class="row"><span class="head">تنظیمات فیلد</span><span class="sp"></span><button class="icon-btn" data-close aria-label="بستن بدون ذخیره"><svg class="i"><use href="#i-close"/></svg></button></div>
+  <div class="row"><span class="head" id="fdHead">تنظیمات فیلد</span><span class="sp"></span><button class="icon-btn" data-close aria-label="بستن بدون ذخیره"><svg class="i"><use href="#i-close"/></svg></button></div>
   <div class="fd-issues" id="fdIssues" role="alert" hidden></div>
   <div class="fd-discard" id="fdDiscardBar" hidden>
     <span class="sub">تغییرات این فیلد ذخیره نشده است.</span>
@@ -837,7 +850,7 @@
 <div class="toast" id="toast"><svg class="i"><use href="#i-check"/></svg> ذخیره شد</div>
 
 <script>if(window.__NORA_TEST_FIXTURE_MODE__===true)document.write('<script src="data.js?v=99"><\/script>');</script>
-<script src="ui.js?v=133"></script>
+<script src="ui.js?v=134"></script>
 <script src="owner-api.js?v=131"></script>
 <script>
 /* ══ داده ══ */
@@ -1806,15 +1819,14 @@ function fieldBlock(f,index){
   const position=Math.max(0,+index||0)+1,total=(S.fields||[]).length;
   const meta=[`<span><svg class="i" style="width:14px;height:14px"><use href="#${c.ic}"/></svg> ${esc(c.n)}${preset&&preset.n!==c.n?' · الگوی «'+esc(preset.n)+'»':''}</span>`,
     issues.length?'<span class="warn">نیاز به اصلاح پیش از انتشار</span>':'',
-    f.req?'<span>اجباری</span>':'',
     hasConditionRules(f)?'<span class="brand">شرطی · '+faN(conditionRulesForField(f).length)+' قاعده</span>':'',
-    f.help?'<span>راهنما دارد</span>':'',
     f.media&&f.media!=='none'?'<span class="warn">رسانه فقط در پیش‌نمایش</span>':'',
     f.verify?'<span class="warn">درخواست بررسی فقط در پیش‌نمایش</span>':'',
     f.col===false?'<span>بدون ستون CSV</span>':'',
     ...fieldSettingsSummary(f).map(x=>'<span>'+esc(x)+'</span>'),
     supportTag].filter(Boolean).join('<span aria-hidden="true">·</span>');
-  return `<article class="block" data-block="${esc(f.id)}" role="listitem" aria-posinset="${position}" aria-setsize="${total}">
+  const docked=String(editing)===String(f.id)&&$('#shField')&&$('#shField').classList.contains('docked');
+  return `<article class="block${docked?' is-editing':''}" data-block="${esc(f.id)}" role="listitem" aria-posinset="${position}" aria-setsize="${total}">
     ${f.req?'<span class="reqbar"></span>':''}
     <button type="button" class="handle" data-drag-handle="${esc(f.id)}" draggable="true" aria-label="دستهٔ جابه‌جایی پرسش «${esc(f.l)}»؛ با کلیدهای بالا و پایین مرتب کنید" aria-describedby="fieldReorderHelp" aria-keyshortcuts="ArrowUp ArrowDown"><svg class="i"><use href="#i-drag"/></svg></button>
     <div class="body">
@@ -1822,18 +1834,21 @@ function fieldBlock(f,index){
       <div class="qmeta">${meta}</div>
     </div>
     <div class="qact">
-      <button type="button" class="btn sm quiet" data-edit="${esc(f.id)}" aria-label="ویرایش پرسش «${esc(f.l)}»"><svg class="i"><use href="#i-sliders"/></svg> ویرایش</button>
+      <button type="button" class="req-toggle${f.req?' on':''}" data-req-toggle="${esc(f.id)}" role="switch" aria-checked="${f.req?'true':'false'}" aria-label="اجباری بودن پرسش «${esc(f.l)}»"><span class="required-dot" aria-hidden="true"></span>${f.req?'اجباری':'اختیاری'}</button>
+      <button type="button" class="btn sm quiet${docked?' on':''}" data-edit="${esc(f.id)}" aria-label="${docked?'در حال ویرایش پرسش':'ویرایش پرسش'} «${esc(f.l)}»" ${docked?'aria-pressed="true"':''}><svg class="i"><use href="#i-sliders"/></svg> ${docked?'در حال ویرایش':'ویرایش'}</button>
       <details class="rowmore">
         <summary class="btn sm quiet" aria-label="گزینه‌های بیشتر برای پرسش «${esc(f.l)}»"><svg class="i"><use href="#i-more"/></svg></summary>
         <div class="menu" role="menu">
           <button type="button" role="menuitem" data-up="${esc(f.id)}" aria-label="انتقال پرسش «${esc(f.l)}» به بالا" ${position<=1?'disabled':''}><svg class="i"><use href="#i-upload"/></svg> انتقال به بالا</button>
           <button type="button" role="menuitem" data-down="${esc(f.id)}" aria-label="انتقال پرسش «${esc(f.l)}» به پایین" ${position>=total?'disabled':''}><svg class="i"><use href="#i-download"/></svg> انتقال به پایین</button>
           <button type="button" role="menuitem" data-add-after="${esc(f.id)}" aria-label="افزودن پرسش تازه پس از «${esc(f.l)}»"><svg class="i"><use href="#i-plus"/></svg> افزودن پرسش پس از این</button>
+          <button type="button" role="menuitem" data-edit-cond="${esc(f.id)}" aria-label="شرط نمایش پرسش «${esc(f.l)}»"><svg class="i"><use href="#i-sliders"/></svg> شرط نمایش${hasConditionRules(f)?' · '+faN(conditionRulesForField(f).length)+' قاعده':''}</button>
           <button type="button" role="menuitem" data-copy="${esc(f.id)}" aria-label="کپی پرسش «${esc(f.l)}»"><svg class="i"><use href="#i-copy"/></svg> کپی پرسش</button>
           <button type="button" role="menuitem" class="stop" data-del="${esc(f.id)}" aria-label="حذف پرسش «${esc(f.l)}»"><svg class="i"><use href="#i-trash"/></svg> حذف پرسش</button>
         </div>
       </details>
-    </div></article>`;
+    </div>
+    <div class="block-dock"></div></article>`;
 }
 /* خلاصهٔ کوتاه تنظیم‌های مهم هر پرسش روی بوم (پس از ذخیره) */
 function fieldSettingsSummary(f){
@@ -1898,13 +1913,47 @@ function normalizeFieldConditions(){
 function renderCanvas(){
   $('#hdTitle').textContent=S.title;
   const fieldCount=$('#fieldCountNote'); if(fieldCount) fieldCount.textContent=faN(S.fields.length)+' فیلد';
+  /* ویرایشگر لنگرشده داخل کارت: پیش از بازسازی فهرست بیرون می‌آید و بعد به همان کارت برمی‌گردد (حالت ورودی‌ها حفظ می‌شود) */
+  const sh=$('#shField'), list=$('#fieldList'), inList=!!(sh&&list&&list.contains(sh));
+  if(inList){const home=editorSheetHome(sh);home.parentNode.insertBefore(sh,home)}
   $('#fieldList').innerHTML=S.fields.length?S.fields.map(fieldBlock).join('')
     :`<div class="empty"><svg class="i lg"><use href="#i-plus"/></svg><div class="body" style="margin-top:8px">هنوز فیلدی نچیده‌اید</div><div class="cap">از بعلاوهٔ بالا یا بسته‌های زیر شروع کنید</div></div>`;
   $('#quickPacks').innerHTML=PACKS.map(p=>`<button type="button" class="chip" data-quick="${esc(p.id)}"><svg class="i"><use href="#i-doc"/></svg> ${esc(p.n)} · ${faN(p.f.length)} فیلد</button>`).join('')
     +SAVED_PACKS.map(p=>`<button type="button" class="chip" data-quick="saved:${esc(p.id)}"><svg class="i"><use href="#i-copy"/></svg> ${esc(p.name)} · ${faN(p.fields.length)} فیلد</button>`).join('')
     +`<button type="button" class="chip" data-quick="empty"><svg class="i"><use href="#i-plus"/></svg> خالی</button>`
     +`<button type="button" class="chip" data-quick="save"><svg class="i"><use href="#i-copy"/></svg> ذخیره به‌عنوان بستهٔ محلی</button>`;
+  if(inList){if(!(sh.classList.contains('on')&&sh.classList.contains('docked')&&dockEditor(editing)))undockEditor()}
 }
+/* ══ ویرایشگر لنگرشده: روی دسکتاپ (≥900px) ورقهٔ ویرایش زیر همان کارت پرسش می‌نشیند؛ بدون پردهٔ مودال و بدون تلهٔ Tab،
+   تا کاربر همیشه ببیند کدام پرسش را ویرایش می‌کند. روی موبایل همان ورقهٔ پایین می‌ماند. منطق ذخیره/انصراف/اعتبارسنجی یکی است. ══ */
+function editorDocks(){try{return typeof window.matchMedia==='function'&&!!window.matchMedia('(min-width:900px)').matches}catch(e){return false}}
+function editorSheetHome(sh){if(!sh.__home){sh.__home=document.createComment('shField');sh.parentNode.insertBefore(sh.__home,sh)}return sh.__home}
+function dockEditor(id){
+  const sh=$('#shField'), slot=document.querySelector('.block[data-block="'+String(id)+'"] .block-dock'); if(!sh||!slot)return false;
+  editorSheetHome(sh); slot.appendChild(sh); sh.classList.add('docked'); editingCardState(slot.closest('.block'),true); return true;
+}
+/* نشان «در حال ویرایش» روی همان کارت (کلاس، دکمهٔ ویرایش فشرده) */
+function editingCardState(blk,on){
+  if(!blk)return; blk.classList.toggle('is-editing',!!on);
+  const ed=blk.querySelector('[data-edit]'); if(!ed)return; ed.classList.toggle('on',!!on);
+  if(on)ed.setAttribute('aria-pressed','true'); else ed.removeAttribute('aria-pressed');
+  ed.lastChild.textContent=on?' در حال ویرایش':' ویرایش';
+  const l=ed.getAttribute('aria-label')||''; ed.setAttribute('aria-label',(on?'در حال ویرایش پرسش':'ویرایش پرسش')+l.slice(l.indexOf(' «')));
+}
+function undockEditor(){
+  const sh=$('#shField'); if(!sh||!sh.classList.contains('docked'))return;
+  sh.classList.remove('docked'); const home=sh.__home; if(home&&home.parentNode)home.parentNode.insertBefore(sh,home);
+  $$('.block.is-editing').forEach(b=>editingCardState(b,false));
+}
+/* بسته‌شدن ویرایشگر از هر مسیری (X، Escape، ذخیره، ورقهٔ دیگر) → بازگشت ورقه به جای اصلی؛ در حالت لنگرشده aria-modal و پرده خاموش می‌مانند */
+(()=>{const sh=document.getElementById('shField'); if(!sh)return;
+  new MutationObserver(()=>{
+    if(!sh.classList.contains('docked'))return;
+    if(!sh.classList.contains('on')){undockEditor();return}
+    if(sh.getAttribute('aria-modal')!=='false')sh.setAttribute('aria-modal','false');
+    const sc=document.getElementById('scrim'); if(sc&&sc.classList.contains('on'))sc.classList.remove('on');
+  }).observe(sh,{attributes:true,attributeFilter:['class','aria-modal']});
+})();
 /* گروه انتخاب: چند قطعهٔ مالی که کاربر از میان‌شان یکی را برمی‌دارد */
 function openFinGroup(idx){
   const cur=S.fin[idx]||{};
@@ -2579,7 +2628,11 @@ function editField(id){
   FIELD_ORIGINAL=fieldDraftSnapshot();
   const bar=$('#fdDiscardBar'); if(bar)bar.hidden=true; const tc=$('#fdTypeConfirm'); if(tc)tc.hidden=true;
   setFieldIssues([]);
-  openSheet('shField');
+  const pos=S.fields.indexOf(f)+1, head=$('#fdHead'); if(head)head.textContent='ویرایش پرسش '+faN(pos)+' از '+faN(S.fields.length);
+  const sh=$('#shField'); closeSheets();
+  if(editorDocks()&&dockEditor(f.id)){sh.classList.add('on');initAll(sh);
+    const blk=sh.closest('.block'); if(blk&&!TEST_FIXTURE_MODE)setTimeout(()=>{try{const bar=document.querySelector('header.topbar'),off=(bar?bar.getBoundingClientRect().bottom:0)+12,y=blk.getBoundingClientRect().top+window.scrollY-off;if(blk.getBoundingClientRect().top<off||blk.getBoundingClientRect().top>window.innerHeight*0.5)window.scrollTo({top:Math.max(0,y),behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'})}catch(e){}},0)}
+  else openSheet('shField');
   const title=$('#fdTitle'); if(title&&!TEST_FIXTURE_MODE)setTimeout(()=>{try{title.focus({preventScroll:true})}catch(e){}},0);
 }
 /* خطای ذخیرهٔ ویرایشگر کنار همان کنترل: aria-invalid + یک خط خطا زیر کنترل؛ با تغییر بعدی همان کنترل پاک می‌شود */
@@ -3474,6 +3527,15 @@ document.addEventListener('click',e=>{
     const open=box.hidden;box.hidden=!open;info.setAttribute('aria-expanded',open?'true':'false');info.closest('.cat-item')&&info.closest('.cat-item').classList.toggle('is-open',open);return}
   if(e.target.closest('[data-cat-reset]')){catGroup='all';const cs=$('#catSearch');if(cs)cs.value='';renderCatalog();if(cs)cs.focus();return}
   if(e.target.closest('#catClear')){const cs=$('#catSearch');if(cs)cs.value='';renderCatalog();if(cs)cs.focus();return}
+  /* اجباری/اختیاری مستقیم روی کارت: همان f.req که ویرایشگر و سرور می‌خوانند؛ اگر همین پرسش باز است، سوییچ ویرایشگر و نسخهٔ مبنا هم هم‌گام می‌شوند */
+  const rq=e.target.closest('[data-req-toggle]'); if(rq){const f=S.fields.find(x=>String(x.id)===String(rq.dataset.reqToggle)); if(!f)return;
+    f.req=!f.req; if(FIELD_DRAFT===f){setSwitch('fdReq',!!f.req);FIELD_ORIGINAL=fieldDraftSnapshot()}
+    renderCanvas();renderPreview();renderReview();commitChange();
+    const st=$('#fieldReorderStatus'); if(st)st.textContent='«'+String(f.l||'پرسش')+'» '+(f.req?'اجباری شد.':'اختیاری شد.');
+    const again=$('[data-req-toggle="'+String(f.id)+'"]'); if(again)try{again.focus({preventScroll:true})}catch(err){} return}
+  const ec=e.target.closest('[data-edit-cond]'); if(ec){const det=ec.closest('details'); if(det)det.open=false; editField(ec.dataset.editCond);
+    const box=$('#fdCondBox'); if(box&&$('#shField').classList.contains('on')){const tgt=$('#fdAddCondition')||box; setTimeout(()=>{try{box.scrollIntoView({block:'center'});tgt.focus({preventScroll:true})}catch(err){}},0)} return}
+
   const ed=e.target.closest('[data-edit]'); if(ed){FIELD_FOCUS_AFTER=ed;editField(ed.dataset.edit);return}
   const cp=e.target.closest('[data-copy]'); if(cp){
     const src=S.fields.find(x=>String(x.id)===String(cp.dataset.copy)); if(!src)return;
@@ -3487,7 +3549,7 @@ document.addEventListener('click',e=>{
   const addAfter=e.target.closest('[data-add-after]'); if(addAfter){const i=S.fields.findIndex(x=>String(x.id)===String(addAfter.dataset.addAfter));openPickerAt(i<0?null:i+1);return}
   const up=e.target.closest('[data-up]'); if(up){moveFieldById(up.dataset.up,-1);return}
   const dn=e.target.closest('[data-down]'); if(dn){moveFieldById(dn.dataset.down,1);return}
-  const bl=e.target.closest('[data-block]'); if(bl){$$('[data-block]').forEach(x=>x.classList.remove('on'));bl.classList.add('on');return}
+  const bl=e.target.closest('[data-block]'); if(bl&&!e.target.closest('#shField')){$$('[data-block]').forEach(x=>x.classList.remove('on'));bl.classList.add('on');return} /* کلیک داخل ویرایشگر لنگرشده به شنونده‌های خودش می‌رسد */
   const md=e.target.closest('[data-media]'); if(md){if(md.disabled||md.getAttribute('aria-disabled')==='true')return;$$('#shField [data-media]').forEach(c=>c.classList.remove('on'));md.classList.add('on');
     if(FIELD_DRAFT){FIELD_DRAFT.media=md.dataset.media;$('#fdMediaNoteBox').style.display=FIELD_DRAFT.media!=='none'?'':'none'}return}
   const dr=e.target.closest('[data-dir]'); if(dr){S.dir=dr.dataset.dir==='ltr'?'ltr':'rtl';$$('[data-dir]').forEach(c=>c.classList.remove('on'));dr.classList.add('on');renderReview();return}

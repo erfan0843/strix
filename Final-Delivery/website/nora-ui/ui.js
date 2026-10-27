@@ -867,7 +867,7 @@ const SHEET_FOCUSABLE='a[href],button:not([disabled]),input:not([disabled]),sele
 let _sheetLast=null, _sheetActive=null;
 function sheetOnKey(e){
   if(e.key!=='Tab') return;
-  const open=[...document.querySelectorAll('.sheet.on')];
+  const open=[...document.querySelectorAll('.sheet.on:not(.docked)')];
   if(!open.length) return;
   const el=open[open.length-1];
   const items=[...el.querySelectorAll(SHEET_FOCUSABLE)].filter(x=>x.offsetParent!==null||x===document.activeElement);

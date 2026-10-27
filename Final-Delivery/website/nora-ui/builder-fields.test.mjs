@@ -663,5 +663,65 @@ const html=readFileSync(DIR+'create.html','utf8');
   ok(p.ev('saveField()')===true&&!p.doc.querySelector('#fdInlineError'),'پس از اصلاح، ذخیره می‌شود');
   ok(p.errors.length===0,'بدون خطای کنسول');
 }
+/* ── ۱۸) بازطراحی کارت پرسش و ویرایشگر لنگرشده (۱۴۰۵/۰۸/۰۶): سوییچ اجباری روی کارت، میان‌بر شرط، لنگرشدن ویرایشگر داخل همان کارت روی دسکتاپ ── */
+{
+  console.log('\n── کارت پرسش و ویرایشگر لنگرشده ──');
+  const p=await load({api:makeApi()}); await new Promise(r=>setTimeout(r,60)); p.ev('renderTiles()');
+  p.ev("go('s2');S.fields=[freshField('fullname','q1'),freshField('choice','q2'),freshField('number','q3')];S.fields[0].req=true;S.fields[1].req=false;renderCanvas()");
+  const card=id=>p.doc.querySelector('.block[data-block="'+id+'"]');
+  /* کارت: شماره + نوع + عنوان + وضعیت اجباری + اقدام اصلی + منو */
+  ok(card('q2').querySelector('.qline').textContent.includes('۲.')&&card('q2').querySelector('.qmeta').textContent.includes('تک‌انتخاب')&&card('q2').querySelector('[data-edit]')&&card('q2').querySelector('details.rowmore'),'کارت جمع‌شده: شماره، نوع، عنوان، ویرایش و منو');
+  const t1=card('q1').querySelector('[data-req-toggle]'), t2=card('q2').querySelector('[data-req-toggle]');
+  ok(t1.getAttribute('role')==='switch'&&t1.getAttribute('aria-checked')==='true'&&t1.textContent.includes('اجباری')&&t2.getAttribute('aria-checked')==='false'&&t2.textContent.includes('اختیاری'),'وضعیت اجباری روی کارت یک سوییچ واقعی با برچسب و aria-checked است');
+  ok(!card('q1').querySelector('.qmeta').textContent.includes('اجباری'),'«اجباری» دیگر هم در متا و هم در سوییچ تکرار نمی‌شود');
+  /* تغییر اجباری از روی کارت = همان f.req که ذخیره می‌شود؛ فوکوس روی همان سوییچ می‌ماند */
+  p.click('.block[data-block="q2"] [data-req-toggle]');
+  ok(p.ev('S.fields[1].req')===true&&card('q2').querySelector('[data-req-toggle]').getAttribute('aria-checked')==='true'&&p.txt('#fieldReorderStatus').includes('اجباری شد')&&p.doc.activeElement===card('q2').querySelector('[data-req-toggle]'),'کلیک روی سوییچ کارت f.req را برمی‌گرداند، اعلام می‌کند و فوکوس را نگه می‌دارد');
+  /* اگر همان پرسش در ویرایشگر باز باشد، سوییچ ویرایشگر و نسخهٔ مبنا هم‌گام می‌شوند (نه «تغییر ذخیره‌نشده» کاذب) */
+  p.ev("editField('q2')");
+  ok(p.doc.querySelector('#shField').classList.contains('on')&&p.doc.querySelector('#fdReq').getAttribute('aria-checked')==='true','ویرایشگر باز شد و اجباری را روشن نشان می‌دهد');
+  p.click('.block[data-block="q2"] [data-req-toggle]');
+  ok(p.ev('S.fields[1].req')===false&&p.doc.querySelector('#fdReq').getAttribute('aria-checked')==='false'&&p.ev('fieldEditorDirty()')===false,'تغییر از روی کارت در ویرایشگرِ باز هم منعکس می‌شود و ویرایشگر «کثیف» نمی‌شود');
+  ok(p.txt('#fdHead')==='ویرایش پرسش ۲ از ۳','سرِ ویرایشگر می‌گوید کدام پرسش (۲ از ۳) باز است');
+  p.ev('cancelFieldEdit()');
+  /* روی موبایل/بدون matchMedia: همان ورقهٔ پایین (رفتار پیشین) */
+  ok(!p.doc.querySelector('#shField').classList.contains('docked')&&p.doc.querySelector('#shField').parentElement===p.doc.body,'بدون رسانهٔ دسکتاپ، ویرایشگر ورقهٔ معمولی می‌ماند');
+  /* میان‌بر «شرط نمایش» در منوی پرسش → ویرایشگر همان پرسش، بخش شرط */
+  p.click('.block[data-block="q3"] [data-edit-cond]');
+  ok(p.doc.querySelector('#shField').classList.contains('on')&&p.ev('editing')==='q3'&&p.doc.querySelector('#fdCondBox').style.display!=='none'&&p.doc.querySelector('#fdAddCondition'),'«شرط نمایش» از منو، ویرایشگر همان پرسش را با بخش شرط باز می‌کند (همان ویرایشگر واقعی)');
+  p.ev('cancelFieldEdit()');
+  /* دسکتاپ (matchMedia ≥900): ویرایشگر داخل همان کارت لنگر می‌شود؛ بدون پرده و بدون aria-modal */
+  p.ev("window.matchMedia=q=>({matches:/min-width:\\s*900px/.test(q),media:q,addEventListener(){},removeEventListener(){}})");
+  p.click('.block[data-block="q2"] [data-edit]');
+  const sh=p.doc.querySelector('#shField');
+  ok(sh.classList.contains('on')&&sh.classList.contains('docked')&&sh.closest('.block[data-block="q2"] .block-dock')&&card('q2').classList.contains('is-editing'),'ویرایشگر داخل کارت پرسش ۲ لنگر شد و کارت «در حال ویرایش» است');
+  await new Promise(r=>setTimeout(r,20));
+  ok(sh.getAttribute('aria-modal')==='false'&&!p.doc.querySelector('#scrim').classList.contains('on')&&!sh.inert,'حالت لنگرشده مودال نیست: بدون پرده، aria-modal=false، فعال');
+  ok(card('q2').querySelector('[data-edit]').getAttribute('aria-pressed')==='true'&&card('q2').querySelector('[data-edit]').textContent.includes('در حال ویرایش')&&!card('q1').classList.contains('is-editing'),'دکمهٔ ویرایش همان کارت فشرده و برچسب «در حال ویرایش» دارد؛ کارت‌های دیگر دست‌نخورده');
+  /* تلهٔ Tab ورقهٔ مودال برای ورقهٔ لنگرشده غیرفعال است (کاربر صفحه‌کلید می‌تواند به کارت‌های دیگر برود) */
+  p.doc.querySelector('#addTop').focus();
+  const tab=new p.window.KeyboardEvent('keydown',{key:'Tab',bubbles:true,cancelable:true}); p.doc.activeElement.dispatchEvent(tab);
+  ok(!tab.defaultPrevented&&p.doc.activeElement===p.doc.querySelector('#addTop'),'Tab بیرون ویرایشگر لنگرشده ربوده نمی‌شود');
+  /* بازسازی بوم (مثلاً تغییر اجباری کارت دیگر) ویرایشگر را نمی‌بندد و مقدار تایپ‌شده را نگه می‌دارد */
+  p.input('#fdTitle','عنوان تازه');
+  p.click('.block[data-block="q1"] [data-req-toggle]');
+  ok(sh.classList.contains('on')&&sh.classList.contains('docked')&&!!sh.closest('.block[data-block="q2"]')&&p.doc.querySelector('#fdTitle').value==='عنوان تازه'&&p.ev('S.fields[0].req')===false,'پس از بازسازی بوم، ویرایشگر همچنان داخل کارت ۲ است و ورودی حفظ شد');
+  /* ذخیره: همان مسیر saveField؛ بعد از آن ورقه به جای اصلی برمی‌گردد و فوکوس روی «ویرایش» همان کارت */
+  p.click('#fdSave'); await new Promise(r=>setTimeout(r,20));
+  ok(p.ev('S.fields[1].l')==='عنوان تازه'&&!sh.classList.contains('on')&&!sh.classList.contains('docked')&&sh.parentElement===p.doc.body&&!p.doc.querySelector('.block.is-editing'),'ذخیره: مقدار ثبت شد، ورقه از کارت بیرون آمد و هیچ کارتی «در حال ویرایش» نماند');
+  ok(p.doc.activeElement===card('q2').querySelector('[data-edit]')&&card('q2').querySelector('[data-edit]').textContent.trim()==='ویرایش','فوکوس به دکمهٔ «ویرایش» همان پرسش برگشت');
+  /* Escape با تغییر ذخیره‌نشده: نوار تأیید؛ «بستن بدون ذخیره» مقدار قبلی را برمی‌گرداند و لنگر باز می‌شود */
+  p.click('.block[data-block="q3"] [data-edit]'); p.input('#fdTitle','موقت');
+  p.key(null,'Escape');
+  ok(sh.classList.contains('docked')&&!p.doc.querySelector('#fdDiscardBar').hidden,'Escape با تغییر ذخیره‌نشده، نوار تأیید را داخل همان کارت نشان می‌دهد');
+  p.click('#fdDiscardYes'); await new Promise(r=>setTimeout(r,20));
+  ok(p.ev('S.fields[2].l')!=='موقت'&&!sh.classList.contains('docked')&&sh.parentElement===p.doc.body,'بستن بدون ذخیره: مقدار قبلی ماند و ورقه آزاد شد');
+  /* حذف پرسشِ در حال ویرایش از منوی کارت → ویرایشگر بسته و آزاد می‌شود */
+  p.click('.block[data-block="q2"] [data-edit]');
+  p.ev("S.fields=S.fields.filter(x=>x.id!=='q2');closeSheets();renderCanvas()"); await new Promise(r=>setTimeout(r,20));
+  ok(!sh.classList.contains('docked')&&sh.parentElement===p.doc.body&&p.all('[data-block]').length===2,'با حذف پرسش باز، ورقه بی‌صاحب داخل DOM نمی‌ماند');
+  p.ev('delete window.matchMedia');
+  ok(p.errors.length===0,'بدون خطای کنسول');
+}
 console.log(`\nbuilder-fields: ${checks} بررسی، ${fails} خطا`);
 process.exit(fails?1:0);
