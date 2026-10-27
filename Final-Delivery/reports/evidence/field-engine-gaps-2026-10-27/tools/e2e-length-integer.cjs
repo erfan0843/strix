@@ -26,7 +26,7 @@ const toLatin = v => String(v == null ? '' : v).replace(/[۰-۹]/g, d => '۰۱۲
   const display = s => page.$eval(s, el => el.style.display).catch(() => 'missing');
   const switchState = s => page.$eval(s, el => el.classList.contains('on')).catch(() => null);
   const setSwitch = async (s, on) => { if ((await switchState(s)) !== on) await page.click(s); };
-  const addViaPicker = async (k) => { if (!(await sheetOn('shAdd'))) { await clickSel('#addTop'); await sleep(250); } await clickSel('#catList [data-add="' + k + '"]'); await sleep(350); };
+  const addViaPicker = async (k) => { if (!(await sheetOn('shAdd'))) { await clickSel('#addBottom'); await sleep(250); } await clickSel('#catList [data-add="' + k + '"]'); await sleep(350); };
 
   // ── A. builder ──
   await page.setViewportSize({ width: 1440, height: 900 });

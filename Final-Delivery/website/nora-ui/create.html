@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex,nofollow,noarchive"/>
 <link rel="preload" href="fonts/Vazirmatn-UI-FD-Regular.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="fonts/Estedad-Variable.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="stylesheet" href="glass.css?v=107"/>
+<link rel="stylesheet" href="glass.css?v=108"/>
 <style>
   .session-strip{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap;padding:var(--sp-2) var(--sp-3);margin:0 0 var(--sp-2h);border:.5px solid var(--hairline);border-radius:var(--r-md);background:var(--surface);font-size:var(--fs-sub)}
   .session-strip #ownerApiMessage{flex:1 1 240px;min-width:0;color:var(--ink-3)}
@@ -653,8 +653,9 @@
   <div class="row"><span class="head">افزودن فیلد</span><span class="sp"></span><button class="icon-btn" data-close aria-label="بستن"><svg class="i"><use href="#i-close"/></svg></button></div>
   <div class="row tight" style="margin:12px 0"><input class="input" id="catSearch" aria-label="جست‌وجوی نوع فیلد" style="flex:1;min-width:0" placeholder="جستجو؛ مثلاً شماره همراه، کد ملی، تاریخ تولد"/><button type="button" class="icon-btn" id="catClear" aria-label="پاک‌کردن جست‌وجو" hidden><svg class="i"><use href="#i-close"/></svg></button></div>
   <div class="cap" style="margin-bottom:6px">اول نوع پاسخ را انتخاب کنید؛ تنظیم‌های همان نوع بعد از افزودن باز می‌شود.</div>
+  <div class="cap brand" id="catPositionNote" style="margin-bottom:6px" hidden></div>
   <div class="picker-body">
-    <div class="row tight picker-cats" id="catChips" role="group" aria-label="دسته‌های فیلد" style="margin-bottom:6px;flex-wrap:wrap;row-gap:6px"></div>
+    <div class="row tight picker-cats" id="catChips" role="group" aria-label="دسته‌های فیلد" style="margin-bottom:6px;row-gap:6px"></div>
     <div id="catList" class="picker-list"></div>
   </div>
 </aside>
@@ -1798,6 +1799,7 @@ function fieldBlock(f,index){
         <div class="menu" role="menu">
           <button type="button" role="menuitem" data-up="${esc(f.id)}" aria-label="انتقال پرسش «${esc(f.l)}» به بالا" ${position<=1?'disabled':''}><svg class="i"><use href="#i-upload"/></svg> انتقال به بالا</button>
           <button type="button" role="menuitem" data-down="${esc(f.id)}" aria-label="انتقال پرسش «${esc(f.l)}» به پایین" ${position>=total?'disabled':''}><svg class="i"><use href="#i-download"/></svg> انتقال به پایین</button>
+          <button type="button" role="menuitem" data-add-after="${esc(f.id)}" aria-label="افزودن پرسش تازه پس از «${esc(f.l)}»"><svg class="i"><use href="#i-plus"/></svg> افزودن پرسش پس از این</button>
           <button type="button" role="menuitem" data-copy="${esc(f.id)}" aria-label="کپی پرسش «${esc(f.l)}»"><svg class="i"><use href="#i-copy"/></svg> کپی پرسش</button>
           <button type="button" role="menuitem" class="stop" data-del="${esc(f.id)}" aria-label="حذف پرسش «${esc(f.l)}»"><svg class="i"><use href="#i-trash"/></svg> حذف پرسش</button>
         </div>
@@ -2306,10 +2308,20 @@ function fieldAddBlocker(kOrT,extra=0){
   if(!support.addable)return (support.status==='pending'?'تا دریافت وضعیت از سرور، افزودن «'+c.n+'» ممکن نیست':'«'+c.n+'» قابل‌افزودن نیست: '+(support.reason||capabilityLabel(support.status)));
   return '';
 }
+/* جایگاه افزودن: «+» بالای فهرست = ابتدا، «+» پایین = انتها، منوی هر پرسش = پس از همان پرسش؛ null = انتها */
+let ADD_AT=null;
+function openPickerAt(index){ADD_AT=index==null?null:Math.max(0,Math.min(S.fields.length,+index));openSheet('shAdd');renderCatalog();
+  /* دسکتاپ: تمرکز روی جست‌وجو تا با صفحه‌کلید فوراً بشود تایپ کرد؛ موبایل: بدون بازکردن خودکار صفحه‌کلید */
+  if(window.matchMedia&&window.matchMedia('(min-width:900px)').matches)setTimeout(()=>{const q=$('#catSearch');if(q&&$('#shAdd').classList.contains('on'))q.focus()},0);
+  const note=$('#catPositionNote');if(note){const total=S.fields.length;note.hidden=!total||ADD_AT==null||ADD_AT>=total;
+    if(!note.hidden)note.textContent=ADD_AT===0?'در ابتدای فهرست افزوده می‌شود.':'پس از پرسش '+faN(ADD_AT)+' افزوده می‌شود.'}}
 function addField(kOrT){
   const blocker=fieldAddBlocker(kOrT); if(blocker){toast(blocker);return null}
   const f=freshField(kOrT,S.uid++);
-  S.fields.push(f); commitChange(); renderCanvas(); closeSheets(); editField(f.id);
+  /* جایگاه فقط وقتی معتبر است که همان انتخاب‌گر هنوز باز باشد؛ وگرنه انتها */
+  const at=ADD_AT!=null&&$('#shAdd').classList.contains('on')?Math.max(0,Math.min(ADD_AT,S.fields.length)):S.fields.length; ADD_AT=null;
+  S.fields.splice(at,0,f); commitChange(); renderCanvas(); closeSheets(); editField(f.id);
+  const status=$('#fieldReorderStatus');if(status&&at<S.fields.length-1)status.textContent='پرسش تازه در جایگاه '+faN(at+1)+' از '+faN(S.fields.length)+' قرار گرفت.';
   if($('#shField').classList.contains('on')) $('#shField').scrollTop=0;
   return f;
 }
@@ -3396,6 +3408,7 @@ document.addEventListener('click',e=>{
     renderCanvas();commitChange();toast('کپی شد؛ پرسش تازه زیر همان پرسش قرار گرفت');return}
   const dl=e.target.closest('[data-del]'); if(dl){const id=String(dl.dataset.del);const dep=dependentRuleCount(id);S.fields=S.fields.filter(x=>String(x.id)!==id);normalizeFieldConditions();renderCanvas();markDirty();
     toast(dep>0?'پرسش حذف شد؛ '+faN(dep)+' شرط نمایش که به آن وابسته بود هم برداشته شد':'پرسش حذف شد');return}
+  const addAfter=e.target.closest('[data-add-after]'); if(addAfter){const i=S.fields.findIndex(x=>String(x.id)===String(addAfter.dataset.addAfter));openPickerAt(i<0?null:i+1);return}
   const up=e.target.closest('[data-up]'); if(up){moveFieldById(up.dataset.up,-1);return}
   const dn=e.target.closest('[data-down]'); if(dn){moveFieldById(dn.dataset.down,1);return}
   const bl=e.target.closest('[data-block]'); if(bl){$$('[data-block]').forEach(x=>x.classList.remove('on'));bl.classList.add('on');return}
@@ -3435,7 +3448,8 @@ document.addEventListener('click',e=>{
   if(e.target.closest('#addLink')){
     if(S.links.length>=10){toast('حداکثر ۱۰ پیوند پایانی مجاز است');return}
     const index=S.links.push({t:'',u:''})-1;renderLinks();renderReview();document.querySelector('[data-lt="'+index+'"]')?.focus();return}
-  if(e.target.closest('#addTop')||e.target.closest('#addBottom')){openSheet('shAdd');renderCatalog();return}
+  if(e.target.closest('#addTop')){openPickerAt(0);return}
+  if(e.target.closest('#addBottom')){openPickerAt(null);return}
   const sw=e.target.closest('.switch');
   if(sw){
     e.stopImmediatePropagation();

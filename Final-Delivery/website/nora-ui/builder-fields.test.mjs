@@ -548,5 +548,59 @@ const html=readFileSync(DIR+'create.html','utf8');
   ok(html.includes("invalid_length_range:'#fdMinLen'")&&p.doc.querySelector('#fdMinLen'),'خطای انتشار invalid_length_range به کنترل حداقل نویسه می‌رسد');
   ok(p.errors.length===0,'بدون خطای کنسول');
 }
+/* ── ۱۵) ماتریس مدل × تنظیم: همراهان/بلیت/پرداخت فقط ثبت‌نام؛ امتیاز فقط نظرسنجی؛ سفارش قابل انتشار نیست؛
+       تغییر مدل دادهٔ معتبر قبلی را بی‌صدا دور نمی‌ریزد (در حالت می‌ماند و فقط از payload مدل نامربوط حذف می‌شود) ── */
+{
+  console.log('\n── ماتریس مدل × تنظیم ──');
+  const p=await load({api:makeApi()});await new Promise(r=>setTimeout(r,50));p.ev('renderTiles()');
+  const MODEL_IDS=['registration','questionnaire','survey','contest','exam','attendance','datacollect','order','election'];
+  ok(p.ev('MODELS.map(m=>m.k).join()')===MODEL_IDS.join(),'۹ مدل در فرم‌ساز همان ۹ مدل سرور');
+  p.ev("go('s1');S.guestsOn=true;S.model='registration';S.need='reg';renderTiles();syncTicketingUI()");
+  const rows=[];
+  for(const m of MODEL_IDS){
+    if(m==='order'){ok(p.doc.querySelector('[data-model="order"]').disabled===true,'سفارش: کاشی غیرفعال (قرارداد سرور: قابل انتشار نیست)');continue}
+    p.click('[data-model="'+m+'"]');
+    const companions=!p.doc.querySelector('#companionBody').hidden, ticketing=!p.doc.querySelector('#ticketingPanel').hidden;
+    p.ev("go('s2');S.fields=[];addField('choice');editField(S.fields[0].id)");
+    const score=p.doc.querySelector('#fdScoreBox').style.display==='block';
+    p.ev("closeSheets();go('s1')");
+    const payload=p.ev("JSON.stringify(buildDraftRow())"), row=JSON.parse(payload);
+    rows.push({m,companions,ticketing,score,guests:row.guestsOn,scoring:row.scoring&&row.scoring.enabled,need:row.need});
+  }
+  const reg=rows.find(r=>r.m==='registration'), others=rows.filter(r=>r.m!=='registration');
+  ok(reg.companions&&reg.ticketing&&!reg.score&&reg.guests===true&&reg.scoring===false&&reg.need==='reg','ثبت‌نام: همراهان و بلیت فعال، امتیاز نه، guestsOn در payload');
+  ok(others.every(r=>!r.companions&&!r.ticketing&&r.guests===false),'بقیهٔ مدل‌ها: همراهان/بلیت پنهان و guestsOn در payload false (سرور همین را می‌خواهد)');
+  ok(rows.filter(r=>r.score).map(r=>r.m).join()==='survey'&&rows.filter(r=>r.scoring).map(r=>r.m).join()==='survey','جعبهٔ امتیاز و scoring.enabled فقط برای نظرسنجی (فقط پیش‌نمایش محلی)');
+  ok(rows.find(r=>r.m==='exam').scoring===false&&rows.find(r=>r.m==='contest').scoring===false,'آزمون و مسابقه نمره‌دهی ندارند (پیاده‌سازی‌نشده، نه تقلبی)');
+  p.click('[data-model="registration"]');
+  ok(p.ev('S.guestsOn===true')&&p.ev('buildDraftRow().guestsOn===true'),'بازگشت به ثبت‌نام: تنظیم همراهان بی‌صدا دور ریخته نشده بود');
+  const descs=p.ev("MODELS.map(m=>m.k+':'+m.d).join('\\n')");
+  ok(/exam:.*نمره‌دهی خودکار هنوز ساخته نشده/.test(descs)&&/attendance:.*حضور واقعی را تأیید نمی‌کند/.test(descs)&&/election:.*تضمین نمی‌شود/.test(descs)&&/contest:.*رتبه‌بندی و قرعه‌کشی هنوز ساخته نشده/.test(descs),'توضیح کاشی مدل‌ها قابلیت‌های ثابت‌نشده را صادقانه می‌گوید');
+  ok(p.errors.length===0,'بدون خطای کنسول');
+}
+/* ── ۱۶) جایگاه افزودن: «+» بالا = ابتدا، «+» پایین = انتها، منوی پرسش = پس از همان پرسش؛ شرط‌های وابسته سالم می‌مانند ── */
+{
+  console.log('\n── جایگاه افزودن پرسش ──');
+  const p=await load();
+  p.ev("go('s2');S.fields=[freshField('text',1),freshField('choice',2),freshField('text',3)];S.fields[2].conditions=[{field:'2',op:'eq',value:'گزینهٔ یک'}];normalizeFieldConditions();renderCanvas()");
+  const ids=()=>p.ev('S.fields.map(f=>String(f.id)).join()');
+  p.click('#addTop');
+  ok(p.doc.querySelector('#shAdd').classList.contains('on')&&!p.doc.querySelector('#catPositionNote').hidden&&p.txt('#catPositionNote').includes('ابتدای فهرست'),'«+» بالا: انتخاب‌گر با یادداشت «ابتدای فهرست» باز می‌شود');
+  p.click('#catList [data-add="nid"]');
+  ok(p.ev("S.fields[0].t==='nid'")&&ids().endsWith('1,2,3')&&p.doc.querySelector('#shField').classList.contains('on'),'پرسش تازه در ابتدا قرار گرفت و ویرایشگرش باز شد');
+  ok(p.txt('#fieldReorderStatus').includes('جایگاه ۱ از ۴'),'وضعیت زنده جایگاه را اعلام می‌کند');
+  ok(p.ev("conditionRulesForField(S.fields[3]).length===1&&String(conditionRulesForField(S.fields[3])[0].field)==='2'"),'شرط وابستهٔ پرسش سوم به پرسش دوم دست‌نخورده ماند');
+  p.ev('closeSheets()');p.click('[data-add-after="1"]');
+  ok(p.doc.querySelector('#shAdd').classList.contains('on')&&p.txt('#catPositionNote').includes('پس از پرسش ۲'),'منوی پرسش: «افزودن پرسش پس از این» با جایگاه درست');
+  p.click('#catList [data-add="email"]');
+  ok(p.ev("S.fields[2].t==='email'")&&p.ev("S.fields.length===5"),'پرسش تازه دقیقاً پس از آن پرسش نشست');
+  p.ev('closeSheets()');p.click('#addBottom');
+  ok(p.doc.querySelector('#catPositionNote').hidden,'«+» پایین: بدون یادداشت جایگاه (انتها)');
+  p.click('#catList [data-add="area"]');
+  ok(p.ev("S.fields[S.fields.length-1].t==='area'"),'پرسش تازه در انتها');
+  p.ev('closeSheets()');p.click('#addTop');p.ev('closeSheets()');
+  ok(p.ev("addField('text');S.fields[S.fields.length-1].t==='text'"),'بستن انتخاب‌گر بدون افزودن، جایگاه را برای افزودن بعدی نگه نمی‌دارد');
+  ok(p.errors.length===0,'بدون خطای کنسول');
+}
 console.log(`\nbuilder-fields: ${checks} بررسی، ${fails} خطا`);
 process.exit(fails?1:0);

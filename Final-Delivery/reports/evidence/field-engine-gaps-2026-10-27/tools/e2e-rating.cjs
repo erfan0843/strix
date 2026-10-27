@@ -38,7 +38,7 @@ const CASES = [
   await ev("go('s2')"); await sleep(300); await ev("applyPack('empty','replace')"); await sleep(300); await ev("S.display='all'");
   const FID = {};
   for (const c of CASES) {
-    if (!(await sheetOn('shAdd'))) { await clickSel('#addTop'); await sleep(250); }
+    if (!(await sheetOn('shAdd'))) { await clickSel('#addBottom'); await sleep(250); }
     await typeInto('#catSearch', 'ستاره'); await sleep(250);
     await clickSel('#catList [data-add="rating"]'); await sleep(350);
     await typeInto('#fdTitle', c.title);
