@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex,nofollow,noarchive"/>
 <link rel="preload" href="fonts/Vazirmatn-UI-FD-Regular.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="fonts/Estedad-Variable.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="stylesheet" href="glass.css?v=105"/>
+<link rel="stylesheet" href="glass.css?v=106"/>
 <style>
   .session-strip{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap;padding:var(--sp-2) var(--sp-3);margin:0 0 var(--sp-2h);border:.5px solid var(--hairline);border-radius:var(--r-md);background:var(--surface);font-size:var(--fs-sub)}
   .session-strip #ownerApiMessage{flex:1 1 240px;min-width:0;color:var(--ink-3)}
@@ -651,8 +651,9 @@
 <aside class="sheet" id="shAdd" role="dialog" aria-label="افزودن فیلد">
   <div class="grabber"></div>
   <div class="row"><span class="head">افزودن فیلد</span><span class="sp"></span><button class="icon-btn" data-close aria-label="بستن"><svg class="i"><use href="#i-close"/></svg></button></div>
-  <input class="input" id="catSearch" aria-label="جست‌وجوی نوع فیلد" style="margin:12px 0" placeholder="جستجو؛ مثلاً کد ملی، امتیاز، استان"/>
-  <div class="row tight" id="catChips" style="margin-bottom:6px"></div>
+  <div class="row tight" style="margin:12px 0"><input class="input" id="catSearch" aria-label="جست‌وجوی نوع فیلد" style="flex:1;min-width:0" placeholder="جستجو؛ مثلاً شماره همراه، کد ملی، تاریخ تولد"/><button type="button" class="icon-btn" id="catClear" aria-label="پاک‌کردن جست‌وجو" hidden><svg class="i"><use href="#i-close"/></svg></button></div>
+  <div class="cap" style="margin-bottom:6px">اول نوع پاسخ را انتخاب کنید؛ تنظیم‌های همان نوع بعد از افزودن باز می‌شود.</div>
+  <div class="row tight" id="catChips" role="group" aria-label="دسته‌های فیلد" style="margin-bottom:6px;flex-wrap:wrap;row-gap:6px"></div>
   <div id="catList"></div>
 </aside>
 
@@ -792,10 +793,12 @@
 
     <section class="fd-sec" aria-labelledby="fdSecAdvanced">
       <h3 class="fd-h" id="fdSecAdvanced">پیشرفته</h3>
-      <div class="row"><span class="sub">پیشنهاد از پروفایل <span class="cap-tag local">فقط پیش‌نمایش محلی</span></span><span class="sp"></span><span class="switch" id="fdProf" role="switch" aria-label="پیشنهاد از پروفایل در پیش‌نمایش محلی" aria-checked="false" tabindex="0"></span></div>
-      <div class="mnote">هیچ داده‌ای خودکار وارد نمی‌شود؛ در پیش‌نمایش محلی فقط با اقدام صریح کاربر پیشنهاد می‌شود. فرم عمومی سرور پیش‌پرکردن ندارد.</div>
-      <div class="row"><span class="sub">ستون در خروجی پاسخ‌ها</span><span class="sp"></span><span class="switch on" id="fdCol" role="switch" aria-label="ستون خروجی اکسل" aria-checked="true" tabindex="0"></span></div>
-      <div class="mnote" id="fdColNote">در فهرست پاسخ‌های سرور همهٔ پرسش‌ها نمایش داده می‌شوند؛ این گزینه فقط روی خروجی محلی اثر دارد.</div>
+      <div id="fdProfBox" style="display:none">
+        <div class="row"><span class="sub">پیشنهاد از پروفایل <span class="cap-tag local" id="fdProfTag">فقط پیش‌نمایش محلی</span></span><span class="sp"></span><span class="switch" id="fdProf" role="switch" aria-label="پیشنهاد از پروفایل" aria-checked="false" tabindex="0"></span></div>
+        <div class="mnote" id="fdProfNote">فقط در پیش‌نمایش محلی و فقط با اقدام صریح پاسخ‌دهنده پیشنهاد می‌شود؛ هیچ داده‌ای خودکار وارد نمی‌شود.</div>
+      </div>
+      <div class="row"><span class="sub">ستون در خروجی CSV سرور</span><span class="sp"></span><span class="switch on" id="fdCol" role="switch" aria-label="ستون در خروجی CSV سرور" aria-checked="true" tabindex="0"></span></div>
+      <div class="mnote" id="fdColNote">خاموش: این پرسش در فایل CSV پاسخ‌ها (مجوز خروجی) نمی‌آید؛ در فهرست پاسخ‌های پنل همچنان دیده و ذخیره می‌شود.</div>
       <div>
         <div class="lbl">رسانهٔ همراه پرسش <span class="cap-tag unavailable">در دست ساخت</span></div>
         <div class="row tight">
@@ -939,7 +942,7 @@ const FIELD_TYPES={
   time:{n:'ساعت (زمان روز)',ic:'i-clock',g:'time',ans:'ساعت و دقیقه',ctl:[],tags:'زمان,دقیقه,ساعت روز,وقت',ex:'چه ساعتی مناسب است؟'},
   datetime:{n:'تاریخ و ساعت',ic:'i-clock',g:'time',ans:'تاریخ + ساعت',ctl:[],tags:'زمان دقیق,تقویم و ساعت,موعد',ex:'زمان ترجیحی جلسه'},
   slot:{n:'ساعت دلخواه (بدون رزرو بازه)',ic:'i-calendar',g:'time',ans:'ساعت و دقیقه',ctl:[],tags:'نوبت,بازه,اسلات,رزرو,زمان بندی,وقت',ex:'ساعت ترجیحی شما (رزرو نمی‌شود)'},
-  rating:{n:'ستاره (۱ تا ۵)',ic:'i-star',g:'scale',ans:'عدد ۱ تا ۵',ctl:[],tags:'امتیاز,رضایت,ستاره ای,نمره,رای,کیفیت',ex:'از کیفیت برنامه چقدر راضی بودید؟'},
+  rating:{n:'ستاره (۱ تا ۵)',ic:'i-star',g:'scale',ans:'عدد ۱ تا ۵',ctl:['bounds'],boundsRange:[1,5],tags:'امتیاز,رضایت,ستاره ای,نمره,رای,کیفیت',ex:'از کیفیت برنامه چقدر راضی بودید؟'},
   scale:{n:'بازهٔ ۰ تا ۱۰',ic:'i-sliders',g:'scale',ans:'عدد ۰ تا ۱۰',ctl:['bounds'],boundsRange:[0,10],tags:'طیف,مقیاس,لیکرت,درجه,میزان,nps,اسلایدر',ex:'چقدر احتمال دارد ما را معرفی کنید؟'},
   bars:{n:'نوار لغزنده',ic:'i-chart',g:'scale',ans:'عدد ۰ تا ۱۰',ctl:['bounds'],boundsRange:[0,10],tags:'اسلایدر,نوار,میزان,درصد,شدت',ex:'میزان آشنایی شما با موضوع'},
   terms:{n:'پذیرش قوانین',ic:'i-shield',g:'consent',ans:'تأیید (تیک)',ctl:[],tags:'شرایط,مقررات,قوانین,رضایت,تعهد,موافقت,پذیرش,تیک',ex:'قوانین برنامه را می‌پذیرم'},
@@ -967,7 +970,33 @@ const FIELD_PRESETS=[
 const typeOf=t=>FIELD_TYPES[String(t||'')]||{n:String(t||'')||'نامشخص',ic:'i-doc',g:'future',ans:'نامشخص',ctl:[],tags:'',ex:'—',legacy:1};
 const CATALOG=FIELD_PRESETS.map(p=>{const d=typeOf(p.t||p.k);
   return Object.assign({},d,{t:p.t||p.k,k:p.k,n:p.n||d.n,g:p.g||d.g,tags:[d.tags,p.tags].filter(Boolean).join(','),ex:p.ex||d.ex,help:p.help||''})});
-const presetOf=k=>CATALOG.find(c=>c.k===String(k))||CATALOG.find(c=>c.t===String(k))||Object.assign({},typeOf(k),{t:String(k||'text'),k:String(k||'text'),help:''});
+/* الگوی عمومی یک نوع = خود نوع (برچسب نوع)؛ هرگز اولین الگوی هم‌نوع جعل نمی‌شود */
+const genericPreset=t=>Object.assign({},typeOf(t),{t:String(t||'text'),k:String(t||'text'),help:''});
+const presetOf=k=>CATALOG.find(c=>c.k===String(k))||genericPreset(k);
+/* الگوهای یک نوع فنی (به ترتیب کاتالوگ)؛ برای تغییر نوع با انتخاب صریح الگو */
+const presetsOfType=t=>CATALOG.filter(c=>c.t===String(t)&&!c.hidden);
+/* نوع‌هایی که فرم عمومی (form.html → profileValue) برایشان مسیر پیشنهاد از پروفایل دارد؛ سرور این قابلیت را ندارد (profile_prefill) */
+const PROFILE_TYPES=new Set(['fullname','mobile','nid','email','address','province','uni','job','edu']);
+/* ثبت کنترل‌های ویرایشگر: هر کنترل یک شناسهٔ پایدار، کلیدهای ذخیره و شرط نمایش دارد (یک تعریف برای نمایش، ذخیره، تغییر نوع و آزمون) */
+const FIELD_SETTINGS=[
+  {id:'title',keys:['l'],box:null,common:true},
+  {id:'help',keys:['help'],box:null,common:true},
+  {id:'required',keys:['req'],box:null,common:true},
+  {id:'options',keys:['opts'],box:'#fdOptionsBox',when:t=>OPTION_FIELD_TYPES.has(t)},
+  {id:'multiLimits',keys:['minSelect','maxSelect'],box:'#fdMultiLimitsBox',when:t=>t==='multi'},
+  {id:'bounds',keys:['min','max'],box:'#fdBoundsBox',when:t=>fieldControls(t).has('bounds')},
+  {id:'verify',keys:['verify'],box:'#fdVerifyBox',when:(t,f)=>fieldControls(t).has('verify')||!!(f&&f.verify)},
+  {id:'upload',keys:['count','accept','maxSize'],box:'#fdCountBox',when:t=>fieldControls(t).has('upload')},
+  {id:'placeholder',keys:['placeholder'],box:'#fdPlaceholderBox',when:t=>fieldControls(t).has('placeholder')},
+  {id:'conditions',keys:['conditions','conditionLogic','condField','condOp','condVal'],box:'#fdCondBox',common:true},
+  {id:'score',keys:['weight','scoreOn'],box:'#fdScoreBox',when:()=>surveyMode()},
+  {id:'profile',keys:['prof'],box:'#fdProfBox',when:(t,f)=>PROFILE_TYPES.has(t)||!!(f&&f.prof)},
+  {id:'csvColumn',keys:['col'],box:null,common:true},
+  {id:'media',keys:['media','mediaNote'],box:null,common:true},
+  {id:'typeChange',keys:['t','preset'],box:'#fdTypeBox',when:(t,f)=>typeChangeChoices(t,f&&f.preset).length>0}
+];
+const settingVisible=(def,t,f)=>!!def.common||!def.when||!!def.when(t,f);
+const visibleSettings=(t,f)=>FIELD_SETTINGS.filter(def=>settingVisible(def,t,f)).map(def=>def.id);
 /* سازگاری: byT فقط برای نمایش نوع (برچسب و آیکون نوع فنی)، نه برچسب الگو */
 const byT=t=>Object.assign({t:String(t)},typeOf(t));
 const PACKS=[
@@ -1640,6 +1669,7 @@ function fieldBlock(f,index){
     f.media&&f.media!=='none'?'<span class="warn">رسانه فقط در پیش‌نمایش</span>':'',
     f.verify?'<span class="warn">درخواست بررسی فقط در پیش‌نمایش</span>':'',
     f.col===false?'<span>بدون ستون CSV</span>':'',
+    ...fieldSettingsSummary(f).map(x=>'<span>'+esc(x)+'</span>'),
     supportTag].filter(Boolean).join('<span aria-hidden="true">·</span>');
   return `<article class="block" data-block="${esc(f.id)}" role="listitem" aria-posinset="${position}" aria-setsize="${total}">
     ${f.req?'<span class="reqbar"></span>':''}
@@ -1660,6 +1690,16 @@ function fieldBlock(f,index){
         </div>
       </details>
     </div></article>`;
+}
+/* خلاصهٔ کوتاه تنظیم‌های مهم هر پرسش روی بوم (پس از ذخیره) */
+function fieldSettingsSummary(f){
+  const out=[], ctl=fieldControls(f.t);
+  if(OPTION_FIELD_TYPES.has(f.t)){const n=optionRowsForField(f).filter(o=>optionLabelForField(o).trim()).length;out.push(faN(n)+' گزینه')}
+  if(f.t==='multi'&&(f.minSelect!=null||f.maxSelect!=null))out.push('انتخاب'+(f.minSelect!=null?' حداقل '+faN(f.minSelect):'')+(f.maxSelect!=null?' حداکثر '+faN(f.maxSelect):''));
+  if(ctl.has('bounds')&&((f.min!==''&&f.min!=null)||(f.max!==''&&f.max!=null)))out.push('بازه'+(f.min!==''&&f.min!=null?' از '+faN(f.min):'')+(f.max!==''&&f.max!=null?' تا '+faN(f.max):''));
+  if(ctl.has('placeholder')&&f.placeholder)out.push('متن داخل کادر');
+  if(PROFILE_TYPES.has(f.t)&&f.prof&&profilePrefillSupport().enabled)out.push('پیشنهاد از پروفایل (محلی)');
+  return out;
 }
 /* شرط‌های وابسته به یک پرسش (در پرسش‌های دیگر)؛ برای اعلام پیش از حذف/جابه‌جایی */
 function dependentRuleCount(id){return S.fields.reduce((n,x)=>n+conditionRulesForField(x).filter(r=>String(r.field)===String(id)).length,0)}
@@ -2084,7 +2124,10 @@ function catalogSearch(q,group){
 function renderCatalogChips(){
   const host=$('#catChips'); if(!host)return;
   const groups=[{id:'all',n:'همه'}].concat(FIELD_CATEGORIES.filter(g=>CATALOG.some(c=>c.g===g.id&&!c.hidden)));
-  host.innerHTML=groups.map(g=>`<button type="button" class="chip ${catGroup===g.id?'on':''}" data-cat="${esc(g.id)}" aria-pressed="${catGroup===g.id?'true':'false'}">${esc(g.n)}</button>`).join('');
+  const q=($('#catSearch')&&$('#catSearch').value||'').trim();
+  host.innerHTML=groups.map(g=>{const n=q?catalogSearch(q,g.id).length:CATALOG.filter(c=>!c.hidden&&(g.id==='all'||c.g===g.id)).length;
+    return `<button type="button" class="chip ${catGroup===g.id?'on':''}" data-cat="${esc(g.id)}" aria-pressed="${catGroup===g.id?'true':'false'}" ${q&&!n?'disabled aria-disabled="true"':''}>${esc(g.n)} <span class="cap" data-cat-count="${esc(g.id)}">${faN(n)}</span></button>`}).join('');
+  const clear=$('#catClear'); if(clear)clear.hidden=!q;
 }
 function catalogRow(c){
   const support=fieldSupport(c.t), capReached=S.fields.length>=MAX_FIELDS, blocked=!support.addable||capReached;
@@ -2370,6 +2413,24 @@ function renderFieldOptions(){
       <button type="button" class="icon-btn" data-optdel="${i}" aria-label="حذف گزینهٔ ${faN(i+1)}" ${fixed?'disabled aria-disabled="true"':''}><svg class="i"><use href="#i-trash"/></svg></button></div>`}).join('')
     ||'<div class="cap">هنوز گزینه‌ای ندارد؛ برای این نوع پرسش دست‌کم یک گزینه لازم است.</div>';
 }
+/* پیشنهاد از پروفایل: فقط نوع‌های دارای مسیر در فرم عمومی؛ در فرم سروری (بدون profile_prefill) غیرفعال با دلیل، مقدار ذخیره‌شده دست نمی‌خورد */
+function profilePrefillSupport(){
+  const cap=FORM_CAPABILITIES&&FORM_CAPABILITIES.settings&&FORM_CAPABILITIES.settings.profile_prefill;
+  if(TEST_FIXTURE_MODE&&!ACTIVE_SERVER_FORM)return {enabled:true,reason:'فقط در پیش‌نمایش محلی همین صفحه؛ فرم عمومی سرور پیش‌پرکردن ندارد.'};
+  return {enabled:false,reason:cap&&cap.reason?cap.reason:'فرم عمومی سرور پیش‌پرکردن از پروفایل را پشتیبانی نمی‌کند.'};
+}
+function renderProfileControl(f){
+  const box=$('#fdProfBox'), sw=$('#fdProf'), note=$('#fdProfNote'), tag=$('#fdProfTag'); if(!box||!sw)return;
+  const def=FIELD_SETTINGS.find(x=>x.id==='profile'), show=settingVisible(def,f.t,f), support=profilePrefillSupport();
+  box.style.display=show?'':'none'; if(!show)return;
+  const capable=PROFILE_TYPES.has(f.t);
+  const disabled=!support.enabled||!capable;
+  sw.setAttribute('aria-disabled',disabled?'true':'false'); sw.tabIndex=disabled?-1:0;
+  if(tag){tag.textContent=disabled?'بی‌اثر در فرم عمومی':'فقط پیش‌نمایش محلی';tag.className='cap-tag '+(disabled?'unavailable':'local')}
+  if(note)note.textContent=!capable?'این نوع پاسخ در فرم عمومی مقدار پروفایلی ندارد؛ تنظیم قدیمی نگه داشته شده ولی اثری ندارد.'
+    :disabled?support.reason+(f.prof?' تنظیم ذخیره‌شده («روشن») تا پشتیبانی سرور بی‌اثر می‌ماند.':'')
+    :support.reason;
+}
 function renderFieldEditor(){
   const f=FIELD_DRAFT; if(!f)return;
   const c=byT(f.t), d=typeOf(f.t), ctl=fieldControls(f.t), support=fieldSupport(f.t), issues=fieldIssues(f);
@@ -2378,6 +2439,7 @@ function renderFieldEditor(){
   const issueNote=$('#fdIssueNote'); if(issueNote){issueNote.hidden=!issues.length;issueNote.textContent=issues.join(' ')}
   $('#fdTitle').value=f.l||''; $('#fdHelp').value=f.help||'';
   setSwitch('fdReq',!!f.req); setSwitch('fdProf',!!f.prof); setSwitch('fdCol',f.col!==false);
+  renderProfileControl(f);
   const legacyVerify=!!f.verify, verifyBox=$('#fdVerifyBox'), verifyClear=$('#fdVerifyClear');
   verifyBox.style.display=ctl.has('verify')||legacyVerify?'block':'none';
   $('#fdVerifyStatus').textContent=legacyVerify?'درخواست تأیید قدیمی ذخیره شده':'غیرفعال · سرویس پیامک/احراز وصل نیست';
@@ -2392,8 +2454,11 @@ function renderFieldEditor(){
   $('#fdBoundsBox').style.display=bounds?'block':'none';
   $('#fdValidationBox').style.display=bounds||isUpload||verifyBox.style.display==='block'?'':'none';
   const range=d.boundsRange;
-  $('#fdBoundsLabel').textContent=range?'بازهٔ نمایش (اختیاری؛ بین '+faN(range[0])+' تا '+faN(range[1])+')':'محدودهٔ عددی (اختیاری)';
-  $('#fdBoundsNote').textContent=range?'نوار از حداقل تا حداکثر نمایش داده می‌شود؛ سرور بازهٔ '+faN(range[0])+' تا '+faN(range[1])+' را هنگام انتشار بررسی می‌کند.':'پاسخ خارج از این بازه در فرم عمومی و در سرور رد می‌شود.';
+  $('#fdBoundsLabel').textContent=f.t==='rating'?'بازهٔ ستاره‌ها (اختیاری؛ ۱ تا ۵)':range?'بازهٔ نمایش (اختیاری؛ بین '+faN(range[0])+' تا '+faN(range[1])+')':'محدودهٔ عددی (اختیاری)';
+  $('#fdBoundsNote').textContent=f.t==='rating'?'فقط ستاره‌های داخل بازه نمایش داده می‌شوند (پیش‌فرض ۱ تا ۵)؛ سرور همین بازه را هنگام انتشار و پاسخ بررسی می‌کند.'
+    :range?'نوار از حداقل تا حداکثر نمایش داده می‌شود؛ سرور بازهٔ '+faN(range[0])+' تا '+faN(range[1])+' را هنگام انتشار بررسی می‌کند.'
+    :f.t==='amount'?'پاسخ خارج از این بازه در فرم عمومی و در سرور رد می‌شود؛ مبلغ منفی هیچ‌وقت پذیرفته نمی‌شود. اعشار پذیرفته می‌شود و گام تغییر ندارد.'
+    :'پاسخ خارج از این بازه در فرم عمومی و در سرور رد می‌شود. اعشار و عدد منفی پذیرفته می‌شود؛ گام تغییر یا فقط‌صحیح در سرور تنظیم‌پذیر نیست.';
   $('#fdMin').value=f.min==null?'':f.min; $('#fdMax').value=f.max==null?'':f.max;
   $$('#shField [data-media]').forEach(ch=>ch.classList.toggle('on',(f.media||'none')===ch.dataset.media));
   $('#fdMediaNoteBox').style.display=f.media&&f.media!=='none'?'':'none';
@@ -2431,8 +2496,19 @@ function typeChangeTargets(t){
   const list=fam?fam.filter(x=>x!==t&&x!=='select'):(LEGACY_TARGETS[t]||['text','area','choice','number']);
   return list.filter(x=>fieldSupport(x).addable);
 }
-function typeChangeConsequences(f,target){
+/* گزینه‌های تغییر نوع = الگوها (نه فقط نوع فنی): نوعی که چند الگو دارد (تاریخ شمسی / تاریخ تولد) هر دو را صریح نشان می‌دهد */
+function typeChangeChoices(t,preset){
+  const current=String(preset||t);
+  const samePattern=presetsOfType(t).filter(c=>c.k!==current); /* فقط تعویض الگو؛ نوع فنی همان می‌ماند */
+  return samePattern.concat(typeChangeTargets(t).flatMap(target=>{const list=presetsOfType(target);return list.length?list:[genericPreset(target)]}));
+}
+const isDefaultFieldTitle=f=>!!f&&(String(f.l||'').trim()===typeOf(f.t).n||String(f.l||'').trim()===presetOf(f.preset||f.t).n);
+function typeChangeConsequences(f,choice){
+  const c=presetOf(choice), target=c.t;
   const out=[], from=fieldControls(f.t), to=fieldControls(target), index=S.fields.findIndex(x=>String(x.id)===String(f.id));
+  out.push(isDefaultFieldTitle(f)?'عنوان پیش‌فرض به «'+c.n+'» تغییر می‌کند.':'عنوان «'+String(f.l||'')+'» حفظ می‌شود.');
+  if(target===f.t)out.push('فقط الگو به «'+c.n+'» عوض می‌شود؛ نوع فنی، پاسخ‌ها و شرط‌ها همان می‌مانند.');
+  else if(presetsOfType(target).length>1)out.push('الگوی «'+c.n+'» ثبت می‌شود (نوع فنی: '+typeOf(target).n+').');
   if(from.has('options')&&!to.has('options')&&optionRowsForField(f).length)out.push('گزینه‌های فعلی حذف می‌شوند.');
   if(!from.has('options')&&to.has('options'))out.push('دو گزینهٔ نمونه ساخته می‌شود؛ باید آن‌ها را ویرایش کنید.');
   if(f.t==='multi'&&target!=='multi'&&(f.minSelect!=null||f.maxSelect!=null))out.push('حداقل/حداکثر انتخاب برداشته می‌شود.');
@@ -2449,32 +2525,34 @@ function typeChangeConsequences(f,target){
     if(ops.includes(rule.op)&&valueOk)kept++; else broken++;
   }));
   if(broken)out.push(faN(broken)+' قاعدهٔ شرطی در پرسش‌های بعدی با نوع تازه سازگار نیست و حذف می‌شود'+(kept?'؛ '+faN(kept)+' قاعده می‌ماند.':'.'));
-  if(!out.length)out.push('تنظیم‌های مشترک (عنوان، راهنما، اجباری، شرط‌ها) حفظ می‌شود.');
+  if(out.length<=2)out.push('تنظیم‌های مشترک (راهنما، اجباری، شرط‌ها، ستون CSV) حفظ می‌شود.');
   return out;
 }
 function renderTypeChangeBox(){
   const f=FIELD_DRAFT, sel=$('#fdTypeChange'), box=$('#fdTypeBox'), note=$('#fdTypeNote'); if(!f||!sel||!box)return;
-  const targets=typeChangeTargets(f.t);
-  box.style.display=targets.length?'':'none';
-  sel.innerHTML='<option value="">— نوع مقصد را انتخاب کنید —</option>'+targets.map(t=>`<option value="${esc(t)}">${esc(typeOf(t).n)} · پاسخ: ${esc(typeOf(t).ans)}</option>`).join('');
+  const choices=typeChangeChoices(f.t,f.preset);
+  box.style.display=choices.length?'':'none';
+  sel.innerHTML='<option value="">— نوع مقصد را انتخاب کنید —</option>'+choices.map(c=>`<option value="${esc(c.k)}" data-type="${esc(c.t)}">${esc(c.n)}${c.k!==c.t?' (الگوی '+esc(typeOf(c.t).n)+')':''} · پاسخ: ${esc(c.ans)}</option>`).join('');
   if(note)note.textContent=typeOf(f.t).legacy||fieldSupport(f.t).status==='unavailable'
     ?'این نوع در فرم عمومی سرور اجرا نمی‌شود؛ برای انتشار، نوع را به یکی از نوع‌های پشتیبانی‌شده تغییر دهید یا پرسش را حذف کنید.'
     :'فقط به نوع‌های هم‌خانواده که تنظیم‌های مشترک را نگه می‌دارند. پیش از اعمال، پیامدها نشان داده می‌شود.';
   const confirm=$('#fdTypeConfirm'); if(confirm)confirm.hidden=true;
 }
-function applyTypeChange(target){
-  const f=FIELD_DRAFT; if(!f||!target||!typeChangeTargets(f.t).includes(target))return false;
-  const from=fieldControls(f.t), to=fieldControls(target), d=typeOf(target);
-  const next=Object.assign(JSON.parse(JSON.stringify(f)),{t:target,preset:presetOf(target).k});
+function applyTypeChange(choice){
+  const f=FIELD_DRAFT; if(!f||!choice)return false;
+  const c=presetOf(choice), target=c.t;
+  if(!typeChangeChoices(f.t,f.preset).some(x=>x.k===c.k&&x.t===target))return false;
+  const from=fieldControls(f.t), to=fieldControls(target), d=typeOf(target), wasDefaultTitle=isDefaultFieldTitle(f), oldPreset=presetOf(f.preset||f.t);
+  const next=Object.assign(JSON.parse(JSON.stringify(f)),{t:target,preset:c.k});
   if(!to.has('options'))next.opts=[]; else if(!from.has('options'))next.opts=d.fixedOpts?JSON.parse(JSON.stringify(d.fixedOpts)):d.defaultOpts?JSON.parse(JSON.stringify(d.defaultOpts)):[{l:'گزینهٔ یک',score:1},{l:'گزینهٔ دو',score:2}];
   if(target!=='multi'){delete next.minSelect;delete next.maxSelect}
   if(!to.has('bounds')){next.min=null;next.max=null}
   else if(d.boundsRange){const [lo,hi]=d.boundsRange;const clamp=v=>v==null||v===''?v:Math.max(lo,Math.min(hi,+v));next.min=clamp(next.min);next.max=clamp(next.max)}
   if(!to.has('placeholder'))next.placeholder='';
   if(!to.has('upload')){next.count=5;next.accept='';next.maxSize=10}
-  next.verify=false; next.scoreOn=scoreable(target)&&next.scoreOn!==false; next.prof=!!d.prof&&next.prof!==false;
-  if(HELP[f.t]&&next.help===HELP[f.t])next.help=HELP[target]||'';
-  if(next.l===typeOf(f.t).n||next.l===presetOf(f.preset||f.t).n)next.l=presetOf(target).n;
+  next.verify=false; next.scoreOn=scoreable(target)&&next.scoreOn!==false; next.prof=PROFILE_TYPES.has(target)?!!next.prof:false;
+  if((HELP[f.t]&&next.help===HELP[f.t])||(oldPreset.help&&next.help===oldPreset.help))next.help=c.help||HELP[target]||'';
+  if(wasDefaultTitle)next.l=c.n;
   Object.keys(f).forEach(key=>{if(!(key in next))delete f[key]}); Object.assign(f,next);
   renderFieldEditor();
   setFieldIssues([]); toast('نوع پرسش به «'+d.n+'» تغییر کرد؛ برای ثبت، «ذخیره» را بزنید');
@@ -2503,7 +2581,8 @@ function saveField(){
   }
   const draft=FIELD_DRAFT;
   draft.l=($('#fdTitle').value||'').trim().slice(0,160)||draft.l; draft.help=$('#fdHelp').value.trim().slice(0,300);
-  draft.req=$('#fdReq').classList.contains('on'); draft.prof=$('#fdProf').classList.contains('on');
+  draft.req=$('#fdReq').classList.contains('on');
+  if(PROFILE_TYPES.has(t)&&$('#fdProf').getAttribute('aria-disabled')!=='true')draft.prof=$('#fdProf').classList.contains('on');
   draft.col=$('#fdCol').classList.contains('on');
   if(ctl.has('upload')){draft.count=Math.max(1,Math.min(10,NR(unFa($('#fdCount').value))||1));
     draft.accept=cleanAccept($('#fdAccept').value,t);
@@ -2545,7 +2624,8 @@ function editorControlsChanged(){
   const sw=id=>$('#'+id).classList.contains('on');
   if(($('#fdTitle').value||'').trim()!==String(f.l||'').trim())return true;
   if(($('#fdHelp').value||'').trim()!==String(f.help||''))return true;
-  if(sw('fdReq')!==!!f.req||sw('fdProf')!==!!f.prof||sw('fdCol')!==(f.col!==false))return true;
+  if(sw('fdReq')!==!!f.req||sw('fdCol')!==(f.col!==false))return true;
+  if(PROFILE_TYPES.has(f.t)&&$('#fdProf').getAttribute('aria-disabled')!=='true'&&sw('fdProf')!==!!f.prof)return true;
   if(fieldControls(f.t).has('placeholder')&&($('#fdPlaceholder').value||'').trim()!==String(f.placeholder||''))return true;
   if(fieldControls(f.t).has('bounds')&&(String($('#fdMin').value||'').trim()!==String(f.min==null?'':f.min)||String($('#fdMax').value||'').trim()!==String(f.max==null?'':f.max)))return true;
   if(f.t==='multi'&&(String($('#fdMinSelect').value||'')!==String(f.minSelect==null?'':f.minSelect)||String($('#fdMaxSelect').value||'')!==String(f.maxSelect==null?'':f.maxSelect)))return true;
@@ -3212,7 +3292,7 @@ document.addEventListener('click',e=>{
   if(e.target.closest('#fdDiscardNo')){const bar=$('#fdDiscardBar');if(bar)bar.hidden=true;$('#fdTitle').focus();return}
   if(e.target.closest('#fdTypeApply')){const sel=$('#fdTypeChange'),target=sel&&sel.value;if(!FIELD_DRAFT)return;
     if(!target){toast('اول نوع مقصد را انتخاب کنید');sel.focus();return}
-    const box=$('#fdTypeConfirm');$('#fdTypeConfirmTitle').textContent='تغییر «'+typeOf(FIELD_DRAFT.t).n+'» به «'+typeOf(target).n+'»';
+    const box=$('#fdTypeConfirm');$('#fdTypeConfirmTitle').textContent='تغییر «'+typeOf(FIELD_DRAFT.t).n+'» به «'+presetOf(target).n+'»';
     $('#fdTypeConsequences').innerHTML=typeChangeConsequences(FIELD_DRAFT,target).map(x=>'<li>'+esc(x)+'</li>').join('');
     box.hidden=false;$('#fdTypeConfirmGo').focus();return}
   if(e.target.closest('#fdTypeCancel')){$('#fdTypeConfirm').hidden=true;$('#fdTypeChange').focus();return}
@@ -3262,6 +3342,7 @@ document.addEventListener('click',e=>{
     ad.disabled=true;addField(ad.dataset.add);return}
   const ct=e.target.closest('[data-cat]'); if(ct){catGroup=ct.dataset.cat;renderCatalog();const again=$('#catChips [data-cat="'+catGroup+'"]');if(again)again.focus();return}
   if(e.target.closest('[data-cat-reset]')){catGroup='all';const cs=$('#catSearch');if(cs)cs.value='';renderCatalog();if(cs)cs.focus();return}
+  if(e.target.closest('#catClear')){const cs=$('#catSearch');if(cs)cs.value='';renderCatalog();if(cs)cs.focus();return}
   const ed=e.target.closest('[data-edit]'); if(ed){FIELD_FOCUS_AFTER=ed;editField(ed.dataset.edit);return}
   const cp=e.target.closest('[data-copy]'); if(cp){
     const src=S.fields.find(x=>String(x.id)===String(cp.dataset.copy)); if(!src)return;
@@ -3336,6 +3417,7 @@ document.addEventListener('click',e=>{
     if(sw.id==='showOnEvent'){S.eventVisible=on;setSwitch(sw.id,on);renderReview();return}
     if(sw.id==='enableBaleWallet'){setBuiltInPaymentMethod('bale_wallet',on);return}
     if(sw.id==='receiptReviewRequired'){setBuiltInPaymentMethod('card_transfer',on);return;}
+    if(sw.id==='fdProf'&&sw.getAttribute('aria-disabled')==='true'){toast(profilePrefillSupport().reason);return}
     if(['fdReq','fdProf','fdCol','fdScoreOn','fgReq'].includes(sw.id)){setSwitch(sw.id,on);return}
     setSwitch(sw.id,on); return;
   }

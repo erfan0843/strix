@@ -167,8 +167,12 @@ def public_form_capabilities(*, api_configured: bool, bale_wallet_ready: bool) -
                 "reason": "فهرست و شمار پاسخ سروری موجود است؛ تحلیل‌های پیشرفتهٔ قیف/هر پرسش هنوز نیست.",
             },
             "exports": {
-                "status": "unavailable",
-                "reason": "خروجی پاسخ سروری از این پنل هنوز آماده نیست؛ خروجی محلی را واقعی فرض نکنید.",
+                "status": "conditional",
+                "reason": (
+                    "خروجی CSV پاسخ‌ها از همین سرور ساخته می‌شود (مجوز fm_export؛ ستون‌های مالی فقط با مجوز مالی). "
+                    "پرسشی که «ستون در خروجی CSV» آن خاموش است در فایل نمی‌آید ولی در فهرست پاسخ‌ها می‌ماند."
+                ),
+                "respects_field_col": True,
             },
             "publish_permission": {
                 "status": "owner_only",

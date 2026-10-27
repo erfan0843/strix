@@ -62,6 +62,10 @@ def test_public_capability_contract_is_secret_free_and_read_only():
         assert body["settings"]["schedule"]["status"] == "unavailable"
         assert body["settings"]["one_response_per_person"]["status"] == "unavailable"
         assert body["settings"]["bale_wallet"]["ready"] is False
+        # خروجی CSV واقعی سروری است (GET /api/forms/{id}/responses?format=csv با fm_export) و «ستون خروجی» فیلد را رعایت می‌کند
+        assert body["settings"]["exports"]["status"] == "conditional"
+        assert body["settings"]["exports"]["respects_field_col"] is True
+        assert body["settings"]["profile_prefill"]["status"] == "unavailable"
         assert body["field_types"]["text"]["status"] == "server"
         assert body["field_types"]["imgchoice"]["status"] == "limited"
         assert body["field_types"]["file"]["status"] == "unavailable"

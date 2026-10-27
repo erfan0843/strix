@@ -118,13 +118,15 @@ const html=readFileSync(DIR+'create.html','utf8');
   ok(new Set(ks).size===ks.length&&ks.includes('birth-date')&&ks.includes('jalali-date'),'شناسهٔ الگوها یکتاست و دو الگوی هم‌نوع تاریخ شناسهٔ جدا دارند');
   ok(p.ev("CATALOG.filter(c=>c.t==='date').length===2&&freshField('birth-date',1).l==='تاریخ تولد'&&freshField('jalali-date',2).l==='تاریخ شمسی'&&freshField('birth-date',1).preset==='birth-date'&&freshField('jalali-date',2).t==='date'"),
     'دو الگوی تاریخ برچسب و شناسهٔ خودشان را می‌گیرند (نه برچسب اولین مورد هم‌نوع)');
-  ok(p.ev("typeOf('date').n==='تاریخ'&&byT('date').n==='تاریخ'&&presetOf('date').k==='birth-date'"),'جست‌وجوی بر پایهٔ نوع فقط نام نوع را می‌دهد و برچسب الگو را جعل نمی‌کند');
+  ok(p.ev("typeOf('date').n==='تاریخ'&&byT('date').n==='تاریخ'&&presetOf('date').k==='date'&&presetOf('date').n==='تاریخ'&&freshField('date',5).l==='تاریخ'&&freshField('date',5).preset==='date'"),'الگوی عمومی یک نوع خود نوع است؛ هیچ الگوی هم‌نوعی (تاریخ تولد) بی‌صدا تحمیل نمی‌شود');
+  ok(p.ev("presetsOfType('date').map(c=>c.k).join(',')==='birth-date,jalali-date'&&presetsOfType('text').length===1"),'الگوهای هم‌نوع یک نوع فنی قابل‌شمارش‌اند (تاریخ: تولد و شمسی)');
   ok(p.ev("CATALOG.every(c=>c.n&&c.ans&&c.g&&FIELD_CATEGORIES.some(g=>g.id===c.g)&&Array.isArray(typeOf(c.t).ctl))"),'هر ردیف کاتالوگ نام، نوع پاسخ، دستهٔ معتبر و فهرست تنظیم‌های نوع دارد');
   ok(p.ev("FIELD_TYPES.time.n!==FIELD_TYPES.slot.n&&FIELD_TYPES.slot.n.includes('بدون رزرو')&&FIELD_TYPES.imgchoice.n.includes('بدون تصویر')"),'ساعت و بازهٔ ساعت و انتخاب کارتی نام‌های صادقانه و متمایز دارند');
   ok(p.ev("PACKS.find(x=>x.id==='max').f.every(k=>!LOCAL_ONLY_TYPES.has(presetOf(k).t))&&PACKS.find(x=>x.id==='max').f.includes('birth-date')"),'بستهٔ «کامل‌تر» دیگر نوع بارگذاری ندارد و الگوی تاریخ تولد را با شناسهٔ پایدار می‌آورد');
   ok(p.ev("S.fields.length===7&&S.fields.find(f=>f.t==='date').preset==='birth-date'&&S.fields.find(f=>f.t==='date').l==='تاریخ تولد'"),'بستهٔ پیش‌فرض فرم تازه پس از دریافت قرارداد چیده می‌شود و الگوی تاریخ تولد را درست می‌سازد');
   const legacy=p.ev("JSON.stringify(restoreField({id:'x',t:'date',l:'تاریخ عقد',preset:'nonexistent'},9))");
-  ok(JSON.parse(legacy).l==='تاریخ عقد'&&JSON.parse(legacy).preset==='birth-date'&&JSON.parse(legacy).id==='x','بازیابی فیلد قدیمی برچسب را نگه می‌دارد و شناسهٔ الگوی نامعتبر را با نوع سازگار می‌کند');
+  ok(JSON.parse(legacy).l==='تاریخ عقد'&&JSON.parse(legacy).preset==='date'&&JSON.parse(legacy).id==='x','بازیابی فیلد قدیمی برچسب را نگه می‌دارد و شناسهٔ الگوی نامعتبر را به الگوی عمومی نوع (نه تاریخ تولد) برمی‌گرداند');
+  ok(p.ev("restoreField({id:'j',t:'date',l:'تاریخ شمسی',preset:'jalali-date'},8).preset==='jalali-date'&&restoreField({id:'b',t:'date',l:'تاریخ تولد',preset:'birth-date'},9).preset==='birth-date'"),'بازیابی، شناسهٔ الگوی معتبرِ هر دو الگوی تاریخ را دست‌نخورده نگه می‌دارد');
   ok(p.ev("restoreField({id:'y',t:'image',l:'عکس'},2).t==='image'&&typeOf('mystery').legacy===1&&restoreField({id:'z',t:'mystery',l:'ناشناخته'},3).t==='mystery'"),'نوع پشتیبانی‌نشده یا ناشناخته در بازیابی حذف یا تبدیل خاموش نمی‌شود');
   ok(!/find\(c=>c\.t===t\)|find\(x=>x\.t===f\.t\)|find\(x=>x\.t===t\)/.test(html),'هیچ جست‌وجوی «اولین مورد با همین نوع» برای برچسب/پیش‌فرض در کد نمانده است');
   ok(p.errors.length===0,'بارگذاری بدون خطای کنسول');
@@ -338,6 +340,94 @@ const html=readFileSync(DIR+'create.html','utf8');
   const freshApi=makeApi({id:'srv-7',initialRecord:record});
   await load({api:freshApi,store:freshStore,query:'?fid=srv-7',fixtureMode:false});await wait(150);
   ok(JSON.parse(freshStore.getItem('nora-forms')).find(f=>f.id==='srv-7').version===4&&freshApi.calls.filter(c=>c.method==='GET'&&c.path==='/api/forms/srv-7').length===1,'با رونوشت هم‌نسخه، فقط یک بررسی نسخه انجام می‌شود و بازخوانی رخ نمی‌دهد');
+}
+
+/* ── ۸) تنظیمات نوع‌محور: الگو ≠ نوع در تغییر نوع، کنترل‌های بی‌اثر، ثبت کنترل‌ها، خلاصهٔ بوم، انتخاب‌گر ── */
+{
+  console.log('\n── تنظیمات نوع‌محور و الگوهای هم‌نوع ──');
+  const p=await load({api:makeApi()});
+  p.ev("S.fields=[];applyPack('empty','replace')");
+  p.ev("addField('time');editField(S.fields[0].id)");
+  const choices=p.all('#fdTypeChange option').map(o=>o.value);
+  ok(choices.includes('birth-date')&&choices.includes('jalali-date')&&!choices.includes('date')&&choices.includes('datetime'),'تغییر نوع، برای نوعی که چند الگو دارد هر دو الگو (تاریخ تولد / تاریخ شمسی) را صریح فهرست می‌کند، نه یک «date» مبهم');
+  p.set('#fdTypeChange','birth-date');p.click('#fdTypeApply');
+  ok(p.txt('#fdTypeConsequences').includes('عنوان پیش‌فرض به «تاریخ تولد» تغییر می‌کند')&&p.txt('#fdTypeConsequences').includes('الگوی «تاریخ تولد»'),'پیامدها اعلام می‌کنند عنوان پیش‌فرض عوض می‌شود و کدام الگو ثبت می‌شود');
+  p.click('#fdTypeConfirmGo');p.click('#fdSave');
+  ok(p.ev("S.fields[0].t==='date'&&S.fields[0].preset==='birth-date'&&S.fields[0].l==='تاریخ تولد'"),'اعمال: نوع date، الگوی birth-date و عنوان پیش‌فرض الگو');
+  p.ev("addField('time');editField(S.fields[1].id)");p.input('#fdTitle','زمان جلسهٔ معارفه');p.click('#fdSave');
+  p.ev("editField(S.fields[1].id)");p.set('#fdTypeChange','jalali-date');p.click('#fdTypeApply');
+  ok(p.txt('#fdTypeConsequences').includes('عنوان «زمان جلسهٔ معارفه» حفظ می‌شود'),'با عنوان سفارشی، پیامد «حفظ عنوان» اعلام می‌شود');
+  p.click('#fdTypeConfirmGo');p.click('#fdSave');
+  ok(p.ev("S.fields[1].t==='date'&&S.fields[1].preset==='jalali-date'&&S.fields[1].l==='زمان جلسهٔ معارفه'"),'عنوان سفارشی کاربر در تغییر نوع حفظ و الگوی انتخابی (تاریخ شمسی) ثبت می‌شود، نه تاریخ تولد');
+  p.ev("editField(S.fields[1].id)");
+  ok(!p.all('#fdTypeChange option').map(o=>o.value).includes('jalali-date')&&p.all('#fdTypeChange option').map(o=>o.value).includes('birth-date'),'الگوی فعلی از فهرست مقصد حذف می‌شود ولی الگوی هم‌نوع دیگر قابل انتخاب می‌ماند');
+  p.click('#fdCancel');
+  /* کپی پرسش شناسهٔ الگو را نگه می‌دارد */
+  p.click('[data-copy="'+p.ev('S.fields[1].id')+'"]');
+  ok(p.ev("S.fields.length===3&&S.fields[2].preset==='jalali-date'&&S.fields[2].l==='زمان جلسهٔ معارفه'&&S.fields[0].preset==='birth-date'"),'کپی پرسش، الگوی تاریخ شمسی را به تاریخ تولد تبدیل نمی‌کند');
+  /* پیشنهاد از پروفایل: فقط نوع‌های دارای مسیر؛ در پیش‌نمایش محلی فعال */
+  p.ev("addField('choice');editField(S.fields[3].id)");
+  ok(p.doc.querySelector('#fdProfBox').style.display==='none','برای تک‌انتخاب، سوییچ «پیشنهاد از پروفایل» اصلاً نمایش داده نمی‌شود (فرم عمومی مقداری برایش ندارد)');
+  p.click('#fdCancel');p.ev("addField('fullname');editField(S.fields[4].id)");
+  ok(p.doc.querySelector('#fdProfBox').style.display!=='none'&&p.doc.querySelector('#fdProf').getAttribute('aria-disabled')==='false','برای نام، در پیش‌نمایش محلی سوییچ فعال است');
+  p.click('#fdCancel');
+  /* ثبت واحد کنترل‌ها: هر جعبهٔ کنترل دقیقاً وقتی دیده می‌شود که تعریف می‌گوید */
+  const typesToCheck=p.ev("Object.keys(FIELD_TYPES).filter(t=>!FIELD_TYPES[t].hidden&&fieldSupport(t).addable)");
+  let mismatch=[];
+  for(const t of typesToCheck){
+    p.ev("S.fields=[];addField('"+t+"');editField(S.fields[0].id)");
+    const bad=p.ev("FIELD_SETTINGS.filter(def=>def.box).filter(def=>{const el=document.querySelector(def.box);if(!el)return true;const shown=el.style.display!=='none';return shown!==settingVisible(def,'"+t+"',FIELD_DRAFT)}).map(def=>def.id)");
+    if(bad.length)mismatch.push(t+':'+bad.join('/'));
+    p.click('#fdCancel');
+  }
+  ok(mismatch.length===0,'برای همهٔ نوع‌های قابل‌افزودن، نمایش هر جعبهٔ تنظیم با ثبت FIELD_SETTINGS یکی است'+(mismatch.length?' — ناهم‌خوان: '+mismatch.join(' ، '):''));
+  ok(p.ev("visibleSettings('text',null).includes('placeholder')&&!visibleSettings('choice',null).includes('placeholder')&&visibleSettings('multi',null).includes('multiLimits')&&!visibleSettings('choice',null).includes('multiLimits')&&visibleSettings('rating',null).includes('bounds')&&!visibleSettings('date',null).includes('bounds')"),
+    'متن داخل کادر فقط برای ورودی متنی، حداقل/حداکثر انتخاب فقط برای چندانتخاب، بازه برای ستاره/عدد و نه تاریخ');
+  /* ستاره: بازهٔ واقعی ۱ تا ۵ با اعتبارسنجی */
+  p.ev("S.fields=[];addField('rating');editField(S.fields[0].id)");
+  ok(p.doc.querySelector('#fdBoundsBox').style.display!=='none'&&p.txt('#fdBoundsLabel').includes('ستاره'),'ستاره جعبهٔ بازه (۱ تا ۵) دارد');
+  p.set('#fdMin','۰');p.set('#fdMax','۵');
+  ok(p.ev('saveField()')===false&&p.doc.querySelector('#shField').classList.contains('on')&&p.txt('#fdIssues').includes('۱ تا ۵'),'بازهٔ خارج از ۱ تا ۵ برای ستاره رد می‌شود و پنجره باز می‌ماند');
+  p.set('#fdMin','۲');p.set('#fdMax','۴');
+  ok(p.ev('saveField()')===true&&p.ev("S.fields[0].min===2&&S.fields[0].max===4"),'بازهٔ معتبر ستاره ذخیره می‌شود');
+  ok(p.doc.querySelector('[data-block="'+p.ev('S.fields[0].id')+'"]').textContent.includes('بازه از ۲ تا ۴'),'بوم خلاصهٔ بازهٔ ذخیره‌شده را نشان می‌دهد');
+  p.ev("addField('choice')");p.click('#fdSave');
+  ok(p.doc.querySelector('[data-block="'+p.ev('S.fields[1].id')+'"]').textContent.includes('۲ گزینه'),'بوم شمار گزینه‌های پرسش انتخابی را نشان می‌دهد');
+  /* ستون CSV: توضیح مطابق رفتار واقعی سرور */
+  p.ev("editField(S.fields[1].id)");
+  ok(p.txt('#fdColNote').includes('CSV')&&!p.txt('#fdColNote').includes('فقط روی خروجی محلی'),'توضیح «ستون در خروجی CSV سرور» با رفتار واقعی endpoint خروجی هم‌خوان است');
+  p.click('#fdCancel');
+  /* انتخاب‌گر: شمار هر دسته، پاک‌کردن جست‌وجو */
+  p.ev("openSheet('shAdd');renderCatalog()");
+  const allCount=Number(p.ev("digits=s=>String(s).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d));Number(digits(document.querySelector('[data-cat-count=\"all\"]').textContent))"));
+  ok(allCount===p.ev("CATALOG.filter(c=>!c.hidden).length")&&p.all('[data-cat-count]').length===p.all('#catChips [data-cat]').length,'هر دستهٔ انتخاب‌گر شمار نوع‌هایش را نشان می‌دهد');
+  ok(p.doc.querySelector('#catClear').hidden===true,'بدون جست‌وجو دکمهٔ پاک‌کردن پنهان است');
+  p.input('#catSearch','شماره همراه');await wait(20);
+  ok(p.doc.querySelector('#catClear').hidden===false&&p.all('#catList [data-add]').length>=1&&p.all('#catList [data-add]')[0].dataset.add==='mobile','با جست‌وجو دکمهٔ پاک‌کردن ظاهر می‌شود و «شماره همراه» موبایل را اول می‌آورد');
+  p.click('#catClear');await wait(20);
+  ok(p.doc.querySelector('#catSearch').value===''&&p.doc.querySelector('#catClear').hidden===true&&p.doc.activeElement===p.doc.querySelector('#catSearch'),'پاک‌کردن، فهرست کامل را برمی‌گرداند و تمرکز روی کادر جست‌وجو می‌ماند');
+  ok(p.errors.length===0,'بدون خطای کنسول');
+}
+
+/* ── ۹) فرم سروری: پیشنهاد از پروفایل غیرفعال با دلیل سرور و حفظ مقدار ذخیره‌شده ── */
+{
+  console.log('\n── پیشنهاد از پروفایل در فرم سروری ──');
+  const record={id:'srv-9',name:'فرم سروری',model:'registration',need:'reg',slug:'',ev:'',status:'draft',version:1,response_count:0,
+    fields:[{id:'f1',t:'fullname',l:'نام',prof:true},{id:'f2',t:'choice',l:'انتخاب',prof:true,opts:[{l:'الف'},{l:'ب'}]}],settings:{display:'one',dir:'rtl',after:'edit'}};
+  const api=makeApi({id:'srv-9',initialRecord:record});
+  const store=makeStore({'nora-forms':JSON.stringify([{...record,...record.settings,serverManaged:true}])});
+  const p=await load({api,store,query:'?fid=srv-9',fixtureMode:false});
+  p.ev("go('s2');editField('f1')");
+  ok(p.doc.querySelector('#fdProfBox').style.display!=='none'&&p.doc.querySelector('#fdProf').getAttribute('aria-disabled')==='true'&&p.doc.querySelector('#fdProf').classList.contains('on'),'در فرم سروری سوییچ پروفایل غیرفعال است ولی مقدار ذخیره‌شده (روشن) نشان داده می‌شود');
+  ok(p.txt('#fdProfNote').includes('ناشناس')||p.txt('#fdProfNote').includes('پشتیبانی نمی‌کند'),'دلیل غیرفعال‌بودن از قرارداد سرور (profile_prefill) می‌آید');
+  p.click('#fdProf');
+  ok(p.doc.querySelector('#fdProf').classList.contains('on')&&p.doc.querySelector('#saveState').dataset.state==='saved','کلیک روی سوییچ غیرفعال چیزی را تغییر نمی‌دهد و فرم ذخیره‌نشده نمی‌شود');
+  p.click('#fdSave');
+  ok(p.ev("S.fields[0].prof===true")&&p.doc.querySelector('#saveState').dataset.state==='saved','ذخیرهٔ فیلد، تنظیم قدیمی prof را حذف نمی‌کند و تغییری ثبت نمی‌شود');
+  p.ev("editField('f2')");
+  ok(p.doc.querySelector('#fdProfBox').style.display!=='none'&&p.txt('#fdProfNote').includes('اثری ندارد'),'برای نوع بدون مسیر پروفایل که مقدار قدیمی دارد، وضعیت «ذخیره‌شده ولی بی‌اثر» نشان داده می‌شود');
+  p.click('#fdCancel');
+  ok(p.errors.length===0,'بدون خطای کنسول');
 }
 
 console.log(`\nbuilder-fields: ${checks} بررسی، ${fails} خطا`);
