@@ -670,9 +670,9 @@ html[data-motion="off"] *{animation:none!important;transition:none!important}
 .field-error[hidden]{display:none}
 /* اثر مدل انتخابی: فعال (✓) و نبود/ساخته‌نشده (–) در یک فهرست کوتاه */
 .model-fx{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:4px;font-size:var(--fs-cap);color:var(--ink-2)}
-.model-fx li{position:relative;padding-inline-start:18px}
-.model-fx li::before{content:'✓';position:absolute;inset-inline-start:0;color:var(--ok,#1E7F4F);font-weight:700}
-.model-fx li.off::before{content:'–';color:var(--ink-3)}
+.model-fx li{display:flex;align-items:flex-start;gap:6px}
+.model-fx li>.i{width:14px;height:14px;flex:0 0 14px;margin-top:2px;color:var(--ok)}
+.model-fx li>.fx-dash{flex:0 0 14px;text-align:center;color:var(--ink-3);font-weight:700}
 .model-fx li.off{color:var(--ink-3)}
 
 /* ── رنگ دلخواه ──────────────────────────────────────────────────────── */
