@@ -97,11 +97,15 @@ console.log('── ناوبری مالک: ریل و نوار پایین طبق 
   /* بازآرایی منو ۱۴۰۵/۰۸/۰۵ (درخواست کاربر): «کاربران» و «گزارش‌ها» زیر والد «کاربران و گزارش‌ها»؛ «فرم‌ساز» در ریل و نوار پایین */
   ok(JSON.stringify(rail)===JSON.stringify(['dash','newev','events','users','reports','forms','settings']),'ترتیب ریل: داشبورد، تعریف جدید، رویدادها، [کاربران، گزارش‌ها]، فرم‌ساز، تنظیمات ('+rail.join(',')+')');
   const grp=doc.querySelector('#admNav [data-nav-group="people"]');
-  ok(grp&&/کاربران و گزارش‌ها/.test(grp.querySelector('.nav-group-head').textContent),'والد «کاربران و گزارش‌ها» در ریل');
+  ok(grp&&/مدیران/.test(grp.querySelector('.nav-group-head').textContent)&&!/کاربران و گزارش‌ها/.test(grp.querySelector('.nav-group-head').textContent),'والد «مدیران» در ریل');
+  /* سامان‌دهی منو ۱۴۰۵/۰۸/۰۶: سرگروه دکمهٔ واقعی باز/بسته است؛ بسته‌شدن زیرمقصدها را پنهان می‌کند، ورود به زیرمقصد گروه را باز می‌کند */
+  const head=grp.querySelector('button.nav-group-head[data-nav-toggle="people"]');
+  ok(head&&head.getAttribute('aria-expanded')==='true'&&head.getAttribute('aria-controls')==='navgrp-people'&&doc.getElementById('navgrp-people')&&!doc.getElementById('navgrp-people').hidden,
+    'سرگروه «مدیران» دکمه‌ای با aria-expanded/aria-controls است و به‌طور پیش‌فرض باز است');
   ok(grp&&[...grp.querySelectorAll('[data-sec]')].map(x=>x.dataset.sec).join(',')==='users,reports','هر دو زیرمقصد مستقل زیر همان والد (#users و #reports)');
   const bar=[...doc.querySelectorAll('#admTabs a')].map(x=>x.dataset.sec||'forms');
   ok(JSON.stringify(bar)===JSON.stringify(['dash','events','users','forms','settings']),'نوار پایین موبایل پنج‌تایی: داشبورد، رویدادها، کاربران و گزارش‌ها، فرم‌ساز، تنظیمات ('+bar.join(',')+')');
-  ok(doc.querySelector('#admTabs [data-sec="users"]').getAttribute('aria-label')==='کاربران و گزارش‌ها','زبانهٔ موبایل گروه، نام کامل را در aria-label دارد');
+  ok(doc.querySelector('#admTabs [data-sec="users"]').getAttribute('aria-label')==='مدیران'&&/مدیران/.test(doc.querySelector('#admTabs [data-sec="users"]').textContent),'زبانهٔ موبایل گروه «مدیران» نام می‌خورد و به #users می‌رود');
   ok(/فرم‌ساز/.test(doc.querySelector('#admNav [data-center-href]').textContent)&&/فرم‌ساز/.test(doc.querySelector('#admTabs [data-center-href]').textContent),'«فرم‌ساز» هم در ریل هم در نوار پایین موبایل دیده می‌شود');
   ok(doc.querySelector('#admNav [data-center-href]').getAttribute('href')==='builder.html','«فرم‌ساز» به مرکز فرم‌های واقعی می‌رود (تنها ویرایشگر فرم)');
   click('#admNav [data-sec="reports"]');
@@ -109,6 +113,21 @@ console.log('── ناوبری مالک: ریل و نوار پایین طبق 
   ok(doc.querySelector('#admNav [data-nav-group="people"].on')&&doc.querySelector('#admTabs [data-sec="users"].on'),'والد و زبانهٔ موبایل گروه، فعال‌بودن زیرمقصد را نشان می‌دهند');
   click('#admNav [data-sec="users"]');
   ok(await waitFor(()=>doc.querySelector('#admNav [data-sec="users"].on')&&!doc.querySelector('#admNav [data-sec="reports"].on')),'زیرمقصد «کاربران» مستقل باز می‌شود');
+  click('#admNav [data-sec="dash"]'); await waitFor(()=>doc.querySelector('#admNav [data-sec="dash"].on'));
+  click('#admNav [data-nav-toggle="people"]');
+  ok(await waitFor(()=>doc.querySelector('#admNav [data-nav-toggle="people"]').getAttribute('aria-expanded')==='false'&&doc.getElementById('navgrp-people').hidden),
+    'کلیک روی سرگروه، گروه «مدیران» را می‌بندد (aria-expanded=false، زیرمقصدها پنهان)');
+  ok(doc.activeElement===doc.querySelector('#admNav [data-nav-toggle="people"]'),'پس از بازسازی ریل، فوکوس روی همان سرگروه می‌ماند');
+  ok(!doc.querySelector('#admNav [data-nav-group="people"].on'),'سرگروه بستهٔ غیرفعال، حالت فعال ندارد');
+  window.location.hash="#reports";  /* jsdom خودش hashchange را (ناهمگام) می‌فرستد */
+  ok(await waitFor(()=>doc.querySelector('#admNav [data-sec="reports"].on')&&doc.querySelector('#admNav [data-nav-toggle="people"]').getAttribute('aria-expanded')==='true'&&!doc.getElementById('navgrp-people').hidden),
+    'ورود مستقیم با #reports (هش قدیمی) گروه بسته را باز و زیرمقصد را فعال می‌کند');
+  click('#admNav [data-nav-toggle="people"]');
+  ok(await waitFor(()=>doc.querySelector('#admNav [data-nav-toggle="people"]').getAttribute('aria-expanded')==='false'&&doc.querySelector('#admNav [data-nav-group="people"].on')),
+    'بستن گروه روی زیرمقصد فعال هم ممکن است و سرگروه همچنان «فعال» نشان می‌دهد');
+  window.location.hash="#users";  /* پیوند مستقیم به زیرمقصد دیگر (jsdom خودش hashchange می‌فرستد) */
+  ok(await waitFor(()=>doc.querySelector('#admNav [data-sec="users"].on')&&doc.querySelector('#admNav [data-nav-toggle="people"]').getAttribute('aria-expanded')==='true'),
+    'رفتن به زیرمقصد دیگر (کاربران) گروه بسته را دوباره باز می‌کند');
 
   console.log('── تعریف جدید: فرم فشردهٔ سه‌بخشی روی همان ویرایشگر سروری ──');
   click('#admNav [data-sec="newev"]');

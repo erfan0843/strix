@@ -14,12 +14,19 @@
 #admNav .btn.on{background:var(--brand-tint);color:var(--brand-ink);font-weight:700}
 #admNav .btn .bd{margin-inline-start:auto}
 #admNav .btn[disabled]{opacity:.42}
-/* گروه ریل («کاربران و گزارش‌ها»): والد فقط عنوان است؛ زیرمورد‌ها با تورفتگی و خط راهنما زیر آن */
+/* گروه ریل («مدیران»): سرگروه دکمهٔ باز/بسته است (aria-expanded)؛ زیرمورد‌ها با تورفتگی و خط راهنما زیر آن */
 #admNav .nav-group{display:flex;flex-direction:column;gap:2px;margin:2px 0}
-#admNav .nav-group-head{display:flex;align-items:center;gap:10px;padding:8px 12px 4px;font-size:.84rem;font-weight:700;color:var(--ink-2)}
+#admNav .nav-group-head{display:flex;align-items:center;gap:10px;width:100%;min-height:40px;padding:8px 12px;border:0;border-radius:var(--r-md);background:transparent;
+  font:inherit;font-size:.9rem;font-weight:700;color:var(--ink-2);text-align:start;cursor:pointer}
+#admNav .nav-group-head:hover{background:var(--surface-sunk)}
+#admNav .nav-group-head:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 #admNav .nav-group-head .nav-icon{width:18px;height:18px;opacity:.8}
-#admNav .nav-group-head.locked{opacity:.55}
+#admNav .nav-group-head .nav-chev{width:16px;height:16px;margin-inline-start:auto;opacity:.7;transition:transform .18s}
+#admNav .nav-group.open .nav-group-head .nav-chev{transform:rotate(180deg)}
+#admNav .nav-group-head.locked{opacity:.55;cursor:default}
 #admNav .nav-group.on .nav-group-head{color:var(--brand-ink)}
+#admNav .nav-group-items{display:flex;flex-direction:column;gap:2px}
+#admNav .nav-group-items[hidden]{display:none}
 #admNav .btn.nav-sub{margin-inline-start:14px;padding-inline-start:14px;border-inline-start:2px solid var(--line);font-size:.92rem}
 #admNav .btn.nav-sub.on{border-inline-start-color:var(--brand)}
 

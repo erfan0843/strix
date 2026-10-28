@@ -194,7 +194,7 @@ const BASE={v:SVER, sec:'dash', q:'', qMore:0, evF:'all', evId:null, evTab:'info
   setG:'texts', toggles:{}, texts:{}, jobs:[], added:[], uov:{}, rp:'', baleReg:0,
   uV:'', uTag:'', uRej:'', uhide:[], upar:{}, uocc:{}, uoccC:[], urules:{}, urulesC:[], uabs:[], ushop:[],
   ulog:[], uinbox:{}, uextra:[], uimp:[], ulabels:[], rankHide:0,
-  psec:'list', pstep:1, ped:null};
+  psec:'list', pstep:1, ped:null, navOpen:{}};
 let S=JSON.parse(JSON.stringify(BASE));
 try{
   const v=JSON.parse(localStorage.getItem(SKEY)||'null');
@@ -605,7 +605,13 @@ const SERVER_MENU=[
 /* بازآرایی منو ۱۴۰۵/۰۸/۰۵: «کاربران» و «گزارش‌ها» زیر یک والد («کاربران و گزارش‌ها») در ریل می‌نشینند؛ هر دو مقصد
    مستقل می‌مانند (#users / #reports، مجوز هرکدام جدا). نوار پایین موبایل یک زبانه برای همین گروه دارد (زیرزبانه‌ها در
    خود صفحه) و «فرم‌ساز» که پیش‌تر فقط در ریل دسکتاپ بود، به نوار پایین هم آمد تا در موبایل بی‌دسترس نماند. */
-const NAV_GROUPS={people:{n:'کاربران و گزارش‌ها',i:'i-users',t:'کاربران'}};
+/* سامان‌دهی منو ۱۴۰۵/۰۸/۰۶: نام گروه «مدیران» شد و سرگروه در ریل یک دکمهٔ واقعی باز/بسته (aria-expanded) است؛ مقصدها و
+   هش‌های قدیمی (#users، #reports) دست‌نخورده‌اند و ورود مستقیم به هر زیرمقصد، گروه را باز و فعال نشان می‌دهد. */
+const NAV_GROUPS={people:{n:'مدیران',i:'i-users',t:'مدیران'}};
+/* حالت بستهٔ گروه با «کلید مقصد هنگام بستن» ذخیره می‌شود: تا وقتی کاربر همان‌جاست بسته می‌ماند؛ رفتن به زیرمقصد دیگر یا
+   پیوند مستقیم، گروه را دوباره باز می‌کند (پیش‌فرض: باز). */
+const navKey=()=>S.sec==='users'?(S.uHub==='reports'?'reports':'users'):S.sec;
+const navGroupOpen=(grp,anyActive)=>{const c=S.navOpen&&S.navOpen[grp]; if(c==null||c===true) return true; return anyActive&&c!==navKey()};
 const SERVER_TABBAR=['dash','events','users','forms','settings'];
 const navSecs=()=>(!IS_TEST&&SERVER_AUTH)?[HOME].concat(SERVER_MENU):ALLSECS;
 const navCan=k=>k==='reports'?(canPerm('rp_view')&&canSec('users')):canSec(k);
@@ -631,9 +637,10 @@ function renderNav(){
   while(i<all.length){const s=all[i]; const g=s.grp&&NAV_GROUPS[s.grp];
     if(!g){html.push(item(s)); i++; continue}
     const members=[]; while(i<all.length&&all[i].grp===s.grp){members.push(all[i]); i++}
-    const anyOpen=members.some(m=>secs.indexOf(m.k)>-1), anyActive=members.some(m=>navActive(m.k));
-    html.push(`<div class="nav-group${anyActive?' on':''}" data-nav-group="${esc(s.grp)}" role="group" aria-label="${esc(g.n)}">`+
-      `<div class="nav-group-head${anyOpen?'':' locked'}" aria-hidden="true">${ico(g.i,'nav-icon')}<span>${esc(g.n)}</span></div>${members.map(item).join('')}</div>`)}
+    const anyOpen=members.some(m=>secs.indexOf(m.k)>-1), anyActive=members.some(m=>navActive(m.k)), expanded=navGroupOpen(s.grp,anyActive), listId='navgrp-'+s.grp;
+    html.push(`<div class="nav-group${anyActive?' on':''}${expanded?' open':''}" data-nav-group="${esc(s.grp)}" role="group" aria-label="${esc(g.n)}">`+
+      `<button type="button" class="nav-group-head${anyOpen?'':' locked'}" data-nav-toggle="${esc(s.grp)}" aria-expanded="${expanded?'true':'false'}" aria-controls="${listId}"${anyActive?' aria-current="true"':''}>${ico(g.i,'nav-icon')}<span>${esc(g.n)}</span>${anyOpen?ico('i-chev-down','nav-chev'):`<span class="bd">${ico('i-lock')}</span>`}</button>`+
+      `<div class="nav-group-items" id="${listId}"${expanded?'':' hidden'}>${members.map(item).join('')}</div></div>`)}
   $('#admNav').innerHTML=html.join('');
   /* نوار پایین: زبانه‌های SERVER_TABBAR؛ زبانهٔ گروه «کاربران و گزارش‌ها» با اولین عضو مجاز گروه ساخته می‌شود */
   $('#admTabs').innerHTML=all.filter(s=>secs.indexOf(s.k)>-1&&(!live||SERVER_TABBAR.includes(s.k))).map(s=>{
@@ -11429,6 +11436,10 @@ document.addEventListener('click',e=>{
   const hub=q('[data-user-hub]'); if(hub){
     S.uV=''; S.uSel=''; S.uTab='info';
     go(hub.dataset.userHub==='reports'?'reports':'users'); return}
+  const navToggle=q('[data-nav-toggle]'); if(navToggle){
+    const grp=navToggle.dataset.navToggle, wasOpen=navToggle.getAttribute('aria-expanded')==='true';
+    S.navOpen=Object.assign({},S.navOpen,{[grp]:wasOpen?navKey():true}); save(); renderNav();
+    const again=$('#admNav [data-nav-toggle="'+grp+'"]'); if(again) again.focus(); return}
   const sec=q('[data-sec]'); if(sec){
     if(sec.dataset.locked==='1'){toast(W.locked||''); return}
     if(sec.dataset.sec==='users'||sec.dataset.sec==='reports'){S.uV=''; S.uSel=''; S.uTab='info'; S.uHub=sec.dataset.sec==='reports'?'reports':'users'; save()}
@@ -13144,7 +13155,7 @@ addEventListener('hashchange',()=>{
   else if(k==='partners'&&isOwner()){S.sec='settings'; S.ppPartnerEd=''; S.ppPartnerD=null; S.q='';
     if(IS_TEST){S.skin=0; S.skinP=1; S.ppTab='partners';} else S.setG='publishing';
     save(); render();}
-  else if(ALLSECS.some(section=>section.k===k)&&k!==S.sec){
+  else if(ALLSECS.some(section=>section.k===k)&&(k!==S.sec||(k==='users'&&S.uHub==='reports'))){  /* #users از روی #reports هم باید برگردد */
     if(k==='users'){S.uHub='users';S.uV='';S.uSel=''}
     S.sec=k; S.q=''; save(); render();
   }
