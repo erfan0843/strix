@@ -74,6 +74,8 @@ bale_api.send_invoice = _invoice
 
 import config  # noqa: E402
 import database  # noqa: E402
+sys.path.insert(0, str(ROOT / "tests"))
+import _points_fixture as _pf  # noqa: E402  (موجودی آزمایشی از مسیر دفترکل)
 import auth  # noqa: E402
 import profile as PR  # noqa: E402
 import forms as F  # noqa: E402
@@ -709,8 +711,7 @@ database.db_execute("""INSERT INTO payment_gateways
 database.set_setting("pay_points_enabled", "1", "t", "payment")
 database.set_setting("pay_points_rate", "10000", "t", "payment")
 database.clear_settings_cache()
-database.db_execute("UPDATE users SET total_points=500 WHERE bale_user_id=?",
-                    (U2,))
+_pf.set_balance(U2, 500)
 
 check("🛡️ جریان واقعی: کیف پول → هشدار آمد", _saw_vpn("bale_wallet"))
 check("🛡️ جریان واقعی: درگاه سفارشی → هشدار آمد",

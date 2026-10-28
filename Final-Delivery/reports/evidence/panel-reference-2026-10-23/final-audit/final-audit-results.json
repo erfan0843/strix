@@ -1,0 +1,3072 @@
+{
+  "origin": "http://127.0.0.1:8000",
+  "at": "2026-10-23T10:46:24.996Z",
+  "steps": [
+    {
+      "tag": "owner-d",
+      "name": "dash",
+      "file": "owner-d-01-dash.png",
+      "hash": "#dash",
+      "textLen": 3370,
+      "anomalies": [],
+      "emptyButtons": 12,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 2
+    },
+    {
+      "tag": "owner-d",
+      "name": "dash-map",
+      "file": "owner-d-02-dash-map.png",
+      "hash": "#dash",
+      "textLen": 3376,
+      "anomalies": [],
+      "emptyButtons": 22,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "events-list",
+      "file": "owner-d-03-events-list.png",
+      "hash": "#events",
+      "textLen": 2020,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0
+    },
+    {
+      "tag": "owner-d",
+      "name": "articles-list",
+      "file": "owner-d-04-articles-list.png",
+      "hash": "#events",
+      "textLen": 432,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "article-editor",
+      "file": "owner-d-05-article-editor.png",
+      "hash": "#events",
+      "textLen": 432,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": false
+    },
+    {
+      "tag": "owner-d",
+      "name": "article-history",
+      "file": "owner-d-06-article-history.png",
+      "hash": "#events",
+      "textLen": 432,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": false
+    },
+    {
+      "tag": "owner-d",
+      "name": "events-list-again",
+      "file": "owner-d-07-events-list-again.png",
+      "hash": "#events",
+      "textLen": 2020,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "event-editor",
+      "file": "owner-d-08-event-editor.png",
+      "hash": "#events",
+      "textLen": 3320,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "event-history",
+      "file": "owner-d-09-event-history.png",
+      "hash": "#events",
+      "textLen": 543,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "event-new",
+      "file": "owner-d-10-event-new.png",
+      "hash": "#events",
+      "textLen": 2688,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "event-tool",
+      "file": "owner-d-11-event-tool.png",
+      "hash": "#events",
+      "textLen": 701,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "event-tool-resources",
+      "file": "owner-d-12-event-tool-resources.png",
+      "hash": "#events",
+      "textLen": 701,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "event-tool-recording",
+      "file": "owner-d-13-event-tool-recording.png",
+      "hash": "#events",
+      "textLen": 621,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "event-tool-questions",
+      "file": "owner-d-14-event-tool-questions.png",
+      "hash": "#events",
+      "textLen": 483,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "event-tool-reviews",
+      "file": "owner-d-15-event-tool-reviews.png",
+      "hash": "#events",
+      "textLen": 511,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "event-tool-reports",
+      "file": "owner-d-16-event-tool-reports.png",
+      "hash": "#events",
+      "textLen": 352,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "event-tool-orders",
+      "file": "owner-d-17-event-tool-orders.png",
+      "hash": "#events",
+      "textLen": 521,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "events-open-questions",
+      "file": "owner-d-18-events-open-questions.png",
+      "hash": "#events",
+      "textLen": 464,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "users-list",
+      "file": "owner-d-19-users-list.png",
+      "hash": "#users",
+      "textLen": 1777,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0
+    },
+    {
+      "tag": "owner-d",
+      "name": "user-file",
+      "file": "owner-d-20-user-file.png",
+      "hash": "#users",
+      "textLen": 872,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "user-file-regs",
+      "file": "owner-d-21-user-file-regs.png",
+      "hash": "#users",
+      "textLen": 872,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "user-file-notifs",
+      "file": "owner-d-22-user-file-notifs.png",
+      "hash": "#users",
+      "textLen": 907,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "user-file-reviews",
+      "file": "owner-d-23-user-file-reviews.png",
+      "hash": "#users",
+      "textLen": 748,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "user-file-hist",
+      "file": "owner-d-24-user-file-hist.png",
+      "hash": "#users",
+      "textLen": 1046,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "users-blocked-filter",
+      "file": "owner-d-25-users-blocked-filter.png",
+      "hash": "#users",
+      "textLen": 1344,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "users-tools",
+      "file": "owner-d-26-users-tools.png",
+      "hash": "#users",
+      "textLen": 2289,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "tools-report",
+      "file": "owner-d-27-tools-report.png",
+      "hash": "#users",
+      "textLen": 2289,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "tools-staff",
+      "file": "owner-d-28-tools-staff.png",
+      "hash": "#users",
+      "textLen": 1778,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "tools-inbox",
+      "file": "owner-d-29-tools-inbox.png",
+      "hash": "#users",
+      "textLen": 1423,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "tools-log",
+      "file": "owner-d-30-tools-log.png",
+      "hash": "#users",
+      "textLen": 3347,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "tools-perms",
+      "file": "owner-d-31-tools-perms.png",
+      "hash": "#users",
+      "textLen": 2126,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "tools-par",
+      "file": "owner-d-32-tools-par.png",
+      "hash": "#users",
+      "textLen": 436,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "tools-add",
+      "file": "owner-d-33-tools-add.png",
+      "hash": "#users",
+      "textLen": 433,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "tools-imp",
+      "file": "owner-d-34-tools-imp.png",
+      "hash": "#users",
+      "textLen": 414,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "tools-tags",
+      "file": "owner-d-35-tools-tags.png",
+      "hash": "#users",
+      "textLen": 436,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "tools-blocked",
+      "file": "owner-d-36-tools-blocked.png",
+      "hash": "#users",
+      "textLen": 874,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "reports-hub",
+      "file": "owner-d-37-reports-hub.png",
+      "hash": "#reports",
+      "textLen": 2925,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "reports-7d",
+      "file": "owner-d-38-reports-7d.png",
+      "hash": "#reports",
+      "textLen": 2922,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "reports-outbox-reminders",
+      "file": "owner-d-39-reports-outbox-reminders.png",
+      "hash": "#reports",
+      "textLen": 2473,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "reports-outbox-failed",
+      "file": "owner-d-40-reports-outbox-failed.png",
+      "hash": "#reports",
+      "textLen": 2473,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "forms",
+      "file": "owner-d-41-forms.png",
+      "hash": "#reports",
+      "textLen": 2473,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0
+    },
+    {
+      "tag": "owner-d",
+      "name": "settings",
+      "file": "owner-d-42-settings.png",
+      "hash": "#settings",
+      "textLen": 4053,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0
+    },
+    {
+      "tag": "owner-d",
+      "name": "settings-services",
+      "file": "owner-d-43-settings-services.png",
+      "hash": "#settings",
+      "textLen": 1654,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "settings-service-bale",
+      "file": "owner-d-44-settings-service-bale.png",
+      "hash": "#settings",
+      "textLen": 1654,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "settings-service-sms",
+      "file": "owner-d-45-settings-service-sms.png",
+      "hash": "#settings",
+      "textLen": 1589,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "settings-service-payment",
+      "file": "owner-d-46-settings-service-payment.png",
+      "hash": "#settings",
+      "textLen": 2538,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "settings-deploy",
+      "file": "owner-d-47-settings-deploy.png",
+      "hash": "#settings",
+      "textLen": 1094,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "settings-data",
+      "file": "owner-d-48-settings-data.png",
+      "hash": "#settings",
+      "textLen": 774,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "settings-security",
+      "file": "owner-d-49-settings-security.png",
+      "hash": "#settings",
+      "textLen": 4380,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "settings-publishing",
+      "file": "owner-d-50-settings-publishing.png",
+      "hash": "#settings",
+      "textLen": 4053,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "settings-people",
+      "file": "owner-d-51-settings-people.png",
+      "hash": "#settings",
+      "textLen": 1056,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "person-editor",
+      "file": "owner-d-52-person-editor.png",
+      "hash": "#settings",
+      "textLen": 1056,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": false
+    },
+    {
+      "tag": "owner-d",
+      "name": "person-history",
+      "file": "owner-d-53-person-history.png",
+      "hash": "#settings",
+      "textLen": 1056,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": false
+    },
+    {
+      "tag": "owner-d",
+      "name": "settings-performance",
+      "file": "owner-d-54-settings-performance.png",
+      "hash": "#settings",
+      "textLen": 1105,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-d",
+      "name": "hash-reports",
+      "file": "owner-d-55-hash-reports.png",
+      "hash": "#reports",
+      "textLen": 2925,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0
+    },
+    {
+      "tag": "owner-d",
+      "name": "hash-money",
+      "file": "owner-d-56-hash-money.png",
+      "hash": "#events",
+      "textLen": 795,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0
+    },
+    {
+      "tag": "owner-d",
+      "name": "hash-club",
+      "file": "owner-d-57-hash-club.png",
+      "hash": "#users",
+      "textLen": 600,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0
+    },
+    {
+      "tag": "owner-d",
+      "name": "hash-cert",
+      "file": "owner-d-58-hash-cert.png",
+      "hash": "#cert",
+      "textLen": 666,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0
+    },
+    {
+      "tag": "owner-d",
+      "name": "hash-newev",
+      "file": "owner-d-59-hash-newev.png",
+      "hash": "#newev",
+      "textLen": 2020,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0
+    },
+    {
+      "tag": "owner-d",
+      "name": "hash-posts",
+      "file": "owner-d-60-hash-posts.png",
+      "hash": "#posts",
+      "textLen": 1092,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0
+    },
+    {
+      "tag": "owner-d",
+      "name": "hash-nonexistent-section",
+      "file": "owner-d-61-hash-nonexistent-section.png",
+      "hash": "#nonexistent-section",
+      "textLen": 1088,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0
+    },
+    {
+      "tag": "manager-d",
+      "name": "dash",
+      "file": "manager-d-62-dash.png",
+      "hash": "#dash",
+      "textLen": 2889,
+      "anomalies": [],
+      "emptyButtons": 12,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 6
+    },
+    {
+      "tag": "manager-d",
+      "name": "dash-map",
+      "file": "manager-d-63-dash-map.png",
+      "hash": "#dash",
+      "textLen": 3426,
+      "anomalies": [],
+      "emptyButtons": 17,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "manager-d",
+      "name": "events-list",
+      "file": "manager-d-64-events-list.png",
+      "hash": "#events",
+      "textLen": 2020,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0
+    },
+    {
+      "tag": "manager-d",
+      "name": "articles-list",
+      "file": "manager-d-65-articles-list.png",
+      "hash": "#events",
+      "textLen": 432,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "manager-d",
+      "name": "article-editor",
+      "file": "manager-d-66-article-editor.png",
+      "hash": "#events",
+      "textLen": 432,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": false
+    },
+    {
+      "tag": "manager-d",
+      "name": "article-history",
+      "file": "manager-d-67-article-history.png",
+      "hash": "#events",
+      "textLen": 432,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": false
+    },
+    {
+      "tag": "manager-d",
+      "name": "events-list-again",
+      "file": "manager-d-68-events-list-again.png",
+      "hash": "#events",
+      "textLen": 2020,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "manager-d",
+      "name": "event-editor",
+      "file": "manager-d-69-event-editor.png",
+      "hash": "#events",
+      "textLen": 3287,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "manager-d",
+      "name": "event-history",
+      "file": "manager-d-70-event-history.png",
+      "hash": "#events",
+      "textLen": 3287,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": false
+    },
+    {
+      "tag": "manager-d",
+      "name": "event-new",
+      "file": "manager-d-71-event-new.png",
+      "hash": "#events",
+      "textLen": 2670,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "manager-d",
+      "name": "event-tool",
+      "file": "manager-d-72-event-tool.png",
+      "hash": "#events",
+      "textLen": 701,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "manager-d",
+      "name": "event-tool-resources",
+      "file": "manager-d-73-event-tool-resources.png",
+      "hash": "#events",
+      "textLen": 701,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "manager-d",
+      "name": "event-tool-recording",
+      "file": "manager-d-74-event-tool-recording.png",
+      "hash": "#events",
+      "textLen": 621,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "manager-d",
+      "name": "event-tool-questions",
+      "file": "manager-d-75-event-tool-questions.png",
+      "hash": "#events",
+      "textLen": 483,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "manager-d",
+      "name": "event-tool-reviews",
+      "file": "manager-d-76-event-tool-reviews.png",
+      "hash": "#events",
+      "textLen": 511,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "manager-d",
+      "name": "event-tool-reports",
+      "file": "manager-d-77-event-tool-reports.png",
+      "hash": "#events",
+      "textLen": 352,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "manager-d",
+      "name": "event-tool-orders",
+      "file": "manager-d-78-event-tool-orders.png",
+      "hash": "#events",
+      "textLen": 511,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "manager-d",
+      "name": "events-open-questions",
+      "file": "manager-d-79-events-open-questions.png",
+      "hash": "#events",
+      "textLen": 464,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "manager-d",
+      "name": "users-list",
+      "file": "manager-d-80-users-list.png",
+      "hash": "#users",
+      "textLen": 1487,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0
+    },
+    {
+      "tag": "manager-d",
+      "name": "user-file",
+      "file": "manager-d-81-user-file.png",
+      "hash": "#users",
+      "textLen": 812,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "manager-d",
+      "name": "user-file-regs",
+      "file": "manager-d-82-user-file-regs.png",
+      "hash": "#users",
+      "textLen": 812,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "manager-d",
+      "name": "user-file-notifs",
+      "file": "manager-d-83-user-file-notifs.png",
+      "hash": "#users",
+      "textLen": 847,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "manager-d",
+      "name": "user-file-reviews",
+      "file": "manager-d-84-user-file-reviews.png",
+      "hash": "#users",
+      "textLen": 688,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "manager-d",
+      "name": "users-blocked-filter",
+      "file": "manager-d-85-users-blocked-filter.png",
+      "hash": "#users",
+      "textLen": 1054,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "manager-d",
+      "name": "users-tools",
+      "file": "manager-d-86-users-tools.png",
+      "hash": "#users",
+      "textLen": 2249,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "manager-d",
+      "name": "tools-report",
+      "file": "manager-d-87-tools-report.png",
+      "hash": "#users",
+      "textLen": 2249,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "manager-d",
+      "name": "tools-inbox",
+      "file": "manager-d-88-tools-inbox.png",
+      "hash": "#users",
+      "textLen": 1383,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "manager-d",
+      "name": "tools-perms",
+      "file": "manager-d-89-tools-perms.png",
+      "hash": "#users",
+      "textLen": 2142,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "manager-d",
+      "name": "tools-par",
+      "file": "manager-d-90-tools-par.png",
+      "hash": "#users",
+      "textLen": 396,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "manager-d",
+      "name": "tools-add",
+      "file": "manager-d-91-tools-add.png",
+      "hash": "#users",
+      "textLen": 393,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "manager-d",
+      "name": "tools-imp",
+      "file": "manager-d-92-tools-imp.png",
+      "hash": "#users",
+      "textLen": 374,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "manager-d",
+      "name": "tools-tags",
+      "file": "manager-d-93-tools-tags.png",
+      "hash": "#users",
+      "textLen": 396,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "manager-d",
+      "name": "tools-blocked",
+      "file": "manager-d-94-tools-blocked.png",
+      "hash": "#users",
+      "textLen": 834,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "manager-d",
+      "name": "reports-hub",
+      "file": "manager-d-95-reports-hub.png",
+      "hash": "#reports",
+      "textLen": 2925,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "manager-d",
+      "name": "reports-7d",
+      "file": "manager-d-96-reports-7d.png",
+      "hash": "#reports",
+      "textLen": 2922,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "manager-d",
+      "name": "reports-outbox-reminders",
+      "file": "manager-d-97-reports-outbox-reminders.png",
+      "hash": "#reports",
+      "textLen": 2473,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "manager-d",
+      "name": "reports-outbox-failed",
+      "file": "manager-d-98-reports-outbox-failed.png",
+      "hash": "#reports",
+      "textLen": 2473,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "manager-d",
+      "name": "forms",
+      "file": "manager-d-99-forms.png",
+      "hash": "#reports",
+      "textLen": 2473,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0
+    },
+    {
+      "tag": "manager-d",
+      "name": "settings",
+      "file": "manager-d-100-settings.png",
+      "hash": "#reports",
+      "textLen": 2473,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0
+    },
+    {
+      "tag": "manager-d",
+      "name": "hash-reports",
+      "file": "manager-d-101-hash-reports.png",
+      "hash": "#reports",
+      "textLen": 2925,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 4
+    },
+    {
+      "tag": "manager-d",
+      "name": "hash-money",
+      "file": "manager-d-102-hash-money.png",
+      "hash": "#events",
+      "textLen": 785,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 4
+    },
+    {
+      "tag": "manager-d",
+      "name": "hash-club",
+      "file": "manager-d-103-hash-club.png",
+      "hash": "#dash",
+      "textLen": 2889,
+      "anomalies": [],
+      "emptyButtons": 12,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 4
+    },
+    {
+      "tag": "manager-d",
+      "name": "hash-cert",
+      "file": "manager-d-104-hash-cert.png",
+      "hash": "#cert",
+      "textLen": 666,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 4
+    },
+    {
+      "tag": "manager-d",
+      "name": "hash-newev",
+      "file": "manager-d-105-hash-newev.png",
+      "hash": "#newev",
+      "textLen": 2020,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 4
+    },
+    {
+      "tag": "manager-d",
+      "name": "hash-posts",
+      "file": "manager-d-106-hash-posts.png",
+      "hash": "#posts",
+      "textLen": 2925,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 4
+    },
+    {
+      "tag": "manager-d",
+      "name": "hash-nonexistent-section",
+      "file": "manager-d-107-hash-nonexistent-section.png",
+      "hash": "#nonexistent-section",
+      "textLen": 2925,
+      "anomalies": [],
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 4
+    },
+    {
+      "tag": "owner-m",
+      "name": "dash",
+      "file": "owner-m-108-dash.png",
+      "hash": "#dash",
+      "textLen": 3370,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 12,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 2
+    },
+    {
+      "tag": "owner-m",
+      "name": "dash-map",
+      "file": "owner-m-109-dash-map.png",
+      "hash": "#dash",
+      "textLen": 3376,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 22,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "events-list",
+      "file": "owner-m-110-events-list.png",
+      "hash": "#events",
+      "textLen": 2020,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0
+    },
+    {
+      "tag": "owner-m",
+      "name": "articles-list",
+      "file": "owner-m-111-articles-list.png",
+      "hash": "#events",
+      "textLen": 432,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "article-editor",
+      "file": "owner-m-112-article-editor.png",
+      "hash": "#events",
+      "textLen": 432,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": false
+    },
+    {
+      "tag": "owner-m",
+      "name": "article-history",
+      "file": "owner-m-113-article-history.png",
+      "hash": "#events",
+      "textLen": 432,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": false
+    },
+    {
+      "tag": "owner-m",
+      "name": "events-list-again",
+      "file": "owner-m-114-events-list-again.png",
+      "hash": "#events",
+      "textLen": 2020,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "event-editor",
+      "file": "owner-m-115-event-editor.png",
+      "hash": "#events",
+      "textLen": 3320,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "event-history",
+      "file": "owner-m-116-event-history.png",
+      "hash": "#events",
+      "textLen": 543,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "event-new",
+      "file": "owner-m-117-event-new.png",
+      "hash": "#events",
+      "textLen": 2688,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "users-list",
+      "file": "owner-m-118-users-list.png",
+      "hash": "#users",
+      "textLen": 1777,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0
+    },
+    {
+      "tag": "owner-m",
+      "name": "user-file",
+      "file": "owner-m-119-user-file.png",
+      "hash": "#users",
+      "textLen": 872,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "user-file-regs",
+      "file": "owner-m-120-user-file-regs.png",
+      "hash": "#users",
+      "textLen": 872,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "user-file-notifs",
+      "file": "owner-m-121-user-file-notifs.png",
+      "hash": "#users",
+      "textLen": 907,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "user-file-reviews",
+      "file": "owner-m-122-user-file-reviews.png",
+      "hash": "#users",
+      "textLen": 748,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "user-file-hist",
+      "file": "owner-m-123-user-file-hist.png",
+      "hash": "#users",
+      "textLen": 1046,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "users-blocked-filter",
+      "file": "owner-m-124-users-blocked-filter.png",
+      "hash": "#users",
+      "textLen": 1344,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "users-tools",
+      "file": "owner-m-125-users-tools.png",
+      "hash": "#users",
+      "textLen": 2289,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "tools-report",
+      "file": "owner-m-126-tools-report.png",
+      "hash": "#users",
+      "textLen": 2289,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "tools-staff",
+      "file": "owner-m-127-tools-staff.png",
+      "hash": "#users",
+      "textLen": 1778,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "tools-inbox",
+      "file": "owner-m-128-tools-inbox.png",
+      "hash": "#users",
+      "textLen": 1423,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "tools-log",
+      "file": "owner-m-129-tools-log.png",
+      "hash": "#users",
+      "textLen": 3347,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "tools-perms",
+      "file": "owner-m-130-tools-perms.png",
+      "hash": "#users",
+      "textLen": 2126,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "tools-par",
+      "file": "owner-m-131-tools-par.png",
+      "hash": "#users",
+      "textLen": 436,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "tools-add",
+      "file": "owner-m-132-tools-add.png",
+      "hash": "#users",
+      "textLen": 433,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "tools-imp",
+      "file": "owner-m-133-tools-imp.png",
+      "hash": "#users",
+      "textLen": 414,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "tools-tags",
+      "file": "owner-m-134-tools-tags.png",
+      "hash": "#users",
+      "textLen": 436,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "tools-blocked",
+      "file": "owner-m-135-tools-blocked.png",
+      "hash": "#users",
+      "textLen": 874,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "reports-hub",
+      "file": "owner-m-136-reports-hub.png",
+      "hash": "#reports",
+      "textLen": 2925,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "reports-7d",
+      "file": "owner-m-137-reports-7d.png",
+      "hash": "#reports",
+      "textLen": 2922,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "reports-outbox-reminders",
+      "file": "owner-m-138-reports-outbox-reminders.png",
+      "hash": "#reports",
+      "textLen": 2473,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "reports-outbox-failed",
+      "file": "owner-m-139-reports-outbox-failed.png",
+      "hash": "#reports",
+      "textLen": 2473,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "forms",
+      "file": "owner-m-140-forms.png",
+      "hash": "#reports",
+      "textLen": 2473,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0
+    },
+    {
+      "tag": "owner-m",
+      "name": "settings",
+      "file": "owner-m-141-settings.png",
+      "hash": "#settings",
+      "textLen": 4053,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0
+    },
+    {
+      "tag": "owner-m",
+      "name": "settings-services",
+      "file": "owner-m-142-settings-services.png",
+      "hash": "#settings",
+      "textLen": 1654,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "settings-service-bale",
+      "file": "owner-m-143-settings-service-bale.png",
+      "hash": "#settings",
+      "textLen": 1654,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "settings-service-sms",
+      "file": "owner-m-144-settings-service-sms.png",
+      "hash": "#settings",
+      "textLen": 1589,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "settings-service-payment",
+      "file": "owner-m-145-settings-service-payment.png",
+      "hash": "#settings",
+      "textLen": 2538,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "settings-deploy",
+      "file": "owner-m-146-settings-deploy.png",
+      "hash": "#settings",
+      "textLen": 1094,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "settings-data",
+      "file": "owner-m-147-settings-data.png",
+      "hash": "#settings",
+      "textLen": 774,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "settings-security",
+      "file": "owner-m-148-settings-security.png",
+      "hash": "#settings",
+      "textLen": 4380,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "settings-publishing",
+      "file": "owner-m-149-settings-publishing.png",
+      "hash": "#settings",
+      "textLen": 4053,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "settings-people",
+      "file": "owner-m-150-settings-people.png",
+      "hash": "#settings",
+      "textLen": 1056,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "person-editor",
+      "file": "owner-m-151-person-editor.png",
+      "hash": "#settings",
+      "textLen": 1056,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Vazirmatn-UI-FD-Regular.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        },
+        {
+          "type": "warning",
+          "text": "The resource http://127.0.0.1:8000/fonts/Estedad-Variable.woff2 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally."
+        }
+      ],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": false
+    },
+    {
+      "tag": "owner-m",
+      "name": "person-history",
+      "file": "owner-m-152-person-history.png",
+      "hash": "#settings",
+      "textLen": 1056,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": false
+    },
+    {
+      "tag": "owner-m",
+      "name": "settings-performance",
+      "file": "owner-m-153-settings-performance.png",
+      "hash": "#settings",
+      "textLen": 1109,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0,
+      "clicked": true
+    },
+    {
+      "tag": "owner-m",
+      "name": "hash-reports",
+      "file": "owner-m-154-hash-reports.png",
+      "hash": "#reports",
+      "textLen": 2925,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0
+    },
+    {
+      "tag": "owner-m",
+      "name": "hash-money",
+      "file": "owner-m-155-hash-money.png",
+      "hash": "#events",
+      "textLen": 795,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0
+    },
+    {
+      "tag": "owner-m",
+      "name": "hash-club",
+      "file": "owner-m-156-hash-club.png",
+      "hash": "#users",
+      "textLen": 600,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0
+    },
+    {
+      "tag": "owner-m",
+      "name": "hash-cert",
+      "file": "owner-m-157-hash-cert.png",
+      "hash": "#cert",
+      "textLen": 666,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0
+    },
+    {
+      "tag": "owner-m",
+      "name": "hash-newev",
+      "file": "owner-m-158-hash-newev.png",
+      "hash": "#newev",
+      "textLen": 2020,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0
+    },
+    {
+      "tag": "owner-m",
+      "name": "hash-posts",
+      "file": "owner-m-159-hash-posts.png",
+      "hash": "#posts",
+      "textLen": 1092,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0
+    },
+    {
+      "tag": "owner-m",
+      "name": "hash-nonexistent-section",
+      "file": "owner-m-160-hash-nonexistent-section.png",
+      "hash": "#nonexistent-section",
+      "textLen": 1092,
+      "anomalies": [],
+      "overflow": false,
+      "emptyButtons": 0,
+      "imgsBroken": [],
+      "consoleErrors": [],
+      "failed": [],
+      "expectedProbes": 0
+    },
+    {
+      "tag": "pins",
+      "name": "admin.html asset pins",
+      "pins": {
+        "assets": [
+          {
+            "asset": "glass.css?v=100",
+            "status": 200,
+            "type": "text/css; charset=utf-8"
+          },
+          {
+            "asset": "nora.css?v=102",
+            "status": 200,
+            "type": "text/css; charset=utf-8"
+          },
+          {
+            "asset": "admin.css?v=105",
+            "status": 200,
+            "type": "text/css; charset=utf-8"
+          },
+          {
+            "asset": "site-content-sync.css?v=99",
+            "status": 200,
+            "type": "text/css; charset=utf-8"
+          },
+          {
+            "asset": "owner-banner-manager.css?v=4",
+            "status": 200,
+            "type": "text/css; charset=utf-8"
+          },
+          {
+            "asset": "cooperation-inbox.css?v=98",
+            "status": 200,
+            "type": "text/css; charset=utf-8"
+          },
+          {
+            "asset": "data.js?v=100",
+            "status": 200,
+            "type": "text/javascript; charset=utf-8"
+          },
+          {
+            "asset": "ui.js?v=132",
+            "status": 200,
+            "type": "text/javascript; charset=utf-8"
+          },
+          {
+            "asset": "owner-api.js?v=126",
+            "status": 200,
+            "type": "text/javascript; charset=utf-8"
+          },
+          {
+            "asset": "site-content-sync.js?v=102",
+            "status": 200,
+            "type": "text/javascript; charset=utf-8"
+          },
+          {
+            "asset": "countdown.js?v=3",
+            "status": 200,
+            "type": "text/javascript; charset=utf-8"
+          },
+          {
+            "asset": "owner-banner-manager.js?v=5",
+            "status": 200,
+            "type": "text/javascript; charset=utf-8"
+          },
+          {
+            "asset": "cooperation-inbox.js?v=98",
+            "status": 200,
+            "type": "text/javascript; charset=utf-8"
+          },
+          {
+            "asset": "admin.js?v=164",
+            "status": 200,
+            "type": "text/javascript; charset=utf-8"
+          }
+        ],
+        "loaded": [
+          "/glass.css?v=100",
+          "/nora.css?v=102",
+          "/admin.css?v=105",
+          "/site-content-sync.css?v=99",
+          "/owner-banner-manager.css?v=4",
+          "/cooperation-inbox.css?v=98",
+          "/data.js?v=100",
+          "/ui.js?v=132",
+          "/owner-api.js?v=126",
+          "/site-content-sync.js?v=102",
+          "/countdown.js?v=3",
+          "/owner-banner-manager.js?v=5",
+          "/cooperation-inbox.js?v=98",
+          "/admin.js?v=164",
+          "/glass.css?v=100",
+          "/nora.css?v=102",
+          "/admin.css?v=105",
+          "/site-content-sync.css?v=99"
+        ]
+      }
+    }
+  ],
+  "links": [
+    {
+      "href": "builder.html",
+      "seenAt": "owner-d:dash",
+      "status": 200
+    },
+    {
+      "href": "home.html",
+      "seenAt": "owner-d:dash",
+      "status": 200
+    },
+    {
+      "href": "#dash",
+      "seenAt": "owner-d:dash",
+      "status": "hash"
+    },
+    {
+      "href": "#events",
+      "seenAt": "owner-d:dash",
+      "status": "hash"
+    },
+    {
+      "href": "#users",
+      "seenAt": "owner-d:dash",
+      "status": "hash"
+    },
+    {
+      "href": "#settings",
+      "seenAt": "owner-d:dash",
+      "status": "hash"
+    },
+    {
+      "href": "event.html?id=ev-5bc7cf014f",
+      "seenAt": "owner-d:events-list",
+      "status": 200
+    },
+    {
+      "href": "event.html?id=ev-03e8b585a4",
+      "seenAt": "owner-d:events-list",
+      "status": 200
+    },
+    {
+      "href": "event.html?id=ev-2e182fcc60",
+      "seenAt": "owner-d:events-list",
+      "status": 200
+    },
+    {
+      "href": "event.html?id=ev-6bc5d1bf27",
+      "seenAt": "owner-d:events-list",
+      "status": 200
+    },
+    {
+      "href": "event.html?id=ev-09422f4ac3",
+      "seenAt": "owner-d:events-list",
+      "status": 200
+    },
+    {
+      "href": "event.html?id=ev-dab29106bf",
+      "seenAt": "owner-d:events-list",
+      "status": 200
+    },
+    {
+      "href": "event.html?id=ev-6b1e52a8c2",
+      "seenAt": "owner-d:events-list",
+      "status": 200
+    },
+    {
+      "href": "create.html?ev=ev-5bc7cf014f&need=reg&name=%DA%A9%D8%A7%D8%B1%DA%AF%D8%A7%D9%87+%D9%81%D8%B1%D8%AF%D8%A7+%28%D8%A2%D8%B2%D9%85%D9%88%D9%86+%DB%8C%D8%A7%D8%AF%D8%A2%D9%88%D8%B1+f895e4%29&back=admin.html",
+      "seenAt": "owner-d:event-editor",
+      "status": 200
+    },
+    {
+      "href": "create.html?fid=86d3152b-a9f1-4405-a40d-15f755f485d2",
+      "seenAt": "owner-d:event-editor",
+      "status": 200
+    },
+    {
+      "href": "builder.html?fid=86d3152b-a9f1-4405-a40d-15f755f485d2#responses",
+      "seenAt": "owner-d:event-editor",
+      "status": 200
+    },
+    {
+      "href": "/api/admin/recording-orders?status=review&event_id=ev-5bc7cf014f&format=csv",
+      "seenAt": "owner-d:event-tool-orders",
+      "status": 200
+    },
+    {
+      "href": "home.html#partners",
+      "seenAt": "owner-d:settings",
+      "status": 200
+    },
+    {
+      "href": "home.html#teachers",
+      "seenAt": "owner-d:settings-people",
+      "status": 200
+    },
+    {
+      "href": "/api/admin/recording-orders?status=review&format=csv",
+      "seenAt": "owner-d:hash-money",
+      "status": 200
+    },
+    {
+      "href": "admin.html#inbox",
+      "seenAt": "owner-d:hash-money",
+      "status": 200
+    }
+  ]
+}

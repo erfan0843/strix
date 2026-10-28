@@ -1,0 +1,21 @@
+PASS editor shows an A4 poster frame; empty state is an explicit placeholder («پوستر عمودی A4»)
+PASS frame ratio is 210:297 (A4 portrait)
+PASS poster upload goes to the server and the frame shows the stored media URL (no data: / temp URL)
+PASS editor poster is object-fit: contain and drawn fully inside the frame (no crop)
+PASS review-step card preview shows the poster fully (contain) before saving
+PASS save succeeds (server version increments or editor closes to the list)
+PASS poster persists after reopening the editor (server-stored URL)
+PASS event file header thumbnail keeps the A4 ratio and is not cropped
+PASS public events list @1440: poster card uses contain, full poster visible, no text over the poster, no horizontal overflow
+PASS public events list @1440: every poster card has the same fixed image height (220)
+PASS event page @1440: hero poster is contained (full A4 visible) without overflow
+PASS home @1440: event card poster contained, tags not over the poster, no overflow
+PASS public events list @390: poster card uses contain, full poster visible, no text over the poster, no horizontal overflow
+PASS public events list @390: every poster card has the same fixed image height (200)
+PASS event page @390: hero poster is contained (full A4 visible) without overflow
+PASS home @390: event card poster contained, tags not over the poster, no overflow
+PASS public events list @360: poster card uses contain, full poster visible, no text over the poster, no horizontal overflow
+PASS public events list @360: every poster card has the same fixed image height (200)
+PASS event page @360: hero poster is contained (full A4 visible) without overflow
+PASS home @360: event card poster contained, tags not over the poster, no overflow
+PASS no page errors

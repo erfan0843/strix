@@ -1,0 +1,71 @@
+PASS capability contract ready
+PASS ۱ empty canvas auto-opens the picker with sticky head (search + chips) above the list
+PASS ۱ 8 user-facing categories + «همه»; list shows every category once as a titled section
+PASS ۱ desktop tiles are a 2-column grid
+PASS ۱ «مشخصات فردی» filters to its 8 types; count line names the category; no section headers while filtered
+PASS ۱ search stays reachable while the list scrolls
+PASS ۲ synonym «شماره همراه» → mobile first + result count
+PASS ۲ Persian normalisation (ي→ی): «ايميل» finds the email type
+PASS ۲ «سن» → number/birth-date, not file/image noise
+PASS ۲ setting term «عدد صحیح» → number type with a setting hint
+PASS ۲ setting term «اجباری» → hint says it is a per-question switch
+PASS ۲ no result → clear message + «back to all» control
+PASS ۲ reset shows all 36 types again and clears the query
+PASS ۱۴ tile «جزئیات» opens on click (answer type + example) and adds nothing
+PASS ۱۴ details toggle works from the keyboard (Enter closes it again)
+PASS ۱۴ tile button is described by its detail block for screen readers
+PASS ۳ first tile click adds exactly one question and opens its editor
+PASS ۳ bottom «+» opens the picker without a position note (appends at the end)
+PASS ۳ a quick second click on the tile does not add a duplicate (picker closed after the first add)
+PASS ۳ top «+» announces «در ابتدای فهرست» before choosing
+PASS ۳ closing the picker without choosing changes nothing
+PASS ۳ «افزودن پرسش پس از این» announces «پس از پرسش ۱»
+PASS ۳ new question landed after question 1 and its editor says «پرسش ۲ از ۳»
+PASS ۳ after save the focus returns to the «ویرایش» button of that question
+PASS ۴ five questions on the canvas, one card each
+PASS ۴ «انتقال به پایین» really swaps 2↔3 and announces the move
+PASS ۴ keyboard ArrowUp on the handle moves it back and keeps focus on the handle
+PASS ۴ collapsed cards are compact and uniform (≤ 80px on desktop)
+PASS ۵ desktop: editor docks inside the card of question 1, no scrim, not modal, head «پرسش ۱ از ۵», edit button pressed
+PASS ۵ focus goes to the title input
+PASS ۵ text question saved (title + help) and the editor left the card
+PASS ۵ choice editor docks in card 3 with editable options
+PASS ۶ option added, renamed and moved down for real; focus stays on the moved row
+PASS ۶ option deleted
+PASS ۶ saved: 2 options in the new order and the card shows «۲ گزینه»
+PASS ۷ card switch makes question 1 required (f.req, aria-checked, label) and keeps focus
+PASS ۷ second click makes it optional again
+PASS ۷ «شرط نمایش» from the menu opens the docked editor of question 4 at the condition section
+PASS ۹ saving a rule without a value is refused next to that rule (editor stays open, nothing written)
+PASS ۷ condition saved on question 4 (field/op/value) and the card shows «شرطی · ۱ قاعده»
+PASS ۸ number question: bounds + integer visible, options/length hidden
+PASS ۹ min>max: inline error next to the control, aria-invalid, editor stays open inside the card
+PASS ۹ after the fix: saved as numbers, editor closed
+PASS ۸ text-like question: length visible, bounds hidden
+PASS ۸ Escape on an untouched docked editor closes it without a prompt and returns focus to «ویرایش»
+PASS ۱۲ copy: new independent id, same settings/options, inserted right below, original untouched
+PASS ۱۲ the condition on the old question 4 (now 5) still references the original choice question
+PASS ۱۲ delete removes only the copy; order and the condition of the others are intact
+PASS ۱۲ delete is visually distinct (stop colour class) and in the menu, not a bare icon on the card
+PASS ۱۳ upload tile: real disabled button, «غیرفعال» tag and the server reason on the tile itself
+PASS ۱۳ clicking the disabled tile adds nothing
+PASS ۱۳ limited-by-server type (mobile) is addable but marked «سروری با محدودیت» — three states distinguishable
+PASS ۱۴ Tab from a card outside the docked editor moves naturally (no focus trap)
+PASS ۱۴ Escape with an unsaved change shows the discard bar inside the card and focuses it
+PASS ۱۴ discard restores the previous title
+PASS ۱۰ save: URL pinned with fid and state «ذخیره شد»
+form id: eee0c22e-b907-4fa5-ba60-59bc99873475
+PASS ۱۰ server stored exactly what the canvas showed (ids, titles, required, help, bounds, options, condition)
+PASS ۱۰ reopen by fid: «ذخیره شد» on the server version
+PASS ۱۰ reopened builder equals the server record
+PASS ۱۰ cards after reopen: required/condition/options badges reflect the stored data
+PASS ۳۹۰ picker: no horizontal overflow, single-column tiles, low category bar (one scrolling row), head ≤ 200px
+PASS ۳۹۰ editor stays a modal bottom sheet (not docked) with the «پرسش N از M» head
+PASS ۳۹۰ cards: required switch + edit + menu reachable on their own row, no overflow
+PASS ۱۱ review step counts the saved questions from the same model («۵ فیلد · ۱ اجباری»)
+PASS ۱۱ unpublished form is not public (404) and publishing through the real API works
+PASS ۱۱ public form shows the form title and offers a start/continue action
+PASS ۱۱ public contract carries the same questions in order with required + condition (what the visitor will get)
+test form left as draft on the test DB (no delete endpoint for forms): eee0c22e-b907-4fa5-ba60-59bc99873475
+PASS no page errors during the run
+e2e-question-redesign: 68 قبول، 0 خطا

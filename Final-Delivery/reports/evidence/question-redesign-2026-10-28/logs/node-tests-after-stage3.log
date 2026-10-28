@@ -1,0 +1,7 @@
+== builder-fields builder-fields: 228 بررسی، 0 خطا 
+== smoke smoke: 833 قبول، 0 خطا 
+== admin admin-test: 820 بررسی، 0 خطا 
+== audit-regression # fail 0 
+== asset-audit # fail 0 
+== admin-wizard-nora admin-wizard-nora: 152 بررسی، 0 خطا 
+== server # fail 0 

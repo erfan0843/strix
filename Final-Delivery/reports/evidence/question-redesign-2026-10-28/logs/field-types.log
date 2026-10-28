@@ -1,0 +1,375 @@
+PASS capability contract resolved from the server (state ready)
+catalog (visible): text/text area/area number/number amount/amount choice/choice multi/multi dropdown/dropdown yesno/yesno imgchoice/imgchoice fullname/fullname nid/nid birth-date/date gender/gender marital/marital mobile/mobile email/email address/address province/province location/location uni/uni edu/edu job/job jalali-date/date time/time datetime/datetime slot/slot rating/rating scale/scale bars/bars terms/terms image/image file/file voice/voice sign/sign price/price coupon/coupon
+PASS every server-supported type has a spec and an addable catalog entry
+PASS [text] picker: search by name finds it first
+PASS [text] editor opens with the type tag
+PASS [text] visible setting boxes == FIELD_SETTINGS registry
+PASS [text] valid settings save and close the editor
+PASS [text] canvas field has the right type and preset
+PASS [area] picker: search by name finds it first
+PASS [area] editor opens with the type tag
+PASS [area] visible setting boxes == FIELD_SETTINGS registry
+PASS [area] valid settings save and close the editor
+FAIL [area] canvas field has the right type and preset · {"t":"text","preset":"text","l":"متن کوتاه p4i"}
+PASS [number] picker: search by name finds it first
+PASS [number] editor opens with the type tag
+PASS [number] visible setting boxes == FIELD_SETTINGS registry
+PASS [number] editor rejects min > max and keeps the sheet open
+PASS [number] valid settings save and close the editor
+FAIL [number] canvas field has the right type and preset · {"t":"text","preset":"text","l":"متن کوتاه p4i"}
+PASS [amount] picker: search by name finds it first
+PASS [amount] editor opens with the type tag
+PASS [amount] visible setting boxes == FIELD_SETTINGS registry
+PASS [amount] editor rejects min > max and keeps the sheet open
+PASS [amount] valid settings save and close the editor
+FAIL [amount] canvas field has the right type and preset · {"t":"text","preset":"text","l":"متن کوتاه p4i"}
+PASS [choice] picker: search by name finds it first
+PASS [choice] editor opens with the type tag
+PASS [choice] visible setting boxes == FIELD_SETTINGS registry
+PASS [choice] editor rejects duplicate options
+PASS [choice] valid settings save and close the editor
+FAIL [choice] canvas field has the right type and preset · {"t":"text","preset":"text","l":"متن کوتاه p4i"}
+PASS [dropdown] picker: search by name finds it first
+PASS [dropdown] editor opens with the type tag
+PASS [dropdown] visible setting boxes == FIELD_SETTINGS registry
+PASS [dropdown] editor rejects duplicate options
+PASS [dropdown] valid settings save and close the editor
+FAIL [dropdown] canvas field has the right type and preset · {"t":"text","preset":"text","l":"متن کوتاه p4i"}
+PASS [multi] picker: search by name finds it first
+PASS [multi] editor opens with the type tag
+PASS [multi] visible setting boxes == FIELD_SETTINGS registry
+PASS [multi] editor rejects duplicate options
+PASS [multi] editor rejects minSelect > maxSelect
+PASS [multi] valid settings save and close the editor
+FAIL [multi] canvas field has the right type and preset · {"t":"text","preset":"text","l":"متن کوتاه p4i"}
+PASS [imgchoice] picker: search by name finds it first
+PASS [imgchoice] editor opens with the type tag
+PASS [imgchoice] visible setting boxes == FIELD_SETTINGS registry
+PASS [imgchoice] editor rejects duplicate options
+PASS [imgchoice] valid settings save and close the editor
+FAIL [imgchoice] canvas field has the right type and preset · {"t":"text","preset":"text","l":"متن کوتاه p4i"}
+PASS [yesno] picker: search by name finds it first
+PASS [yesno] editor opens with the type tag
+PASS [yesno] visible setting boxes == FIELD_SETTINGS registry
+PASS [yesno] valid settings save and close the editor
+FAIL [yesno] canvas field has the right type and preset · {"t":"text","preset":"text","l":"متن کوتاه p4i"}
+PASS [gender] picker: search by name finds it first
+PASS [gender] editor opens with the type tag
+PASS [gender] visible setting boxes == FIELD_SETTINGS registry
+PASS [gender] controlled list keeps its defaults and accepts an extra option
+PASS [gender] valid settings save and close the editor
+FAIL [gender] canvas field has the right type and preset · {"t":"text","preset":"text","l":"متن کوتاه p4i"}
+PASS [marital] picker: search by name finds it first
+PASS [marital] editor opens with the type tag
+PASS [marital] visible setting boxes == FIELD_SETTINGS registry
+PASS [marital] valid settings save and close the editor
+FAIL [marital] canvas field has the right type and preset · {"t":"text","preset":"text","l":"متن کوتاه p4i"}
+PASS [fullname] picker: search by name finds it first
+PASS [fullname] editor opens with the type tag
+PASS [fullname] visible setting boxes == FIELD_SETTINGS registry
+PASS [fullname] valid settings save and close the editor
+FAIL [fullname] canvas field has the right type and preset · {"t":"text","preset":"text","l":"متن کوتاه p4i"}
+PASS [mobile] picker: search by name finds it first
+PASS [mobile] editor opens with the type tag
+PASS [mobile] visible setting boxes == FIELD_SETTINGS registry
+PASS [mobile] valid settings save and close the editor
+FAIL [mobile] canvas field has the right type and preset · {"t":"text","preset":"text","l":"متن کوتاه p4i"}
+PASS [nid] picker: search by name finds it first
+PASS [nid] editor opens with the type tag
+PASS [nid] visible setting boxes == FIELD_SETTINGS registry
+PASS [nid] valid settings save and close the editor
+FAIL [nid] canvas field has the right type and preset · {"t":"text","preset":"text","l":"متن کوتاه p4i"}
+PASS [email] picker: search by name finds it first
+PASS [email] editor opens with the type tag
+PASS [email] visible setting boxes == FIELD_SETTINGS registry
+PASS [email] valid settings save and close the editor
+FAIL [email] canvas field has the right type and preset · {"t":"text","preset":"text","l":"متن کوتاه p4i"}
+PASS [address] picker: search by name finds it first
+PASS [address] editor opens with the type tag
+PASS [address] visible setting boxes == FIELD_SETTINGS registry
+PASS [address] valid settings save and close the editor
+FAIL [address] canvas field has the right type and preset · {"t":"text","preset":"text","l":"متن کوتاه p4i"}
+PASS [location] picker: search by name finds it first
+PASS [location] editor opens with the type tag
+PASS [location] visible setting boxes == FIELD_SETTINGS registry
+PASS [location] valid settings save and close the editor
+FAIL [location] canvas field has the right type and preset · {"t":"text","preset":"text","l":"متن کوتاه p4i"}
+PASS [province] picker: search by name finds it first
+PASS [province] editor opens with the type tag
+PASS [province] visible setting boxes == FIELD_SETTINGS registry
+PASS [province] valid settings save and close the editor
+FAIL [province] canvas field has the right type and preset · {"t":"text","preset":"text","l":"متن کوتاه p4i"}
+PASS [uni] picker: search by name finds it first
+PASS [uni] editor opens with the type tag
+PASS [uni] visible setting boxes == FIELD_SETTINGS registry
+PASS [uni] valid settings save and close the editor
+FAIL [uni] canvas field has the right type and preset · {"t":"text","preset":"text","l":"متن کوتاه p4i"}
+PASS [edu] picker: search by name finds it first
+PASS [edu] editor opens with the type tag
+PASS [edu] visible setting boxes == FIELD_SETTINGS registry
+PASS [edu] valid settings save and close the editor
+FAIL [edu] canvas field has the right type and preset · {"t":"text","preset":"text","l":"متن کوتاه p4i"}
+PASS [job] picker: search by name finds it first
+PASS [job] editor opens with the type tag
+PASS [job] visible setting boxes == FIELD_SETTINGS registry
+PASS [job] valid settings save and close the editor
+FAIL [job] canvas field has the right type and preset · {"t":"text","preset":"text","l":"متن کوتاه p4i"}
+PASS [date] picker: search by name finds it first
+PASS [date] editor opens with the type tag
+PASS [date] visible setting boxes == FIELD_SETTINGS registry
+PASS [date] valid settings save and close the editor
+FAIL [date] canvas field has the right type and preset · {"t":"text","preset":"text","l":"متن کوتاه p4i"}
+PASS [time] picker: search by name finds it first
+PASS [time] editor opens with the type tag
+PASS [time] visible setting boxes == FIELD_SETTINGS registry
+PASS [time] valid settings save and close the editor
+FAIL [time] canvas field has the right type and preset · {"t":"text","preset":"text","l":"متن کوتاه p4i"}
+PASS [datetime] picker: search by name finds it first
+PASS [datetime] editor opens with the type tag
+PASS [datetime] visible setting boxes == FIELD_SETTINGS registry
+PASS [datetime] valid settings save and close the editor
+FAIL [datetime] canvas field has the right type and preset · {"t":"text","preset":"text","l":"متن کوتاه p4i"}
+PASS [slot] picker: search by name finds it first
+PASS [slot] editor opens with the type tag
+PASS [slot] visible setting boxes == FIELD_SETTINGS registry
+PASS [slot] valid settings save and close the editor
+FAIL [slot] canvas field has the right type and preset · {"t":"text","preset":"text","l":"متن کوتاه p4i"}
+PASS [rating] picker: search by name finds it first
+PASS [rating] editor opens with the type tag
+PASS [rating] visible setting boxes == FIELD_SETTINGS registry
+PASS [rating] editor rejects min > max and keeps the sheet open
+PASS [rating] valid settings save and close the editor
+FAIL [rating] canvas field has the right type and preset · {"t":"text","preset":"text","l":"متن کوتاه p4i"}
+PASS [scale] picker: search by name finds it first
+PASS [scale] editor opens with the type tag
+PASS [scale] visible setting boxes == FIELD_SETTINGS registry
+PASS [scale] editor rejects min > max and keeps the sheet open
+PASS [scale] valid settings save and close the editor
+FAIL [scale] canvas field has the right type and preset · {"t":"text","preset":"text","l":"متن کوتاه p4i"}
+PASS [bars] picker: search by name finds it first
+PASS [bars] editor opens with the type tag
+PASS [bars] visible setting boxes == FIELD_SETTINGS registry
+PASS [bars] editor rejects min > max and keeps the sheet open
+PASS [bars] valid settings save and close the editor
+FAIL [bars] canvas field has the right type and preset · {"t":"text","preset":"text","l":"متن کوتاه p4i"}
+PASS [terms] picker: search by name finds it first
+PASS [terms] editor opens with the type tag
+PASS [terms] visible setting boxes == FIELD_SETTINGS registry
+PASS [terms] valid settings save and close the editor
+FAIL [terms] canvas field has the right type and preset · {"t":"text","preset":"text","l":"متن کوتاه p4i"}
+PASS all types added once (29 fields)
+PASS first save pinned the URL with fid= and state «ذخیره شد»
+form id: 9c16301c-7727-4bbd-864b-68dc0fcb111d
+FAIL server stored every field in order · "terms,bars,scale,rating,slot,datetime,time,date,job,edu,uni,province,location,address,email,nid,mobile,fullname,marital,gender,yesno,imgchoice,multi,dropdown,choice,amount,number,area,text"
+PASS [text] server record has the settings
+PASS [area] server record has the settings
+PASS [number] server record has the settings
+PASS [amount] server record has the settings
+PASS [choice] server record has the settings
+PASS [dropdown] server record has the settings
+PASS [multi] server record has the settings
+PASS [imgchoice] server record has the settings
+PASS [yesno] server record has the settings
+PASS [gender] server record has the settings
+PASS [marital] server record has the settings
+PASS [fullname] server record has the settings
+PASS [mobile] server record has the settings
+PASS [nid] server record has the settings
+PASS [email] server record has the settings
+PASS [address] server record has the settings
+PASS [location] server record has the settings
+PASS [province] server record has the settings
+PASS [uni] server record has the settings
+PASS [edu] server record has the settings
+PASS [job] server record has the settings
+PASS [date] server record has the settings
+PASS [time] server record has the settings
+PASS [datetime] server record has the settings
+PASS [slot] server record has the settings
+PASS [rating] server record has the settings
+PASS [scale] server record has the settings
+PASS [bars] server record has the settings
+PASS [terms] server record has the settings
+PASS reopened on the server version as «ذخیره شد»
+PASS [text] restored field equals the server record
+PASS [text] editor controls show the stored settings after reopen
+FAIL [area] restored field equals the server record · {"local":"{\"id\":\"8\",\"t\":\"text\",\"preset\":\"text\",\"l\":\"متن کوتاه p4i\",\"help\":\"راهنمای متن کوتاه\",\"req\":true,\"media\":\"none\",\"mediaNote\":\"\",\"verify\":false,\"count\":5,\"accept\":\""}
+FAIL [area] editor controls show the stored settings after reopen · {"title":"متن کوتاه p4i","help":"راهنمای متن کوتاه","req":true,"col":true,"ph":"مثلاً علی","min":"","max":"","minSel":"","maxSel":"","opts":[],"type":"متن کوتاه"}
+FAIL [number] restored field equals the server record · {"local":"{\"id\":\"8\",\"t\":\"text\",\"preset\":\"text\",\"l\":\"متن کوتاه p4i\",\"help\":\"راهنمای متن کوتاه\",\"req\":true,\"media\":\"none\",\"mediaNote\":\"\",\"verify\":false,\"count\":5,\"accept\":\""}
+FAIL [number] editor controls show the stored settings after reopen · {"title":"متن کوتاه p4i","help":"راهنمای متن کوتاه","req":true,"col":true,"ph":"مثلاً علی","min":"","max":"","minSel":"","maxSel":"","opts":[],"type":"متن کوتاه"}
+FAIL [amount] restored field equals the server record · {"local":"{\"id\":\"8\",\"t\":\"text\",\"preset\":\"text\",\"l\":\"متن کوتاه p4i\",\"help\":\"راهنمای متن کوتاه\",\"req\":true,\"media\":\"none\",\"mediaNote\":\"\",\"verify\":false,\"count\":5,\"accept\":\""}
+FAIL [amount] editor controls show the stored settings after reopen · {"title":"متن کوتاه p4i","help":"راهنمای متن کوتاه","req":true,"col":true,"ph":"مثلاً علی","min":"","max":"","minSel":"","maxSel":"","opts":[],"type":"متن کوتاه"}
+FAIL [choice] restored field equals the server record · {"local":"{\"id\":\"8\",\"t\":\"text\",\"preset\":\"text\",\"l\":\"متن کوتاه p4i\",\"help\":\"راهنمای متن کوتاه\",\"req\":true,\"media\":\"none\",\"mediaNote\":\"\",\"verify\":false,\"count\":5,\"accept\":\""}
+FAIL [choice] editor controls show the stored settings after reopen · {"title":"متن کوتاه p4i","help":"راهنمای متن کوتاه","req":true,"col":true,"ph":"مثلاً علی","min":"","max":"","minSel":"","maxSel":"","opts":[],"type":"متن کوتاه"}
+FAIL [dropdown] restored field equals the server record · {"local":"{\"id\":\"8\",\"t\":\"text\",\"preset\":\"text\",\"l\":\"متن کوتاه p4i\",\"help\":\"راهنمای متن کوتاه\",\"req\":true,\"media\":\"none\",\"mediaNote\":\"\",\"verify\":false,\"count\":5,\"accept\":\""}
+FAIL [dropdown] editor controls show the stored settings after reopen · {"title":"متن کوتاه p4i","help":"راهنمای متن کوتاه","req":true,"col":true,"ph":"مثلاً علی","min":"","max":"","minSel":"","maxSel":"","opts":[],"type":"متن کوتاه"}
+FAIL [multi] restored field equals the server record · {"local":"{\"id\":\"8\",\"t\":\"text\",\"preset\":\"text\",\"l\":\"متن کوتاه p4i\",\"help\":\"راهنمای متن کوتاه\",\"req\":true,\"media\":\"none\",\"mediaNote\":\"\",\"verify\":false,\"count\":5,\"accept\":\""}
+FAIL [multi] editor controls show the stored settings after reopen · {"title":"متن کوتاه p4i","help":"راهنمای متن کوتاه","req":true,"col":true,"ph":"مثلاً علی","min":"","max":"","minSel":"","maxSel":"","opts":[],"type":"متن کوتاه"}
+FAIL [imgchoice] restored field equals the server record · {"local":"{\"id\":\"8\",\"t\":\"text\",\"preset\":\"text\",\"l\":\"متن کوتاه p4i\",\"help\":\"راهنمای متن کوتاه\",\"req\":true,\"media\":\"none\",\"mediaNote\":\"\",\"verify\":false,\"count\":5,\"accept\":\""}
+FAIL [imgchoice] editor controls show the stored settings after reopen · {"title":"متن کوتاه p4i","help":"راهنمای متن کوتاه","req":true,"col":true,"ph":"مثلاً علی","min":"","max":"","minSel":"","maxSel":"","opts":[],"type":"متن کوتاه"}
+FAIL [yesno] restored field equals the server record · {"local":"{\"id\":\"8\",\"t\":\"text\",\"preset\":\"text\",\"l\":\"متن کوتاه p4i\",\"help\":\"راهنمای متن کوتاه\",\"req\":true,\"media\":\"none\",\"mediaNote\":\"\",\"verify\":false,\"count\":5,\"accept\":\""}
+FAIL [yesno] editor controls show the stored settings after reopen · {"title":"متن کوتاه p4i","help":"راهنمای متن کوتاه","req":true,"col":true,"ph":"مثلاً علی","min":"","max":"","minSel":"","maxSel":"","opts":[],"type":"متن کوتاه"}
+FAIL [gender] restored field equals the server record · {"local":"{\"id\":\"8\",\"t\":\"text\",\"preset\":\"text\",\"l\":\"متن کوتاه p4i\",\"help\":\"راهنمای متن کوتاه\",\"req\":true,\"media\":\"none\",\"mediaNote\":\"\",\"verify\":false,\"count\":5,\"accept\":\""}
+FAIL [gender] editor controls show the stored settings after reopen · {"title":"متن کوتاه p4i","help":"راهنمای متن کوتاه","req":true,"col":true,"ph":"مثلاً علی","min":"","max":"","minSel":"","maxSel":"","opts":[],"type":"متن کوتاه"}
+FAIL [marital] restored field equals the server record · {"local":"{\"id\":\"8\",\"t\":\"text\",\"preset\":\"text\",\"l\":\"متن کوتاه p4i\",\"help\":\"راهنمای متن کوتاه\",\"req\":true,\"media\":\"none\",\"mediaNote\":\"\",\"verify\":false,\"count\":5,\"accept\":\""}
+FAIL [marital] editor controls show the stored settings after reopen · {"title":"متن کوتاه p4i","help":"راهنمای متن کوتاه","req":true,"col":true,"ph":"مثلاً علی","min":"","max":"","minSel":"","maxSel":"","opts":[],"type":"متن کوتاه"}
+FAIL [fullname] restored field equals the server record · {"local":"{\"id\":\"8\",\"t\":\"text\",\"preset\":\"text\",\"l\":\"متن کوتاه p4i\",\"help\":\"راهنمای متن کوتاه\",\"req\":true,\"media\":\"none\",\"mediaNote\":\"\",\"verify\":false,\"count\":5,\"accept\":\""}
+FAIL [fullname] editor controls show the stored settings after reopen · {"title":"متن کوتاه p4i","help":"راهنمای متن کوتاه","req":true,"col":true,"ph":"مثلاً علی","min":"","max":"","minSel":"","maxSel":"","opts":[],"type":"متن کوتاه"}
+FAIL [mobile] restored field equals the server record · {"local":"{\"id\":\"8\",\"t\":\"text\",\"preset\":\"text\",\"l\":\"متن کوتاه p4i\",\"help\":\"راهنمای متن کوتاه\",\"req\":true,\"media\":\"none\",\"mediaNote\":\"\",\"verify\":false,\"count\":5,\"accept\":\""}
+FAIL [mobile] editor controls show the stored settings after reopen · {"title":"متن کوتاه p4i","help":"راهنمای متن کوتاه","req":true,"col":true,"ph":"مثلاً علی","min":"","max":"","minSel":"","maxSel":"","opts":[],"type":"متن کوتاه"}
+FAIL [nid] restored field equals the server record · {"local":"{\"id\":\"8\",\"t\":\"text\",\"preset\":\"text\",\"l\":\"متن کوتاه p4i\",\"help\":\"راهنمای متن کوتاه\",\"req\":true,\"media\":\"none\",\"mediaNote\":\"\",\"verify\":false,\"count\":5,\"accept\":\""}
+FAIL [nid] editor controls show the stored settings after reopen · {"title":"متن کوتاه p4i","help":"راهنمای متن کوتاه","req":true,"col":true,"ph":"مثلاً علی","min":"","max":"","minSel":"","maxSel":"","opts":[],"type":"متن کوتاه"}
+FAIL [email] restored field equals the server record · {"local":"{\"id\":\"8\",\"t\":\"text\",\"preset\":\"text\",\"l\":\"متن کوتاه p4i\",\"help\":\"راهنمای متن کوتاه\",\"req\":true,\"media\":\"none\",\"mediaNote\":\"\",\"verify\":false,\"count\":5,\"accept\":\""}
+FAIL [email] editor controls show the stored settings after reopen · {"title":"متن کوتاه p4i","help":"راهنمای متن کوتاه","req":true,"col":true,"ph":"مثلاً علی","min":"","max":"","minSel":"","maxSel":"","opts":[],"type":"متن کوتاه"}
+FAIL [address] restored field equals the server record · {"local":"{\"id\":\"8\",\"t\":\"text\",\"preset\":\"text\",\"l\":\"متن کوتاه p4i\",\"help\":\"راهنمای متن کوتاه\",\"req\":true,\"media\":\"none\",\"mediaNote\":\"\",\"verify\":false,\"count\":5,\"accept\":\""}
+FAIL [address] editor controls show the stored settings after reopen · {"title":"متن کوتاه p4i","help":"راهنمای متن کوتاه","req":true,"col":true,"ph":"مثلاً علی","min":"","max":"","minSel":"","maxSel":"","opts":[],"type":"متن کوتاه"}
+FAIL [location] restored field equals the server record · {"local":"{\"id\":\"8\",\"t\":\"text\",\"preset\":\"text\",\"l\":\"متن کوتاه p4i\",\"help\":\"راهنمای متن کوتاه\",\"req\":true,\"media\":\"none\",\"mediaNote\":\"\",\"verify\":false,\"count\":5,\"accept\":\""}
+FAIL [location] editor controls show the stored settings after reopen · {"title":"متن کوتاه p4i","help":"راهنمای متن کوتاه","req":true,"col":true,"ph":"مثلاً علی","min":"","max":"","minSel":"","maxSel":"","opts":[],"type":"متن کوتاه"}
+FAIL [province] restored field equals the server record · {"local":"{\"id\":\"8\",\"t\":\"text\",\"preset\":\"text\",\"l\":\"متن کوتاه p4i\",\"help\":\"راهنمای متن کوتاه\",\"req\":true,\"media\":\"none\",\"mediaNote\":\"\",\"verify\":false,\"count\":5,\"accept\":\""}
+FAIL [province] editor controls show the stored settings after reopen · {"title":"متن کوتاه p4i","help":"راهنمای متن کوتاه","req":true,"col":true,"ph":"مثلاً علی","min":"","max":"","minSel":"","maxSel":"","opts":[],"type":"متن کوتاه"}
+FAIL [uni] restored field equals the server record · {"local":"{\"id\":\"8\",\"t\":\"text\",\"preset\":\"text\",\"l\":\"متن کوتاه p4i\",\"help\":\"راهنمای متن کوتاه\",\"req\":true,\"media\":\"none\",\"mediaNote\":\"\",\"verify\":false,\"count\":5,\"accept\":\""}
+FAIL [uni] editor controls show the stored settings after reopen · {"title":"متن کوتاه p4i","help":"راهنمای متن کوتاه","req":true,"col":true,"ph":"مثلاً علی","min":"","max":"","minSel":"","maxSel":"","opts":[],"type":"متن کوتاه"}
+FAIL [edu] restored field equals the server record · {"local":"{\"id\":\"8\",\"t\":\"text\",\"preset\":\"text\",\"l\":\"متن کوتاه p4i\",\"help\":\"راهنمای متن کوتاه\",\"req\":true,\"media\":\"none\",\"mediaNote\":\"\",\"verify\":false,\"count\":5,\"accept\":\""}
+FAIL [edu] editor controls show the stored settings after reopen · {"title":"متن کوتاه p4i","help":"راهنمای متن کوتاه","req":true,"col":true,"ph":"مثلاً علی","min":"","max":"","minSel":"","maxSel":"","opts":[],"type":"متن کوتاه"}
+FAIL [job] restored field equals the server record · {"local":"{\"id\":\"8\",\"t\":\"text\",\"preset\":\"text\",\"l\":\"متن کوتاه p4i\",\"help\":\"راهنمای متن کوتاه\",\"req\":true,\"media\":\"none\",\"mediaNote\":\"\",\"verify\":false,\"count\":5,\"accept\":\""}
+FAIL [job] editor controls show the stored settings after reopen · {"title":"متن کوتاه p4i","help":"راهنمای متن کوتاه","req":true,"col":true,"ph":"مثلاً علی","min":"","max":"","minSel":"","maxSel":"","opts":[],"type":"متن کوتاه"}
+FAIL [date] restored field equals the server record · {"local":"{\"id\":\"8\",\"t\":\"text\",\"preset\":\"text\",\"l\":\"متن کوتاه p4i\",\"help\":\"راهنمای متن کوتاه\",\"req\":true,\"media\":\"none\",\"mediaNote\":\"\",\"verify\":false,\"count\":5,\"accept\":\""}
+FAIL [date] editor controls show the stored settings after reopen · {"title":"متن کوتاه p4i","help":"راهنمای متن کوتاه","req":true,"col":true,"ph":"مثلاً علی","min":"","max":"","minSel":"","maxSel":"","opts":[],"type":"متن کوتاه"}
+FAIL [time] restored field equals the server record · {"local":"{\"id\":\"8\",\"t\":\"text\",\"preset\":\"text\",\"l\":\"متن کوتاه p4i\",\"help\":\"راهنمای متن کوتاه\",\"req\":true,\"media\":\"none\",\"mediaNote\":\"\",\"verify\":false,\"count\":5,\"accept\":\""}
+FAIL [time] editor controls show the stored settings after reopen · {"title":"متن کوتاه p4i","help":"راهنمای متن کوتاه","req":true,"col":true,"ph":"مثلاً علی","min":"","max":"","minSel":"","maxSel":"","opts":[],"type":"متن کوتاه"}
+FAIL [datetime] restored field equals the server record · {"local":"{\"id\":\"8\",\"t\":\"text\",\"preset\":\"text\",\"l\":\"متن کوتاه p4i\",\"help\":\"راهنمای متن کوتاه\",\"req\":true,\"media\":\"none\",\"mediaNote\":\"\",\"verify\":false,\"count\":5,\"accept\":\""}
+FAIL [datetime] editor controls show the stored settings after reopen · {"title":"متن کوتاه p4i","help":"راهنمای متن کوتاه","req":true,"col":true,"ph":"مثلاً علی","min":"","max":"","minSel":"","maxSel":"","opts":[],"type":"متن کوتاه"}
+FAIL [slot] restored field equals the server record · {"local":"{\"id\":\"8\",\"t\":\"text\",\"preset\":\"text\",\"l\":\"متن کوتاه p4i\",\"help\":\"راهنمای متن کوتاه\",\"req\":true,\"media\":\"none\",\"mediaNote\":\"\",\"verify\":false,\"count\":5,\"accept\":\""}
+FAIL [slot] editor controls show the stored settings after reopen · {"title":"متن کوتاه p4i","help":"راهنمای متن کوتاه","req":true,"col":true,"ph":"مثلاً علی","min":"","max":"","minSel":"","maxSel":"","opts":[],"type":"متن کوتاه"}
+FAIL [rating] restored field equals the server record · {"local":"{\"id\":\"8\",\"t\":\"text\",\"preset\":\"text\",\"l\":\"متن کوتاه p4i\",\"help\":\"راهنمای متن کوتاه\",\"req\":true,\"media\":\"none\",\"mediaNote\":\"\",\"verify\":false,\"count\":5,\"accept\":\""}
+FAIL [rating] editor controls show the stored settings after reopen · {"title":"متن کوتاه p4i","help":"راهنمای متن کوتاه","req":true,"col":true,"ph":"مثلاً علی","min":"","max":"","minSel":"","maxSel":"","opts":[],"type":"متن کوتاه"}
+FAIL [scale] restored field equals the server record · {"local":"{\"id\":\"8\",\"t\":\"text\",\"preset\":\"text\",\"l\":\"متن کوتاه p4i\",\"help\":\"راهنمای متن کوتاه\",\"req\":true,\"media\":\"none\",\"mediaNote\":\"\",\"verify\":false,\"count\":5,\"accept\":\""}
+FAIL [scale] editor controls show the stored settings after reopen · {"title":"متن کوتاه p4i","help":"راهنمای متن کوتاه","req":true,"col":true,"ph":"مثلاً علی","min":"","max":"","minSel":"","maxSel":"","opts":[],"type":"متن کوتاه"}
+FAIL [bars] restored field equals the server record · {"local":"{\"id\":\"8\",\"t\":\"text\",\"preset\":\"text\",\"l\":\"متن کوتاه p4i\",\"help\":\"راهنمای متن کوتاه\",\"req\":true,\"media\":\"none\",\"mediaNote\":\"\",\"verify\":false,\"count\":5,\"accept\":\""}
+FAIL [bars] editor controls show the stored settings after reopen · {"title":"متن کوتاه p4i","help":"راهنمای متن کوتاه","req":true,"col":true,"ph":"مثلاً علی","min":"","max":"","minSel":"","maxSel":"","opts":[],"type":"متن کوتاه"}
+FAIL [terms] restored field equals the server record · {"local":"{\"id\":\"8\",\"t\":\"text\",\"preset\":\"text\",\"l\":\"متن کوتاه p4i\",\"help\":\"راهنمای متن کوتاه\",\"req\":true,\"media\":\"none\",\"mediaNote\":\"\",\"verify\":false,\"count\":5,\"accept\":\""}
+FAIL [terms] editor controls show the stored settings after reopen · {"title":"متن کوتاه p4i","help":"راهنمای متن کوتاه","req":true,"col":true,"ph":"مثلاً علی","min":"","max":"","minSel":"","maxSel":"","opts":[],"type":"متن کوتاه"}
+PASS readiness is clean for the all-types form
+PASS form is published on the server
+PASS public draft opened via API (cookie session)
+PASS [text] server rejects an invalid value (422 with field_id)
+PASS [text] server accepts the valid value
+PASS [area] server rejects an invalid value (422 with field_id)
+PASS [area] server accepts the valid value
+FAIL [number] server rejects an invalid value (422 with field_id) · {"status":200,"errs":[]}
+PASS [number] server accepts the valid value
+FAIL [amount] server rejects an invalid value (422 with field_id) · {"status":200,"errs":[]}
+PASS [amount] server accepts the valid value
+FAIL [choice] server rejects an invalid value (422 with field_id) · {"status":200,"errs":[]}
+PASS [choice] server accepts the valid value
+FAIL [dropdown] server rejects an invalid value (422 with field_id) · {"status":200,"errs":[]}
+PASS [dropdown] server accepts the valid value
+FAIL [multi] server rejects an invalid value (422 with field_id) · {"status":200,"errs":[]}
+PASS [multi] server accepts the valid value
+FAIL [imgchoice] server rejects an invalid value (422 with field_id) · {"status":200,"errs":[]}
+PASS [imgchoice] server accepts the valid value
+FAIL [yesno] server rejects an invalid value (422 with field_id) · {"status":200,"errs":[]}
+PASS [yesno] server accepts the valid value
+FAIL [gender] server rejects an invalid value (422 with field_id) · {"status":200,"errs":[]}
+PASS [gender] server accepts the valid value
+FAIL [marital] server rejects an invalid value (422 with field_id) · {"status":200,"errs":[]}
+PASS [marital] server accepts the valid value
+FAIL [fullname] server rejects an invalid value (422 with field_id) · {"status":200,"errs":[]}
+PASS [fullname] server accepts the valid value
+PASS [mobile] draft PATCH keeps an incomplete value while typing (partial, by design)
+PASS [mobile] server accepts the valid value
+FAIL [nid] server rejects an invalid value (422 with field_id) · {"status":200,"errs":[]}
+PASS [nid] server accepts the valid value
+FAIL [email] server rejects an invalid value (422 with field_id) · {"status":200,"errs":[]}
+PASS [email] server accepts the valid value
+PASS [address] server rejects an invalid value (422 with field_id)
+PASS [address] server accepts the valid value
+FAIL [location] server rejects an invalid value (422 with field_id) · {"status":200,"errs":[]}
+PASS [location] server accepts the valid value
+FAIL [province] server rejects an invalid value (422 with field_id) · {"status":200,"errs":[]}
+PASS [province] server accepts the valid value
+FAIL [uni] server rejects an invalid value (422 with field_id) · {"status":200,"errs":[]}
+PASS [uni] server accepts the valid value
+FAIL [edu] server rejects an invalid value (422 with field_id) · {"status":200,"errs":[]}
+PASS [edu] server accepts the valid value
+FAIL [job] server rejects an invalid value (422 with field_id) · {"status":200,"errs":[]}
+PASS [job] server accepts the valid value
+FAIL [date] server rejects an invalid value (422 with field_id) · {"status":200,"errs":[]}
+PASS [date] server accepts the valid value
+FAIL [time] server rejects an invalid value (422 with field_id) · {"status":200,"errs":[]}
+PASS [time] server accepts the valid value
+FAIL [datetime] server rejects an invalid value (422 with field_id) · {"status":200,"errs":[]}
+PASS [datetime] server accepts the valid value
+FAIL [slot] server rejects an invalid value (422 with field_id) · {"status":200,"errs":[]}
+PASS [slot] server accepts the valid value
+FAIL [rating] server rejects an invalid value (422 with field_id) · {"status":200,"errs":[]}
+PASS [rating] server accepts the valid value
+FAIL [scale] server rejects an invalid value (422 with field_id) · {"status":200,"errs":[]}
+PASS [scale] server accepts the valid value
+FAIL [bars] server rejects an invalid value (422 with field_id) · {"status":200,"errs":[]}
+PASS [bars] server accepts the valid value
+FAIL [terms] server rejects an invalid value (422 with field_id) · {"status":200,"errs":[]}
+PASS [terms] server accepts the valid value
+FAIL [text] final submit rejects the invalid value (422, field_id, message) · {"status":422,"errs":[]}
+FAIL [area] final submit rejects the invalid value (422, field_id, message) · {"status":422,"errs":[]}
+FAIL [number] final submit rejects the invalid value (422, field_id, message) · {"status":422,"errs":[]}
+FAIL [amount] final submit rejects the invalid value (422, field_id, message) · {"status":422,"errs":[]}
+FAIL [choice] final submit rejects the invalid value (422, field_id, message) · {"status":422,"errs":[]}
+FAIL [dropdown] final submit rejects the invalid value (422, field_id, message) · {"status":422,"errs":[]}
+FAIL [multi] final submit rejects the invalid value (422, field_id, message) · {"status":422,"errs":[]}
+FAIL [imgchoice] final submit rejects the invalid value (422, field_id, message) · {"status":422,"errs":[]}
+FAIL [yesno] final submit rejects the invalid value (422, field_id, message) · {"status":422,"errs":[]}
+FAIL [gender] final submit rejects the invalid value (422, field_id, message) · {"status":422,"errs":[]}
+FAIL [marital] final submit rejects the invalid value (422, field_id, message) · {"status":422,"errs":[]}
+FAIL [fullname] final submit rejects the invalid value (422, field_id, message) · {"status":422,"errs":[]}
+FAIL [mobile] final submit rejects the invalid value (422, field_id, message) · {"status":422,"errs":[]}
+FAIL [nid] final submit rejects the invalid value (422, field_id, message) · {"status":422,"errs":[]}
+FAIL [email] final submit rejects the invalid value (422, field_id, message) · {"status":422,"errs":[]}
+FAIL [address] final submit rejects the invalid value (422, field_id, message) · {"status":422,"errs":[]}
+FAIL [location] final submit rejects the invalid value (422, field_id, message) · {"status":422,"errs":[]}
+FAIL [province] final submit rejects the invalid value (422, field_id, message) · {"status":422,"errs":[]}
+FAIL [uni] final submit rejects the invalid value (422, field_id, message) · {"status":422,"errs":[]}
+FAIL [edu] final submit rejects the invalid value (422, field_id, message) · {"status":422,"errs":[]}
+FAIL [job] final submit rejects the invalid value (422, field_id, message) · {"status":422,"errs":[]}
+FAIL [date] final submit rejects the invalid value (422, field_id, message) · {"status":422,"errs":[]}
+FAIL [time] final submit rejects the invalid value (422, field_id, message) · {"status":422,"errs":[]}
+FAIL [datetime] final submit rejects the invalid value (422, field_id, message) · {"status":422,"errs":[]}
+FAIL [slot] final submit rejects the invalid value (422, field_id, message) · {"status":422,"errs":[]}
+FAIL [rating] final submit rejects the invalid value (422, field_id, message) · {"status":422,"errs":[]}
+FAIL [scale] final submit rejects the invalid value (422, field_id, message) · {"status":422,"errs":[]}
+FAIL [bars] final submit rejects the invalid value (422, field_id, message) · {"status":422,"errs":[]}
+FAIL [terms] final submit rejects the invalid value (422, field_id, message) · {"status":422,"errs":[]}
+PASS unknown field id is rejected by the server
+PASS public form renders all questions on one page (display=all)
+PASS [text] public control rendered with the configured settings
+FAIL [area] public control rendered with the configured settings · {"n":0,"extra":{"help":true,"ph":"مثلاً علی"}}
+PASS [number] public control rendered with the configured settings
+PASS [amount] public control rendered with the configured settings
+FAIL [choice] public control rendered with the configured settings · {"n":0,"extra":{"help":true,"ph":"مثلاً علی"}}
+FAIL [dropdown] public control rendered with the configured settings · {"n":0,"extra":{"help":true,"ph":"مثلاً علی"}}
+FAIL [multi] public control rendered with the configured settings · {"n":0,"extra":{"help":true,"hint":false,"ph":"مثلاً علی"}}
+FAIL [imgchoice] public control rendered with the configured settings · {"n":0,"extra":{"help":true,"ph":"مثلاً علی"}}
+FAIL [yesno] public control rendered with the configured settings · {"n":0,"extra":{"help":true,"ph":"مثلاً علی"}}
+FAIL [gender] public control rendered with the configured settings · {"n":0,"extra":{"help":true,"ph":"مثلاً علی"}}
+FAIL [marital] public control rendered with the configured settings · {"n":0,"extra":{"help":true,"ph":"مثلاً علی"}}
+FAIL [fullname] public control rendered with the configured settings · {"n":1,"extra":{"help":true,"ph":"مثلاً علی"}}
+PASS [mobile] public control rendered with the configured settings
+PASS [nid] public control rendered with the configured settings
+PASS [email] public control rendered with the configured settings
+FAIL [address] public control rendered with the configured settings · {"n":0,"extra":{"help":true,"ph":"مثلاً علی"}}
+PASS [location] public control rendered with the configured settings
+FAIL [province] public control rendered with the configured settings · {"n":0,"extra":{"help":true,"ph":"مثلاً علی"}}
+FAIL [uni] public control rendered with the configured settings · {"n":0,"extra":{"help":true,"ph":"مثلاً علی"}}
+FAIL [edu] public control rendered with the configured settings · {"n":0,"extra":{"help":true,"ph":"مثلاً علی"}}
+FAIL [job] public control rendered with the configured settings · {"n":0,"extra":{"help":true,"ph":"مثلاً علی"}}
+FAIL [date] public control rendered with the configured settings · {"n":0,"extra":{"help":true,"ph":"مثلاً علی"}}
+FAIL [time] public control rendered with the configured settings · {"n":0,"extra":{"help":true,"ph":"مثلاً علی"}}
+FAIL [datetime] public control rendered with the configured settings · {"n":0,"extra":{"help":true,"ph":"مثلاً علی"}}
+FAIL [slot] public control rendered with the configured settings · {"n":0,"extra":{"help":true,"ph":"مثلاً علی"}}
+CRASH page.evaluate: TypeError: Cannot read properties of null (reading 'querySelectorAll')
+    at eval (eval at evaluate (:370:30), <anonymous>:1:223)
+    at UtilityScript.evaluate (<anonymous>:372:16)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+    at <local>/nora-preview/e2e-field-types.cjs:234:30 {
+  log: []
+}

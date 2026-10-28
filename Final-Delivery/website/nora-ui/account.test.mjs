@@ -114,7 +114,15 @@ async function load(store,hash='',server=null,hosted=false,fixtureMode=true){
   ok(!!guest.doc.querySelector('a[href="login.html?mode=server&next=account.html%23notifications"]'),
     'برای اعلان‌ها و فایل‌های سروری، روش‌های ورود امن پیوند روشن دارند');
   const accountJs=fs.readFileSync(DIR+'account.js','utf8'), loginJs=fs.readFileSync(DIR+'login.js','utf8');
-  ok(accountJs.includes("login.html?mode=server&next=")&&accountJs.includes("'account.html'+(after?'#'+after:'')"),
+  /* رفتار می‌سنجیم نه رشتهٔ درون کد: هر پیوند ورود صفحهٔ حساب باید مسیر بازگشت
+     مجاز را به login.js بدهد (و در مسیر پیوند، نشانهٔ ?link=bale را هم همراه
+     ببرد؛ آن حالت در account-linking.test.mjs سنجیده می‌شود). */
+  const loginLinks=[...guest.doc.querySelectorAll('a[href^="login.html"]')]
+    .map(a=>a.getAttribute('href'));
+  ok(loginLinks.length>0
+      && loginLinks.every(href=>href.startsWith('login.html?mode=server&next=')
+        && decodeURIComponent(href).includes('account.html'))
+      && accountJs.includes('function serverLoginHref'),
     'حساب مسیر بازگشت را به login.js می‌دهد');
   ok(/function safeAccountNext\(\)[\s\S]*?URLSearchParams\(location\.search\)[\s\S]*?test\(requested\)[\s\S]*?\?\s*requested\s*:\s*''/.test(loginJs),
     'login.js مقصد بازگشت حساب را به صفحهٔ محلی محدود می‌کند');
@@ -135,28 +143,34 @@ async function load(store,hash='',server=null,hosted=false,fixtureMode=true){
     &&production.doc.querySelector('.tabbar [data-account-nav]')?.getAttribute('href')==='account.html'
     &&production.doc.querySelector('.help-btn')?.getAttribute('href')==='support.html'
     &&production.txt('#profBox').includes('رویدادهای من')
-    &&production.txt('#profBox').includes('ثبت‌نام‌هایت')
-    &&production.txt('#profBox').includes('اعلان‌های حساب')
-    &&production.txt('#profBox').includes('فایل‌های شخصی')
+    &&production.txt('#profBox').includes('حساب من')
+    &&production.txt('#profBox').includes('برای ادامه وارد حساب شو')
+    &&!production.txt('#profBox').includes('فایل‌های شخصی')
+    &&!production.txt('#profBox').includes('ثبت‌نام‌هایت')
+    &&!production.doc.querySelector('.account-promo-feature,.account-promo-features')
     &&!production.txt('#profBox').includes('در دسترس نیست'),
-    'صفحهٔ معرفی حساب مهمان امکانات واقعی را نشان می‌دهد و ورود امن و پشتیبانی باز است');
+    'صفحهٔ مهمان فقط عنوان کوتاه، یک جمله و بخش‌های واقعی را نشان می‌دهد؛ هیچ ادعای «فایل‌های شخصی» یا فهرست امکانات تبلیغاتی ندارد');
   ok(!!production.doc.querySelector('.account-promo-hero')
-    &&production.all('.account-promo-feature').length===3
-    &&production.all('.account-promo a[href="login.html?mode=server&next=account.html"]').length===2
-    &&production.doc.querySelector('.account-promo a[href="events.html"]')
+    &&production.all('.account-promo-feature').length===0
+    &&production.all('.account-promo a[href="login.html?mode=server&next=account.html"]').length===1
+    &&production.doc.querySelector('.account-promo-hero .btn.primary[href="login.html?mode=server&next=account.html"]')
+    &&!production.doc.querySelector('.account-promo-bottom')
+    &&production.doc.querySelector('.tabbar a[href="events.html"]')
     &&!production.txt('#profBox').includes('نیاز به ورود')
     &&!production.doc.querySelector('.server-account-head'),
-    'مهمان به‌جای کارت محدودیت، معرفی امکانات، دعوت به ساخت حساب و مسیر رویدادهای عمومی می‌بیند');
+    'مهمان به‌جای کارت محدودیت، یک بلوک کوتاه با یک دکمهٔ ورود می‌بیند؛ مسیر رویدادهای عمومی در نوار پایین است');
   ok(!production.doc.querySelector('.account-promo-preview a, .account-promo-preview button')
     &&!production.doc.querySelector('.account-promo [data-login], .account-promo [data-demo]')
     &&!production.txt('#profBox').includes('۵۴۳۲۱')
     &&sessionProbeOnly(production),
     'نمای کوچک فقط نام بخش‌هاست؛ معرفی حساب دادهٔ خصوصی نمی‌خواند و OTP یا حساب محلی نمی‌سازد');
-  ok(production.all('.account-promo-feature h4').length===3
-    &&production.doc.querySelector('.account-promo-preview-brand img')?.getAttribute('alt')===''
-    &&production.doc.querySelector('.account-promo-preview-brand img')?.getAttribute('width')==='24'
-    &&production.doc.querySelector('.account-promo-preview-brand img')?.getAttribute('height')==='24',
-    'کارت‌های امکانات تیتر معنایی دارند و نشان تزئینی نورا بدون جابه‌جایی چیدمان نمایش داده می‌شود');
+  ok(!production.doc.querySelector('.account-promo-preview,.account-promo-showcase,.account-promo-eyebrow')
+    &&production.doc.querySelector('.account-promo-hero .account-promo-avatar')?.getAttribute('aria-hidden')==='true'
+    &&production.all('#profBox .server-rows .mini-guest').length===4
+    &&production.all('#profBox .server-rows.is-guest .mrow2 small').length===0
+    &&!!production.doc.querySelector('#profBox .server-paybar.is-guest a.pbmain[href="account.html#payments"]')
+    &&!production.doc.querySelector('#profBox .server-paybar .pbrow, #profBox .server-paybar .trustline'),
+    'بدون نمای ساختگی و نشان تزئینی؛ ردیف‌های مهمان فقط نام + نشانهٔ «بعد از ورود» دارند و نورا پی یک ردیف با همان مقصد است');
   ok(!production.doc.body.textContent.includes('نشست'),
     'واژهٔ نشست در متن قابل‌مشاهدهٔ حساب تولیدی وجود ندارد');
   await production.nav('events');
@@ -165,17 +179,32 @@ async function load(store,hash='',server=null,hosted=false,fixtureMode=true){
     &&!production.view().includes('کارگاه')&&!production.view().includes('سارا محمدی'),
     'فهرست ثبت‌نام مهمان فقط پس از ورود امن نمایش داده می‌شود و دادهٔ نمونه ندارد');
   await production.nav('pay');
-  ok(production.view().includes('پرداخت')&&production.view().includes('API حساب وب')
-    &&!production.view().includes('۱۲۵۰۰۰۰'),'پرداخت بدون endpoint هیچ مانده یا فاکتور نمونه‌ای نشان نمی‌دهد');
+  ok(production.view().includes('پرداخت')&&production.view().includes('نیاز به ورود')&&production.view().includes('وضعیت پرداخت‌هایت')
+    &&!production.view().includes('۱۲۵۰۰۰۰')&&!production.view().includes('کیف پول'),'پرداخت‌های مهمان فقط دعوت به ورود است و هیچ مانده یا فاکتور نمونه‌ای ندارد');
   await production.nav('book');
-  ok(production.view().includes('API حساب وب')&&!production.view().includes('باشگاه نمونه'),
-    'باشگاه بدون endpoint در وضعیت روشن و خالی می‌ماند');
+  ok(!!production.doc.querySelector('#viewBox .server-club .cl-hero')&&production.view().includes('کتاب ماه هنوز منتشر نشده')
+    &&production.view().includes('فعلاً در ربات بله')&&!production.view().includes('باشگاه نمونه')
+    &&!/عضوِ? نمونه|۱۲ عضو|چراغ‌ها را من خاموش می‌کنم/.test(production.view()),
+    'باشگاه کتاب‌خوانی با کارت طراحی‌شده و حالت خالی روشن می‌ماند؛ کتاب ماه، اعضا یا امتیاز نمونه ندارد');
+  ok(!!production.doc.querySelector('#profBox .server-paybar')&&!!production.doc.querySelector('#profBox .server-rows')
+    &&production.all('#profBox .server-rows a.mrow2').length===5
+    &&production.txt('#profBox .server-rows').includes('باشگاه کتاب‌خوانی خط زندگی')
+    &&production.txt('#profBox .server-paybar').includes('نورا پی')
+    &&production.doc.querySelector('#profBox .server-paybar a[href="account.html#payments"]')
+    &&production.doc.querySelector('#profBox .server-rows a[href="account.html#forms"]')
+    &&!/۱٬۲۵۰٬۰۰۰|بدهکار|تومان/.test(production.txt('#profBox')),
+    'مهمان همان چیدمان تأییدشده (نورا پی و بخش‌های من) را می‌بیند، بدون موجودی یا بدهی نمونه');
   production.dom.window.close();
 
   const live=await load(memberStore(),'',{
     account:{authenticated:true,account_id:'live-account-1',provider:'phone',role:null,permissions:[],delivery_bot_url:''},
     notifications:[],files:[]
   },false,false);
+  ok(live.doc.querySelector('.server-account-head')?.classList.contains('phead')
+    &&!!live.doc.querySelector('.server-account-head .pstats [data-server-data-open="registrations"]')
+    &&!!live.doc.querySelector('#profBox .server-paybar')&&live.all('#profBox .server-rows a.mrow2').length===5
+    &&live.network.some(call=>call.path==='/api/account/registrations?limit=50&offset=0'),
+    'حساب واردشده سر صفحهٔ طراحی‌شده (phead)، نورا پی و بخش‌های من را با شمارنده‌های سروری می‌بیند');
   ok(!!live.doc.querySelector('.server-account-head')&&live.txt('#profBox').includes('رویدادهای من')
     &&!live.txt('#profBox').includes('در دسترس نیست')
     &&live.doc.querySelector('.tabbar [data-account-nav]')?.getAttribute('href')==='account.html'
@@ -203,15 +232,32 @@ async function load(store,hash='',server=null,hosted=false,fixtureMode=true){
 /* ── فهرست ثبت‌نام‌ها از API حساب وب، نه از دادهٔ محلی ── */
 {
   console.log('\n── ثبت‌نام‌های حساب وب ──');
+  const soon=new Date(Date.now()+3*24*3600*1000).toISOString();
   const registration={id:'00000000-0000-4000-8000-000000000401',form_name:'ثبت‌نام کارگاه',
     event_title:'کارگاه بهار',event_date:'۱۴۰۵/۰۲/۱۱',event_time:'۱۶:۰۰',status:'accepted',
     payment_status:'receipt_submitted',receipt_uploaded:true,ticket_checked_in:false,
-    ticket_type:{id:'standard',name:'ورودی عادی'},created_at:'2026-04-30T10:00:00+00:00'};
+    ticket_type:{id:'standard',name:'ورودی عادی'},created_at:'2026-04-30T10:00:00+00:00',
+    event_id:'ev-spring',event_schedule:{state:'open',lifecycle:'scheduled',startsAt:soon,startsIn:soon,ended:false}};
+  /* فاز ۹.۵ §۹: لغو/تعویق و ثبت‌نامِ بدون زمان سرور هرگز شمارش معکوس نمی‌سازند */
+  const cancelled={...registration,id:'00000000-0000-4000-8000-000000000402',event_title:'کارگاه لغوشده',event_id:'ev-cancel',
+    event_schedule:{state:'cancelled',lifecycle:'cancelled',startsAt:soon,startsIn:'',ended:false}};
+  const noSchedule={...registration,id:'00000000-0000-4000-8000-000000000403',event_title:'کارگاه بی‌زمان',event_id:'',event_schedule:null};
   const p=await load(memberStore(),'',{
     account:{authenticated:true,account_id:'registration-account-1',provider:'phone',role:null,permissions:[],delivery_bot_url:''},
-    registrations:[registration],notifications:[],files:[]
+    registrations:[registration,cancelled,noSchedule],notifications:[],files:[]
   },false,false);
   await p.nav('events');
+  ok(!!p.window.NORA_COUNTDOWN&&p.doc.querySelector('link[href="countdown.css?v=5"]')&&p.doc.querySelector('script[src="countdown.js?v=3"]'),
+    'صفحهٔ حساب همان شمارشگر مشترک (countdown.js/css) را بارگذاری می‌کند');
+  const cdCards=p.doc.querySelectorAll('[data-account-registration-countdown]');
+  ok(cdCards.length===1&&!!cdCards[0].querySelector('.nora-countdown[data-countdown]')&&cdCards[0].textContent.includes('تا شروع رویداد')
+    &&cdCards[0].closest('[data-account-registration-event="ev-spring"]')!==null,
+    'فقط ثبت‌نامِ دارای زمان سرور، شمارش معکوس مشترک «تا شروع رویداد» دارد');
+  ok(p.doc.querySelector('[data-account-registration-event="ev-cancel"] [data-account-registration-lifecycle="cancelled"]')?.textContent.includes('لغو شد')
+    &&!p.doc.querySelector('[data-account-registration-event="ev-cancel"] [data-countdown]'),
+    'رویداد لغوشده برچسب «لغو شد» دارد و شمارش معکوس ندارد');
+  ok(!Array.from(p.doc.querySelectorAll('.server-registration')).find(card=>card.textContent.includes('کارگاه بی‌زمان')).querySelector('[data-countdown],[data-account-registration-lifecycle]'),
+    'بدون event_schedule سرور هیچ زمانی ساخته نمی‌شود');
   ok(p.network.some(call=>call.path==='/api/account/registrations?limit=50&offset=0')
     &&p.view().includes('کارگاه بهار')&&p.view().includes('رسید ثبت شد')
     &&p.view().includes('ورودی عادی'),
@@ -287,7 +333,23 @@ async function load(store,hash='',server=null,hosted=false,fixtureMode=true){
   const p=await load(memberStore(),'',{
     account:{authenticated:true,account_id:'server-account-1',provider:'bale',role:null,permissions:[],delivery_bot_url:'https://ble.ir/nora_test_bot'},
     notifications:[{id:noticeId,bale_user_id:'73424',kind:'receipt_rejected',title:'فیش نیاز به اصلاح دارد',
-      body:'تصویر رسید خوانا نیست.',file_refs:[fileId],delivery_status:'delivered',created_at:'2026-09-30T10:00:00+00:00',read:false}],
+      body:'تصویر رسید خوانا نیست.',file_refs:[fileId],delivery_status:'delivered',created_at:'2026-09-30T10:00:00+00:00',read:false},
+      /* فاز ۸: پاسخ پرسش رویداد با سه حالت صادقانهٔ ارسال */
+      {id:'00000000-0000-4000-8000-000000000211',bale_user_id:'',kind:'event_qa_answer',title:'پاسخ برگزارکننده به پرسش شما',body:'پرسش شما دربارهٔ «کارگاه» پاسخ داده شد.',file_refs:[],
+        delivery_status:'failed',delivery_state:'failed',delivery_attempts:0,last_delivery_error:'no_bale_identity',created_at:'2026-09-30T11:00:00+00:00',read:true},
+      {id:'00000000-0000-4000-8000-000000000212',bale_user_id:'73424',kind:'event_qa_answer',title:'پاسخ برگزارکننده به پرسش شما',body:'پاسخ دوم.',file_refs:[],
+        delivery_status:'pending',delivery_state:'retrying',delivery_attempts:2,last_delivery_error:'provider_delivery_failed',created_at:'2026-09-30T12:00:00+00:00',read:true},
+      {id:'00000000-0000-4000-8000-000000000213',bale_user_id:'73424',kind:'event_qa_answer',title:'پاسخ برگزارکننده به پرسش شما',body:'پاسخ سوم.',file_refs:[],
+        delivery_status:'pending',delivery_state:'queued',delivery_attempts:0,last_delivery_error:null,created_at:'2026-09-30T13:00:00+00:00',read:true,link:'/event.html?id=ev-qa-1#qa'},
+      /* فاز ۹.۴: پیوند اعلان فقط نسبی و به صفحهٔ داخل برنامه؛ هر چیز دیگر رندر نمی‌شود */
+      {id:'00000000-0000-4000-8000-000000000214',bale_user_id:'73424',kind:'recording_content',title:'جلسهٔ تازه منتشر شد',body:'جلسهٔ ۲ منتشر شد.',file_refs:[],
+        delivery_status:'pending',delivery_state:'queued',delivery_attempts:0,last_delivery_error:null,created_at:'2026-09-30T14:00:00+00:00',read:true,link:'/event.html?id=ev-rec-1#recording'},
+      {id:'00000000-0000-4000-8000-000000000215',bale_user_id:'73424',kind:'certificate',title:'گواهی صادر شد',body:'گواهی شما صادر شد.',file_refs:[],
+        delivery_status:'pending',delivery_state:'queued',delivery_attempts:0,last_delivery_error:null,created_at:'2026-09-30T15:00:00+00:00',read:true,link:'/account.html#certificates'},
+      {id:'00000000-0000-4000-8000-000000000216',bale_user_id:'73424',kind:'recording_access',title:'پیوند نامعتبر',body:'نباید دکمه داشته باشد.',file_refs:[],
+        delivery_status:'pending',delivery_state:'queued',delivery_attempts:0,last_delivery_error:null,created_at:'2026-09-30T16:00:00+00:00',read:true,link:'/api/admin/events/ev-1/resources/abc/download'},
+      {id:'00000000-0000-4000-8000-000000000217',bale_user_id:'73424',kind:'recording_access',title:'پیوند مطلق',body:'نباید دکمه داشته باشد.',file_refs:[],
+        delivery_status:'pending',delivery_state:'queued',delivery_attempts:0,last_delivery_error:null,created_at:'2026-09-30T17:00:00+00:00',read:true,link:'https://evil.example/event.html?id=x'}],
     files:[{id:fileId,task_id:'00000000-0000-4000-8000-000000000301',file_name:'receipt.pdf',
       content_type:'application/pdf',content_size:12345,created_at:'2026-09-30T10:00:00+00:00'}],
   });
@@ -303,6 +365,21 @@ async function load(store,hash='',server=null,hosted=false,fixtureMode=true){
   await wait(20);
   ok(p.inView()&&p.view().includes('فیش نیاز به اصلاح دارد')&&p.view().includes('تصویر رسید خوانا نیست.'),
     'اعلان و متن پیگیری در حساب نشان داده می‌شود');
+  ok(p.view().includes('حساب شما به بله پیوند نخورده؛ این اعلان فقط همین‌جا خوانده می‌شود')
+    &&p.view().includes('در حال تلاش دوباره است (۲ تلاش)')
+    &&p.view().includes('در صف است؛ هنوز تحویل نشده')
+    &&(p.view().match(/در ربات بله تحویل شد/g)||[]).length===1,
+    'اعلان پاسخ پرسش: بدون هویت بله، در حال تلاش دوباره و در صف جدا و صادقانه نشان داده می‌شوند؛ فقط تحویل واقعی «تحویل شد» است');
+  {
+    const links=[...p.doc.querySelectorAll('#viewBox a[data-account-notice-link]')];
+    ok(links.length===3
+      &&links.some(a=>a.getAttribute('href')==='event.html?id=ev-qa-1#qa'&&/دیدن پاسخ در صفحهٔ رویداد/.test(a.textContent))
+      &&links.some(a=>a.getAttribute('href')==='event.html?id=ev-rec-1#recording'&&/دیدن محتوای تازه/.test(a.textContent))
+      &&links.some(a=>a.getAttribute('href')==='account.html#certificates'&&/دیدن گواهی‌ها/.test(a.textContent))
+      &&!links.some(a=>/api|evil/.test(a.getAttribute('href')||'')),
+      'پیوند اعلان فقط برای مسیرهای نسبی داخل برنامه رندر می‌شود؛ پیوند API/دانلود یا نشانی مطلق هرگز دکمه نمی‌شود');
+    ok(!p.doc.querySelector('#viewBox a[href*="/api/"]'),'هیچ پیوند API در صفحهٔ حساب نیست');
+  }
   const noticeBotLink=p.doc.querySelector('#viewBox .server-notice-files a.local-disabled-link');
   ok(noticeBotLink&&!noticeBotLink.hasAttribute('href')
     &&p.window.NORA_UI.baleStartHref('private_'+fileId)==='https://ble.ir/nora_test_bot?start=private_'+fileId
@@ -523,6 +600,52 @@ async function load(store,hash='',server=null,hosted=false,fixtureMode=true){
   ok(p.txt('#viewBox').includes('اعلان‌ها')||p.txt('#viewBox').length>0,'عنوان بخش نمایش داده می‌شود');
   const q=await load(memberStore(),'#acc-999');
   ok(!q.inView(),'شناسهٔ ناموجود بخش باز نمی‌شود');
+}
+/* ── فرم‌های من / پرداخت‌ها از همان API ثبت‌نام‌ها؛ بخش‌های ربات و خارج از نسخهٔ اول بدون دادهٔ نمونه ── */
+{
+  console.log('\n── فرم‌ها، پرداخت‌ها و وضعیت بخش‌ها (نسخهٔ اول) ──');
+  const paid={id:'00000000-0000-4000-8000-000000000501',form_name:'ثبت‌نام کارگاه',event_title:'کارگاه بهار',event_date:'۱۴۰۵/۰۲/۱۱',event_time:'۱۶:۰۰',
+    status:'accepted',payment_status:'receipt_submitted',receipt_uploaded:true,ticket_checked_in:false,ticket_type:{id:'standard',name:'ورودی عادی'},created_at:'2026-04-30T10:00:00+00:00'};
+  const free={id:'00000000-0000-4000-8000-000000000502',form_name:'نظرسنجی پاییز',event_title:'',event_date:'',event_time:'',
+    status:'waitlisted',payment_status:null,receipt_uploaded:false,ticket_checked_in:false,ticket_type:null,created_at:'2026-05-01T10:00:00+00:00'};
+  const server={account:{authenticated:true,account_id:'reg-2',provider:'phone',role:null,permissions:[],delivery_bot_url:'https://ble.ir/nora_test_bot'},
+    registrations:[paid,free],notifications:[],files:[]};
+  const REG='/api/account/registrations?limit=50&offset=0';
+  const f=await load(makeStore(),'#forms',server,false,false); await wait(120);
+  ok(f.errs.length===0&&f.inView(),'نمای #forms بی‌خطا باز می‌شود'+(f.errs.length?': '+f.errs[0]:''));
+  ok(f.network.some(c=>c.path===REG)&&f.view().includes('نظرسنجی پاییز')&&f.view().includes('ثبت‌نام کارگاه')&&f.view().includes('۲ پاسخ فرم'),
+    'فرم‌های من همهٔ پاسخ‌های همین حساب را از API ثبت‌نام‌ها می‌خواند');
+  f.dom.window.close();
+  const pay=await load(makeStore(),'#payments',server,false,false); await wait(120);
+  ok(pay.errs.length===0&&pay.inView()&&pay.network.some(c=>c.path===REG),'نمای #payments از API ثبت‌نام‌ها می‌خواند');
+  ok(pay.view().includes('ثبت‌نام کارگاه')&&pay.view().includes('رسید ثبت شد')&&!pay.view().includes('نظرسنجی پاییز')&&pay.view().includes('۱ ثبت‌نام دارای وضعیت پرداخت'),
+    'پرداخت‌ها فقط ثبت‌نام‌های دارای وضعیت پرداخت را نشان می‌دهد');
+  ok(!pay.view().includes('کیف پول')&&!pay.view().includes('اقساط')&&!/۱٬۲۵۰٬۰۰۰|1250000/.test(pay.view()),'پرداخت‌ها مانده، کیف پول یا قسط نمونه ندارد');
+  pay.dom.window.close();
+  const legacy=await load(makeStore(),'#pay',server,false,false); await wait(120);
+  ok(legacy.inView()&&legacy.network.some(c=>c.path===REG)&&legacy.view().includes('ثبت‌نام کارگاه'),'#pay در نسخهٔ سروری همان نمای پرداخت‌های واقعی است');
+  legacy.dom.window.close();
+  const guest=await load(makeStore(),'#payments',{account:null,registrations:[]},false,false); await wait(60);
+  ok(guest.inView()&&!guest.network.some(c=>c.path===REG)&&guest.view().includes('ورود'),'مهمان در #payments فقط دعوت به ورود می‌بیند و API ثبت‌نام‌ها صدا زده نمی‌شود');
+  guest.dom.window.close();
+  const bot=await load(makeStore(),'#acc-4',server,true,false); await wait(60);
+  ok(bot.inView()&&bot.view().includes('ثبت حضور رویداد')&&bot.view().includes('ربات بله')&&!!bot.doc.querySelector('#viewBox a[href="https://ble.ir/nora_test_bot"]'),
+    'بخش رباتی وضعیت «در ربات بله» و پیوند ربات حساب را نشان می‌دهد');
+  ok(!bot.view().includes('در دست ساخت')&&!/\d{2}:\d{2}/.test(bot.view().replace(/[۰-۹]/g,'0')),'بخش رباتی دادهٔ نمونه یا «در دست ساخت» ندارد');
+  bot.dom.window.close();
+  const later=await load(makeStore(),'#acc-19',server,false,false); await wait(60);
+  ok(later.inView()&&later.view().includes('کیف پول')&&later.view().includes('خارج از نسخهٔ اول')&&!/ریال|تومان/.test(later.view()),
+    'بخش مالی خارج از نسخهٔ اول هیچ موجودی یا تراکنشی نشان نمی‌دهد');
+  later.dom.window.close();
+  const home=await load(makeStore(),'',server,false,false); await wait(120);
+  const idx=home.doc.querySelector('.account-screens-index');
+  ok(!!idx&&idx.querySelectorAll('a[href="account.html#forms"]').length===1&&idx.querySelectorAll('a[href="account.html#payments"]').length===2,
+    'فهرست بخش‌ها به فرم‌های من و پرداخت‌ها/رسید پیوند واقعی دارد');
+  ok(idx&&[...idx.querySelectorAll('.tag')].filter(t=>t.textContent.trim()==='فعلاً در ربات بله').length===17
+    &&[...idx.querySelectorAll('.tag')].filter(t=>t.textContent.trim()==='خارج از نسخهٔ اول').length===11,
+    'برچسب‌های «فعلاً در ربات بله» و «خارج از نسخهٔ اول» در فهرست دیده می‌شوند');
+  ok(idx&&!idx.textContent.includes('در دست ساخت'),'فهرست بخش‌ها دیگر برچسب مبهم «در دست ساخت» ندارد');
+  home.dom.window.close();
 }
 /* ── اطلاعات حساب از /api/account/me ── */
 {

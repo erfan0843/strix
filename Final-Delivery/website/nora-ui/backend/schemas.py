@@ -65,7 +65,12 @@ MAX_CONDITION_RULES = 10
 DIGIT_TRANSLATION = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
 SECRET_KEY = re.compile(r"(?:token|secret|authorization|api[_-]?key|password|credential)", re.I)
 SLUG_RE = re.compile(r"^[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*$")
-TOP_LEVEL_KEYS = {"name", "model", "need", "slug", "ev", "fields", "settings", "expected_version"}
+TOP_LEVEL_KEYS = {"name", "model", "need", "slug", "ev", "fields", "settings", "expected_version", "purpose", "recording_id"}
+# Phase 9.1: what a form is for. ``registration`` is every legacy behaviour; a
+# ``recording_access`` form is the purchase entry of one recorded product and its
+# settings (fin / payment methods / card) are the product's commercial source of truth.
+PURPOSES = ("registration", "recording_access")
+RECORDING_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,36}$")
 
 
 class PayloadError(ValueError):
@@ -93,6 +98,8 @@ class FormDefinition:
     settings: dict[str, Any]
     fields: list[NormalizedField]
     expected_version: int | None
+    purpose: str = "registration"
+    recording_id: str | None = None
 
 
 def _contains_secret_key(value: Any, depth: int = 0) -> bool:
@@ -105,6 +112,35 @@ def _contains_secret_key(value: Any, depth: int = 0) -> bool:
     elif isinstance(value, list):
         return any(_contains_secret_key(child, depth + 1) for child in value)
     return False
+
+
+def _normalize_purpose(payload: dict[str, Any], model: str, settings: dict[str, Any]) -> tuple[str, str | None]:
+    """Validate ``purpose``/``recording_id`` together; a purchase form must stay a plain
+    one-person payment form (registration model, no tickets, no companions)."""
+    purpose = payload.get("purpose", "registration")
+    if not isinstance(purpose, str) or purpose not in PURPOSES:
+        raise PayloadError("invalid_purpose", "Unsupported form purpose")
+    recording_id = payload.get("recording_id")
+    if recording_id is not None:
+        if not isinstance(recording_id, str) or not RECORDING_ID_RE.fullmatch(recording_id.strip()):
+            raise PayloadError("invalid_recording_reference", "Invalid recorded-product reference")
+        recording_id = recording_id.strip()
+    if purpose == "registration":
+        if recording_id is not None:
+            raise PayloadError("recording_requires_purchase_purpose", "Only purchase forms link to a recorded product")
+        return purpose, None
+    if recording_id is None:
+        raise PayloadError("purchase_form_recording_required", "A purchase form must reference one recorded product")
+    if model != "registration":
+        raise PayloadError(
+            "purchase_form_requires_registration_model",
+            "Purchase forms use the registration model so server-side payments apply",
+        )
+    if "ticketing" in settings:
+        raise PayloadError("ticketing_not_allowed_for_purchase", "Purchase forms never issue tickets")
+    if settings.get("guestsOn") is True:
+        raise PayloadError("companions_not_allowed_for_purchase", "Purchase forms are for one account only")
+    return purpose, recording_id
 
 
 def _normalize_ticketing_setting(value: Any, model: str) -> dict[str, Any]:
@@ -297,6 +333,7 @@ def normalize_form_payload(
     settings = dict(settings)
     if any(key in settings for key in ("status", "owner_id", "published", "is_published")):
         raise PayloadError("server_owned_setting", "Status and ownership are server-controlled")
+    purpose, recording_id = _normalize_purpose(payload, model, settings)
     if "ticketing" in settings:
         settings["ticketing"] = _normalize_ticketing_setting(settings["ticketing"], model)
 
@@ -522,4 +559,6 @@ def normalize_form_payload(
         settings=settings,
         fields=fields,
         expected_version=expected_version,
+        purpose=purpose,
+        recording_id=recording_id,
     )

@@ -12,8 +12,14 @@
   };
   const DEFAULT_SETTINGS = { enabled: true, auto_rotate: false, interval_seconds: 7, show_controls: true };
   const STATUS_LABELS = { draft: 'پیش‌نویس', published: 'منتشرشده', paused: 'متوقف' };
+  const KINDS = ['notice', 'sponsored', 'partner'];
+  const KIND_LABELS = { sponsored: 'تبلیغ', partner: 'حامی' };
+  const COUNTDOWNS = ['', 'reg_close', 'event_start', 'campaign_end'];
+  const AFTER_END = ['hide', 'message', 'details'];
+  const COUNTDOWN_LABELS = { reg_close: 'تا پایان ثبت‌نام', reg_open: 'تا آغاز ثبت‌نام', event_start: 'تا شروع رویداد', campaign_end: 'تا پایان فرصت' };
+  const EVENT_STATE_LABELS = { open: 'ثبت‌نام باز', not_started: 'ثبت‌نام آغاز نشده', full: 'ظرفیت تکمیل', closed: 'ثبت‌نام بسته', ended: 'برگزارشده', cancelled: 'لغوشده', none: 'بدون فرم ثبت‌نام' };
   const state = { rows: [], settings: Object.assign({}, DEFAULT_SETTINGS), version: 0, selectedId: '',
-    loaded: false, busy: false, dirty: false, serial: 0 };
+    loaded: false, busy: false, dirty: false, serial: 0, events: [], previewMode: 'desktop' };
   const clamp = (value, low, high) => Math.max(low, Math.min(high, Number.isFinite(+value) ? +value : low));
   const text = (value, maximum) => String(value == null ? '' : value).trim().slice(0, maximum);
   const escapeHtml = value => String(value == null ? '' : value).replace(/[&<>"']/g, char =>
@@ -68,8 +74,9 @@
   function blankBanner(placeholder) {
     return { id: newId(), status: 'draft', active: true, order: state.rows.length,
       t: '', eyebrow: '', subtitle: '', s: '', img: '', imgAlt: '', href: '', primaryLabel: '',
-      secondaryHref: '', secondaryLabel: '', theme: 'ocean', layout: 'cover', align: 'right',
-      overlay: 48, focusX: 50, focusY: 50, startsAt: '', endsAt: '', _placeholder: !!placeholder };
+      secondaryHref: '', secondaryLabel: '', theme: 'ocean', layout: 'cover', align: 'right', kind: 'notice',
+      overlay: 48, focusX: 50, focusY: 50, startsAt: '', endsAt: '',
+      eventId: '', countdown: '', campaignEndsAt: '', afterEnd: 'hide', afterEndText: '', _placeholder: !!placeholder };
   }
   function setStatus(message, kind) {
     const element = $('#ownerBannerState');
@@ -141,9 +148,13 @@
       secondaryHref: row.secondaryHref || row.secondary_href,
       layout: ['cover', 'split', 'text'].includes(row.layout) ? row.layout : 'cover',
       theme: Object.prototype.hasOwnProperty.call(THEMES, row.theme) ? row.theme : 'ocean',
+      kind: KINDS.includes(row.kind) ? row.kind : 'notice',
       align: row.align === 'center' ? 'center' : 'right', status: STATUS_LABELS[row.status] ? row.status : 'draft',
       active: row.active !== false, order: clamp(row.order, 0, 1000),
       startsAt: localDate(row.startsAt || row.starts_at), endsAt: localDate(row.endsAt || row.ends_at),
+      eventId: text(row.eventId, 100), countdown: COUNTDOWNS.includes(row.countdown) ? row.countdown : '',
+      campaignEndsAt: localDate(row.campaignEndsAt), afterEnd: AFTER_END.includes(row.afterEnd) ? row.afterEnd : 'hide',
+      afterEndText: text(row.afterEndText, 160),
       overlay: clamp(row.overlay, 0, 90), focusX: clamp(row.focusX, 0, 100), focusY: clamp(row.focusY, 0, 100),
       bannerEnabled: state.settings.enabled !== false, autoRotate: state.settings.auto_rotate === true,
       rotateInterval: String(clamp(state.settings.interval_seconds, 4, 20)),
@@ -159,8 +170,56 @@
     if (file) file.value = '';
     imageState(row);
     if (del) del.disabled = !state.loaded || state.busy || !!row._placeholder;
+    renderEventOptions(row);
     renderPreview(row);
     updateRangeLabels(form);
+  }
+  /* فهرست رویدادهای منتشرشده از همان عکس سرور؛ هیچ رویدادی این‌جا ساخته یا حدس زده نمی‌شود */
+  function renderEventOptions(row) {
+    const select = $('#ownerBannerEvent');
+    if (!select) return;
+    const current = text(row && row.eventId, 100);
+    const options = ['<option value="">بدون پیوند به رویداد</option>'].concat(state.events.map(event =>
+      `<option value="${escapeHtml(event.id)}"${event.id === current ? ' selected' : ''}>${escapeHtml(event.t)}${event.when ? ' · ' + escapeHtml(event.when) : ''}</option>`));
+    if (current && !state.events.some(event => event.id === current)) {
+      options.push(`<option value="${escapeHtml(current)}" selected>رویداد ${escapeHtml(current)} (منتشرنشده یا حذف‌شده)</option>`);
+    }
+    select.innerHTML = options.join('');
+    select.value = current;
+    const note = $('#ownerBannerEventState');
+    if (!note) return;
+    const event = state.events.find(item => item.id === current) || null;
+    if (!current) note.textContent = 'بدون رویداد: شمارشگر فقط می‌تواند «کمپین مستقل» با زمان اختصاصی باشد.';
+    else if (!event) note.textContent = 'این رویداد در فهرست منتشرشده‌ها نیست؛ تا منتشر نشود بنر در سایت نمایش داده نمی‌شود.';
+    else {
+      const reg = event.registration || {};
+      const bits = [`وضعیت ثبت‌نام: ${EVENT_STATE_LABELS[reg.state] || 'نامشخص'}`];
+      if (reg.lifecycle === 'cancelled') bits.push('رویداد لغو شده است');
+      if (reg.lifecycle === 'postponed') bits.push('رویداد به تعویق افتاده است');
+      bits.push(reg.closesAt ? `مهلت ثبت‌نام: ${localDate(reg.closesAt).replace('T', ' ')}` : 'مهلت ثبت‌نام ثبت نشده (شمارشگر «تا پایان ثبت‌نام» ساخته نمی‌شود)');
+      bits.push(event.startsAt ? `شروع رویداد: ${localDate(event.startsAt).replace('T', ' ')}` : 'زمان شروع ثبت نشده (شمارشگر «تا شروع» ساخته نمی‌شود)');
+      note.textContent = bits.join(' · ') + ' — این مقادیر از خود رویداد خوانده می‌شوند و در بنر ذخیره نمی‌شوند.';
+    }
+  }
+  /* هدف شمارشگر پیش‌نمایش از همان قاعدهٔ سرور/صفحهٔ خانه: رویداد → کمپین */
+  function previewCountdown(row) {
+    const event = state.events.find(item => item.id === text(row.eventId, 100)) || null;
+    const reg = event && event.registration || {};
+    if (row.countdown === 'reg_close' && event) {
+      if (reg.state === 'open' && reg.countdownTo) return { kind: 'reg_close', at: reg.countdownTo };
+      if (reg.state === 'not_started' && reg.countdownTo) return { kind: 'reg_open', at: reg.countdownTo };
+      return { kind: 'reg_close', ended: true };
+    }
+    if (row.countdown === 'event_start' && event) {
+      if (reg.startsIn) return { kind: 'event_start', at: reg.startsIn };
+      return event.startsAt ? { kind: 'event_start', ended: true } : null;
+    }
+    if (row.countdown === 'campaign_end' && row.campaignEndsAt) {
+      const ms = Date.parse(row.campaignEndsAt);
+      if (!Number.isFinite(ms)) return null;
+      return ms > Date.now() ? { kind: 'campaign_end', at: row.campaignEndsAt } : { kind: 'campaign_end', ended: true };
+    }
+    return null;
   }
   function updateRangeLabels(form) {
     if (!form) return;
@@ -188,18 +247,35 @@
       img.loading = 'lazy'; img.decoding = 'async'; imageHost.appendChild(img);
     }
     card.appendChild(imageHost);
+    if (KIND_LABELS[row.kind]) { const kindTag = root.document.createElement('span'); kindTag.className = 'obm-preview-label obm-preview-kind'; kindTag.textContent = KIND_LABELS[row.kind]; card.appendChild(kindTag); }
     if (row.eyebrow) { const tag = root.document.createElement('span'); tag.className = 'obm-preview-label'; tag.textContent = row.eyebrow; card.appendChild(tag); }
     const content = root.document.createElement('div'); content.className = 'obm-preview-content';
     const title = root.document.createElement('h4'); title.textContent = row.t || 'عنوان بنر'; content.appendChild(title);
     if (row.subtitle) { const subtitle = root.document.createElement('div'); subtitle.className = 'obm-preview-subtitle'; subtitle.textContent = row.subtitle; content.appendChild(subtitle); }
     if (row.s) { const body = root.document.createElement('div'); body.className = 'obm-preview-body'; body.textContent = row.s; content.appendChild(body); }
+    const target = previewCountdown(row);
+    if (target) {
+      const timer = root.document.createElement('div'); timer.className = 'obm-preview-countdown' + (target.ended ? ' is-ended' : '');
+      const CD = root.NORA_COUNTDOWN;
+      const phrase = target.ended ? (row.afterEndText || 'به پایان رسید')
+        : CD && typeof CD.phrase === 'function' ? CD.phrase(CD.remaining(target.at)) : localDate(target.at).replace('T', ' ');
+      timer.textContent = `${COUNTDOWN_LABELS[target.kind] || 'شمارشگر'}: ${phrase}`;
+      content.appendChild(timer);
+    }
     const actions = root.document.createElement('div'); actions.className = 'obm-preview-actions';
-    [[row.primaryLabel, row.href], [row.secondaryLabel, row.secondaryHref]].forEach(([label, href]) => {
+    const event = state.events.find(item => item.id === text(row.eventId, 100)) || null;
+    const primaryHref = row.href || (event ? `event.html?id=${event.id}` : '');
+    const primaryLabel = row.primaryLabel || (event ? 'جزئیات رویداد' : '');
+    [[primaryLabel, primaryHref], [row.secondaryLabel, row.secondaryHref]].forEach(([label, href]) => {
       if (!label || !href) return;
       const button = root.document.createElement('span'); button.textContent = label; actions.appendChild(button);
     });
+    if (target && target.ended && row.afterEnd === 'details' && event) {
+      actions.replaceChildren(); const button = root.document.createElement('span'); button.textContent = 'جزئیات رویداد'; actions.appendChild(button);
+    }
     if (actions.childNodes.length) content.appendChild(actions);
     card.appendChild(content); host.appendChild(card);
+    host.dataset.previewMode = state.previewMode;
   }
   function readCurrentForm() {
     const row = currentRow();
@@ -216,14 +292,18 @@
       secondaryHref: text(value('secondaryHref'), 2048),
       layout: ['cover', 'split', 'text'].includes(value('layout')) ? value('layout') : 'cover',
       theme: Object.prototype.hasOwnProperty.call(THEMES, value('theme')) ? value('theme') : 'ocean',
+      kind: KINDS.includes(value('kind')) ? value('kind') : 'notice',
       align: value('align') === 'center' ? 'center' : 'right',
       status: ['draft', 'published', 'paused'].includes(value('status')) ? value('status') : 'draft',
       active: checked('active'), order: clamp(value('order'), 0, 1000),
       overlay: clamp(value('overlay'), 0, 90), focusX: clamp(value('focusX'), 0, 100), focusY: clamp(value('focusY'), 0, 100),
-      startsAt: utcDate(value('startsAt')), endsAt: utcDate(value('endsAt'))
+      startsAt: utcDate(value('startsAt')), endsAt: utcDate(value('endsAt')),
+      eventId: text(value('eventId'), 100), countdown: COUNTDOWNS.includes(value('countdown')) ? value('countdown') : '',
+      campaignEndsAt: utcDate(value('campaignEndsAt')), afterEnd: AFTER_END.includes(value('afterEnd')) ? value('afterEnd') : 'hide',
+      afterEndText: text(value('afterEndText'), 160)
     });
     const hasContent = !!(next.t || next.eyebrow || next.subtitle || next.s || next.img || next.href
-      || next.primaryLabel || next.secondaryHref || next.secondaryLabel);
+      || next.primaryLabel || next.secondaryHref || next.secondaryLabel || next.eventId);
     if (hasContent) delete next._placeholder;
     state.settings = {
       enabled: checked('bannerEnabled'), auto_rotate: checked('autoRotate'),
@@ -258,9 +338,13 @@
       subtitle: text(row.subtitle, 180), s: text(row.s, 800), img: text(row.img, 1_500_000),
       imgAlt: text(row.imgAlt, 240), href: text(row.href, 2048), primaryLabel: text(row.primaryLabel, 60),
       secondaryHref: text(row.secondaryHref, 2048), secondaryLabel: text(row.secondaryLabel, 60),
-      theme: row.theme, layout: row.layout, align: row.align, overlay: Math.round(clamp(row.overlay, 0, 90)),
+      theme: row.theme, layout: row.layout, align: row.align, kind: KINDS.includes(row.kind) ? row.kind : 'notice',
+      overlay: Math.round(clamp(row.overlay, 0, 90)),
       focusX: Math.round(clamp(row.focusX, 0, 100)), focusY: Math.round(clamp(row.focusY, 0, 100)),
-      startsAt: row.startsAt || '', endsAt: row.endsAt || ''
+      startsAt: row.startsAt || '', endsAt: row.endsAt || '',
+      eventId: text(row.eventId, 100), countdown: COUNTDOWNS.includes(row.countdown) ? row.countdown : '',
+      campaignEndsAt: row.countdown === 'campaign_end' ? (row.campaignEndsAt || '') : '',
+      afterEnd: AFTER_END.includes(row.afterEnd) ? row.afterEnd : 'hide', afterEndText: text(row.afterEndText, 160)
     }));
   }
   function validate() {
@@ -276,10 +360,16 @@
           || !['right', 'center'].includes(row.align)) return 'چیدمان یا تم رنگی یکی از بنرها معتبر نیست.';
       if (!safeImageUrl(row.img)) return 'نشانی تصویر باید HTTPS یا مسیر امن همین سایت باشد.';
       if (!safeActionUrl(row.href) || !safeActionUrl(row.secondaryHref)) return 'پیوند دکمه باید HTTPS یا مسیر امن همین سایت باشد.';
-      if (!!row.href !== !!row.primaryLabel) return 'برای دکمهٔ اصلی، متن و پیوند را هر دو وارد کنید یا هر دو را خالی بگذارید.';
+      /* بنر وصل به رویداد: پیوند دکمهٔ اصلی از خود رویداد می‌آید و متن پیش‌فرض «جزئیات رویداد» است؛ قاعدهٔ «هر دو یا هیچ» فقط برای بنرهای بدون رویداد */
+      if (!row.eventId && !!row.href !== !!row.primaryLabel) return 'برای دکمهٔ اصلی، متن و پیوند را هر دو وارد کنید یا هر دو را خالی بگذارید؛ فقط بنر وصل به رویداد می‌تواند بدون پیوند، به صفحهٔ رویداد برود.';
       if (!!row.secondaryHref !== !!row.secondaryLabel) return 'برای دکمهٔ دوم، متن و پیوند را هر دو وارد کنید یا هر دو را خالی بگذارید.';
       if ((row.startsAt && !utcDate(row.startsAt)) || (row.endsAt && !utcDate(row.endsAt))) return 'زمان شروع یا پایان نمایش معتبر نیست.';
       if (row.startsAt && row.endsAt && Date.parse(row.startsAt) > Date.parse(row.endsAt)) return 'زمان پایان باید بعد از زمان شروع باشد.';
+      if (row.eventId && !/^[A-Za-z0-9_-]{1,100}$/.test(row.eventId)) return 'شناسهٔ رویداد پیوندشده معتبر نیست.';
+      if ((row.countdown === 'reg_close' || row.countdown === 'event_start') && !row.eventId) return 'برای شمارشگر رویداد، ابتدا رویداد را انتخاب کنید.';
+      if (row.countdown === 'campaign_end' && !row.campaignEndsAt) return 'برای کمپین مستقل، زمان پایان کمپین لازم است.';
+      if (row.countdown === 'campaign_end' && !utcDate(row.campaignEndsAt)) return 'زمان پایان کمپین معتبر نیست.';
+      if (!row.href && !row.eventId && row.afterEnd === 'details') return 'رفتار «رفتن به جزئیات» فقط برای بنر وصل به رویداد معنا دارد.';
     }
     if (![4, 5, 6, 7, 8, 9, 10, 12, 15, 20].includes(+state.settings.interval_seconds)) return 'فاصلهٔ چرخش خودکار معتبر نیست.';
     return '';
@@ -303,13 +393,17 @@
       const result = await api.getOwnerSiteContent();
       const content = result && result.content && typeof result.content === 'object' ? result.content : {};
       state.version = Number.isInteger(+result.version) && +result.version >= 0 ? +result.version : 0;
+      state.events = Array.isArray(content.events) ? content.events.filter(event => event && typeof event === 'object' && event.id).map(event => ({
+        id: String(event.id), t: text(event.t, 240), when: text(event.when, 120), startsAt: text(event.startsAt, 40),
+        registration: event.registration && typeof event.registration === 'object' ? event.registration : null
+      })) : [];
       state.rows = Array.isArray(content.banners) ? content.banners.map((row, index) => Object.assign({}, row, {
         id: /^[A-Za-z0-9_-]{1,100}$/.test(String(row && row.id || '')) ? String(row.id) : newId(),
         status: ['draft', 'published', 'paused'].includes(row && row.status) ? row.status : 'draft',
         active: !row || row.active !== false, order: clamp(row && row.order != null ? row.order : index, 0, 1000),
         theme: Object.prototype.hasOwnProperty.call(THEMES, row && row.theme) ? row.theme : 'ocean',
         layout: ['cover', 'split', 'text'].includes(row && row.layout) ? row.layout : 'cover',
-        align: row && row.align === 'center' ? 'center' : 'right',
+        align: row && row.align === 'center' ? 'center' : 'right', kind: KINDS.includes(row && row.kind) ? row.kind : 'notice',
         overlay: clamp(row && row.overlay, 0, 90), focusX: clamp(row && row.focusX, 0, 100),
         focusY: clamp(row && row.focusY, 0, 100), _placeholder: false
       })) : [];
@@ -387,7 +481,20 @@
       syncAndRender();
     });
     form.addEventListener('change', event => {
-      if (event.target && event.target.name && ['layout', 'theme', 'align', 'status', 'active', 'bannerEnabled', 'autoRotate', 'rotateInterval', 'showControls'].includes(event.target.name)) syncAndRender();
+      if (event.target && event.target.name && ['layout', 'theme', 'align', 'kind', 'status', 'active', 'bannerEnabled', 'autoRotate', 'rotateInterval', 'showControls', 'eventId', 'countdown', 'afterEnd', 'campaignEndsAt'].includes(event.target.name)) {
+        syncAndRender();
+        if (event.target.name === 'eventId') renderEventOptions(currentRow());
+      }
+    });
+    panel.addEventListener('click', event => {
+      const mode = event.target.closest && event.target.closest('[data-obm-preview-mode]');
+      if (!mode) return;
+      state.previewMode = mode.dataset.obmPreviewMode === 'mobile' ? 'mobile' : 'desktop';
+      panel.querySelectorAll('[data-obm-preview-mode]').forEach(button => {
+        const on = button.dataset.obmPreviewMode === state.previewMode;
+        button.classList.toggle('on', on); button.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+      const row = currentRow(); if (row) renderPreview(row);
     });
     form.addEventListener('submit', save);
     $('#ownerBannerReload').addEventListener('click', () => reload());

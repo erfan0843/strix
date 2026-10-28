@@ -1,0 +1,267 @@
+[
+  {
+    "ok": true,
+    "name": "1a. events search narrows to the matching event",
+    "detail": "۴ رویداد منتشرشده → ۱ رویداد منتشرشده (1 unique link)"
+  },
+  {
+    "ok": true,
+    "name": "1b. no-result search shows an honest empty state",
+    "detail": "واژهٔ جست‌وجو یا صافی‌ها را تغییر دهید."
+  },
+  {
+    "ok": true,
+    "name": "1c. «برگزارشده» chip shows only past events",
+    "detail": "event.html?id=qa-ev-past,event.html?id=qa-ev-past,event.html?id=qa-ev-past"
+  },
+  {
+    "ok": true,
+    "name": "1d. ?status=past deep link lands on the past list",
+    "detail": "event.html?id=qa-ev-past,event.html?id=qa-ev-past,event.html?id=qa-ev-past"
+  },
+  {
+    "ok": true,
+    "name": "1e. calendar view renders a day grid",
+    "detail": "30 cells"
+  },
+  {
+    "ok": true,
+    "name": "1f. calendar day panel visible after choosing a day",
+    "detail": "۱ برنامه در این روز"
+  },
+  {
+    "ok": true,
+    "name": "1g. event card opens the event page",
+    "detail": "event.html?id=qa-ev-past"
+  },
+  {
+    "ok": true,
+    "name": "1h. event page shows the event title",
+    "detail": "رویداد برگزارشدهٔ آزمایشی (دادهٔ تست)"
+  },
+  {
+    "ok": true,
+    "name": "1i. event attached to a published form shows a registration CTA",
+    "detail": "form.html?fid=c885a821-2583-4716-a5d6-ab43f1fda5ac&kind=reg"
+  },
+  {
+    "ok": true,
+    "name": "1j. event page has a way back to the events list",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "name": "1k. no JS errors in events flow",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "name": "2a. events page never shows fixture events when the API fails",
+    "detail": "0 cards"
+  },
+  {
+    "ok": true,
+    "name": "2b. API failure shows an explanatory message",
+    "detail": "به پایگاه عمومی سرور دسترسی نیست؛ فهرست رویدادها فعلاً قابل نمایش نیست. کمی بعد دوباره تلاش کن."
+  },
+  {
+    "ok": true,
+    "name": "3a. form landing shows start button",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "name": "3b. submitting an empty required step shows inline validation",
+    "detail": "2 invalid markers; QA فرم ثبت‌نام رایگان (دادهٔ تست)"
+  },
+  {
+    "ok": true,
+    "name": "3c. form reaches the completion step after a real POST",
+    "detail": "POST 200; تکمیل شد!; tracking=null"
+  },
+  {
+    "ok": true,
+    "name": "3d. submission was accepted by the server (2xx), not a local success",
+    "detail": "POST 200"
+  },
+  {
+    "ok": true,
+    "name": "3e. no alert() dialogs during the form flow",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "name": "3e2. completion screen offers a way back (home)",
+    "detail": "/final-page-review.html → home.html"
+  },
+  {
+    "ok": true,
+    "name": "3f. reload after submission does not silently restart from scratch",
+    "detail": "تکمیل شد! ثبت‌نام تکمیل شد؛ پیوند بلیت هنوز آماده نیست. پاسخت روی سرور ثبت شد. بازگشت به خانهٔ نورا"
+  },
+  {
+    "ok": true,
+    "name": "3g. no JS errors in form flow",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "name": "3h. home link from the completion screen navigates without a blocking dialog",
+    "detail": "/home.html"
+  },
+  {
+    "ok": true,
+    "name": "4a. network failure never shows a success screen",
+    "detail": "پاسخی ثبت نشده"
+  },
+  {
+    "ok": true,
+    "name": "4b. network failure shows a retry/explanation message",
+    "detail": "QA فرم ثبت‌نام رایگان (دادهٔ تست) ۳ از ۳ توضیح این پاسخ شبیه متن نمونه یا جای‌نگهدار است؛ آن را بازبینی کنید و اگر عمدی است ادامه دهید. قبلی ثبت پاسخ می‌خوای از فرم بیرون بیای؟ می‌توانی بعداً از همین "
+  },
+  {
+    "ok": true,
+    "name": "5a2. invalid phone never reaches the OTP endpoint (captcha not consumed)",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "name": "5a. invalid phone is rejected with an inline message before the captcha is consumed",
+    "detail": "شمارهٔ همراه درست نیست؛ یک شمارهٔ ایرانی مثل ۰۹۱۲۳۴۵۶۷۸۹ بنویس."
+  },
+  {
+    "ok": true,
+    "name": "5b. OTP request without SMS provider does not fake a sent code",
+    "detail": "status=503 msg=سرویس ارسال کد روی سرور تنظیم نشده است."
+  },
+  {
+    "ok": true,
+    "name": "5c. OTP failure message is explanatory",
+    "detail": "سرویس ارسال کد روی سرور تنظیم نشده است."
+  },
+  {
+    "ok": true,
+    "name": "5d. wrong staff password → 401 and a clear message, no redirect",
+    "detail": "status=401 msg=نام کاربری یا گذرواژه درست نیست. url=/login.html?mode=staff&next=admin.html%23partners"
+  },
+  {
+    "ok": true,
+    "name": "5e. continue link is never an open redirect",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "name": "5f. no JS errors in login flow",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "name": "6a. guest account page offers login with a return path",
+    "detail": "login.html?mode=server&next=account.html"
+  },
+  {
+    "ok": true,
+    "name": "6b. guest view shows no personal data",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "name": "6c. no JS errors on guest account page",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "name": "7a. with no published contacts, support says so instead of showing fixture contacts",
+    "detail": "no external links"
+  },
+  {
+    "ok": true,
+    "name": "7b. no JS errors on support",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "name": "8. keyboard focus order + visible ring on /home.html",
+    "detail": "a:پرش به بخش‌های → a:نورا\nگروه فرهن → button:حالت شب → a:پشتیبانی و راه → a:دیدن رویدادها → a:مطالب → input#q:جست‌وجو در خان → button:پیشنهادی"
+  },
+  {
+    "ok": true,
+    "name": "8. keyboard focus order + visible ring on /events.html",
+    "detail": "a:رفتن به فهرست  → a:نورا\nگروه فرهن → button:☼\n☾ → button:باز کردن منو → a:خانه → a:اساتید و مدرسا → input#eventSearch: → button:همه"
+  },
+  {
+    "ok": true,
+    "name": "8. keyboard focus order + visible ring on /login.html",
+    "detail": "a:نورا\nگروه فرهن → button:حالت شب → a:پشتیبانی و راه → input#lgPhone:شمارهٔ همراه → input#lgCapAnswer:کد امنیتی چهار → button#lgCapNew:کد امنیتی تازه → button#lgPhoneSubmit:دریافت کد → a:ورود مدیران"
+  },
+  {
+    "ok": true,
+    "name": "9a. XSS event title renders as text (no dialog/no injected nodes)",
+    "detail": "h1=رویداد XSS &lt;img src=x onerror=alert(1)&gt; \"&gt;&lt;script&gt;alert(2)&lt;/sc dialogs=0 injected=0"
+  },
+  {
+    "ok": true,
+    "name": "9b. XSS article renders inert (no script/onerror/iframe)",
+    "detail": "dialogs=0 injected=0"
+  },
+  {
+    "ok": true,
+    "name": "9c. XSS person profile renders inert",
+    "detail": "dialogs=0 injected=0"
+  },
+  {
+    "ok": true,
+    "name": "10a. server post: share/copy controls are active",
+    "detail": "share=\"همرسانی\" copyDisabled=false"
+  },
+  {
+    "ok": true,
+    "name": "10c. copy puts the public post URL on the clipboard and confirms",
+    "detail": "http://127.0.0.1:8000/post.html?id=np-qa-1 | false:نشانی مطلب رونوشت شد"
+  },
+  {
+    "ok": true,
+    "name": "10d. share falls back to copying the URL when Web Share is unavailable",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "name": "10b. post page has canonical + og:title",
+    "detail": "http://127.0.0.1:8000/post.html?id=np-qa-1 | مطلب آزمایشی ۱ (دادهٔ تست) | مطالب نورا"
+  },
+  {
+    "ok": true,
+    "name": "11a. completion page without context still offers a way back",
+    "detail": "home.html"
+  },
+  {
+    "ok": true,
+    "name": "11b. offline page offers retry/home",
+    "detail": ""
+  },
+  {
+    "ok": true,
+    "name": "12. /event.html?id=nope → 404 + noindex + back link",
+    "detail": "status=404 robots=noindex,nofollow,noarchive backLinks=4"
+  },
+  {
+    "ok": true,
+    "name": "12. /post.html?id=nope → 404 + noindex + back link",
+    "detail": "status=404 robots=noindex,nofollow,noarchive backLinks=5"
+  },
+  {
+    "ok": true,
+    "name": "12. /person.html?id=nope → 404 + noindex + back link",
+    "detail": "status=404 robots=noindex,nofollow,noarchive backLinks=5"
+  },
+  {
+    "ok": true,
+    "name": "12. /partner.html?id=nope → 404 + noindex + back link",
+    "detail": "status=404 robots=noindex,nofollow,noarchive backLinks=6"
+  },
+  {
+    "ok": true,
+    "name": "12. /form.html?fid=nope → 404 + noindex + back link",
+    "detail": "status=404 robots=noindex,nofollow,noarchive backLinks=3"
+  }
+]

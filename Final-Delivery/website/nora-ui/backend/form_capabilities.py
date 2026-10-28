@@ -8,8 +8,16 @@ from __future__ import annotations
 
 from typing import Any
 
-from .responses import SUPPORTED_PUBLIC_FIELD_TYPES, UNSUPPORTED_FIELD_TYPES
-from .schemas import MODELS
+from .responses import (
+    BOUNDS_RANGES,
+    BOUNDS_SETTING_TYPES,
+    INTEGER_SETTING_TYPES,
+    LENGTH_SETTING_TYPES,
+    SUPPORTED_PUBLIC_FIELD_TYPES,
+    TEXT_ANSWER_LIMITS,
+    UNSUPPORTED_FIELD_TYPES,
+)
+from .schemas import MAX_FIELD_OPTIONS, MAX_OPTION_LABEL, MODELS
 
 
 MODEL_ORDER = (
@@ -95,22 +103,69 @@ def public_form_capabilities(*, api_configured: bool, bale_wallet_ready: bool) -
             "reason": reason,
         }
 
+    # Per-field settings the builder may offer: which types, what the server enforces, and the hard limits.
+    # «client_display» = stored and shown by the public form but never validated by the server (no false claim).
+    field_settings: dict[str, dict[str, Any]] = {
+        "required": {"status": "server", "types": "all", "keys": ["req"],
+                     "reason": "پاسخ اجباری در ثبت نهایی سرور بررسی می‌شود."},
+        "placeholder": {"status": "client_display", "types": ["text", "area", "number", "amount", "fullname", "nid", "mobile", "email", "address", "location"],
+                        "keys": ["placeholder"], "max_length": 120,
+                        "reason": "فقط متن داخل کادر در فرم عمومی است؛ سرور آن را اعتبارسنجی نمی‌کند."},
+        "length": {"status": "server", "types": sorted(LENGTH_SETTING_TYPES), "keys": ["minLen", "maxLen"],
+                   "max_by_type": {t: TEXT_ANSWER_LIMITS[t] for t in sorted(LENGTH_SETTING_TYPES)},
+                   "reason": "حداقل/حداکثر نویسه در فرم عمومی و سرور بررسی می‌شود؛ حداکثر از سقف نوع بیشتر نمی‌شود."},
+        "bounds": {"status": "server", "types": sorted(BOUNDS_SETTING_TYPES), "keys": ["min", "max"],
+                   "ranges": {t: list(r) for t, r in BOUNDS_RANGES.items()}, "amount_min": 0,
+                   "reason": "حداقل/حداکثر عددی در فرم عمومی و سرور بررسی می‌شود؛ مبلغ منفی هرگز پذیرفته نمی‌شود."},
+        "integer": {"status": "server", "types": sorted(INTEGER_SETTING_TYPES), "keys": ["integer"],
+                    "reason": "با روشن‌بودن، عدد اعشاری در فرم عمومی و سرور رد می‌شود؛ گام تغییر یا تعداد رقم اعشار تنظیم‌پذیر نیست."},
+        "options": {"status": "server", "types": ["choice", "multi", "dropdown", "imgchoice", "yesno", "gender", "marital"], "keys": ["opts"],
+                    "max_options": MAX_FIELD_OPTIONS, "max_label_length": MAX_OPTION_LABEL,
+                    "reason": "گزینه‌ها یکتا و غیرخالی؛ پاسخ باید یکی از همین گزینه‌ها باشد. گزینهٔ پیش‌فرضِ از‌پیش‌انتخاب‌شده پشتیبانی نمی‌شود."},
+        "multi_limits": {"status": "server", "types": ["multi"], "keys": ["minSelect", "maxSelect"],
+                         "reason": "حداقل/حداکثر تعداد انتخاب در فرم عمومی و سرور بررسی می‌شود."},
+        "conditions": {"status": "server", "types": "all", "keys": ["conditions", "conditionLogic"],
+                       "reason": "شرط نمایش فقط با ارجاع به پرسش قبلی؛ سرور همان منطق را اجرا می‌کند."},
+        "csv_column": {"status": "conditional", "types": "all", "keys": ["col"],
+                       "reason": "ستون در خروجی CSV سرور (مجوز خروجی)؛ در فهرست پاسخ‌ها همیشه دیده می‌شود."},
+        "temporal_bounds": {"status": "unavailable", "types": ["date", "time", "datetime", "slot"], "keys": [],
+                            "reason": "حداقل/حداکثر تاریخ و ساعت در سرور پیاده‌سازی نشده است؛ کنترلی نمایش داده نمی‌شود."},
+        "profile_prefill": {"status": "unavailable", "types": [], "keys": ["prof"],
+                            "reason": "فرم عمومی ناشناس است؛ پیشنهاد از پروفایل فقط در پیش‌نمایش محلی."},
+        "verification": {"status": "unavailable", "types": [], "keys": ["verify"],
+                         "reason": "تأیید مالکیت شماره/ایمیل وصل نیست؛ درخواست تأیید انتشار را مسدود می‌کند."},
+        "upload": {"status": "unavailable", "types": [], "keys": ["count", "accept", "maxSize"],
+                   "reason": "بارگذاری فایل عمومی وصل نیست."},
+        "media": {"status": "unavailable", "types": [], "keys": ["media", "mediaNote"],
+                  "reason": "رسانهٔ همراه پرسش روی سرور وجود ندارد."},
+        "score": {"status": "unavailable", "types": [], "keys": ["weight", "scoreOn"],
+                  "reason": "امتیازدهی فقط در پیش‌نمایش محلی فرم‌ساز است؛ سرور نمره محاسبه نمی‌کند."},
+    }
+
     return {
         "version": 1,
         "source": "same_application_fastapi",
         "api_configured": bool(api_configured),
         "models": models,
         "field_types": field_types,
+        "field_settings": field_settings,
         "settings": {
             "capacity": {"status": "server", "reason": "ظرفیت در سرور برای هر نفر اعمال می‌شود."},
             "waitlist": {"status": "server", "reason": "صف انتظار سروری است؛ ارتقای خودکار به پذیرش انجام نمی‌شود."},
             "companions": {
                 "status": "conditional",
+                "models": ["registration"],
                 "reason": "فقط برای ثبت‌نام، ۲ تا ۱۰ نفر، نام و موبایل، و پاسخ جداگانهٔ همراهان.",
             },
             "ticketing": {
                 "status": "conditional",
+                "models": ["registration"],
                 "reason": "مدل بلیت پس از پذیرش پاسخ ثبت‌نام در سرور تعیین می‌شود؛ صف انتظار بلیت نمی‌گیرد.",
+            },
+            "survey_scoring": {
+                "status": "unavailable",
+                "models": ["survey"],
+                "reason": "وزن پرسش و امتیاز گزینه‌ها در سرور محاسبه یا ذخیره نمی‌شود؛ امتیاز فقط در پیش‌نمایش محلی فرم‌ساز دیده می‌شود.",
             },
             "conditional_visibility": {
                 "status": "server",
@@ -120,6 +175,7 @@ def public_form_capabilities(*, api_configured: bool, bale_wallet_ready: bool) -
             },
             "card_transfer": {
                 "status": "conditional",
+                "models": ["registration"],
                 "reason": "فقط کارت معتبر، رسید و بازبینی دستی مالک/نقش مجاز.",
             },
             "bale_wallet": {
@@ -159,8 +215,12 @@ def public_form_capabilities(*, api_configured: bool, bale_wallet_ready: bool) -
                 "reason": "فهرست و شمار پاسخ سروری موجود است؛ تحلیل‌های پیشرفتهٔ قیف/هر پرسش هنوز نیست.",
             },
             "exports": {
-                "status": "unavailable",
-                "reason": "خروجی پاسخ سروری از این پنل هنوز آماده نیست؛ خروجی محلی را واقعی فرض نکنید.",
+                "status": "conditional",
+                "reason": (
+                    "خروجی CSV پاسخ‌ها از همین سرور ساخته می‌شود (مجوز fm_export؛ ستون‌های مالی فقط با مجوز مالی). "
+                    "پرسشی که «ستون در خروجی CSV» آن خاموش است در فایل نمی‌آید ولی در فهرست پاسخ‌ها می‌ماند."
+                ),
+                "respects_field_col": True,
             },
             "publish_permission": {
                 "status": "owner_only",

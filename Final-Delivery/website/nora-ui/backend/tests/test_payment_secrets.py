@@ -1,4 +1,9 @@
-"""Owner-managed Bale wallet key: encrypted storage, masked reads, and payment wiring.
+"""Owner-managed Bale wallet key through the unified service-settings API.
+
+This file used to exercise the dedicated ``/api/owner/payment-settings``
+endpoints. Those were removed so that one credential has exactly one place in
+the API and in the panel; the same guarantees are asserted here against
+``/api/owner/service-settings/{id}``.
 
 Test keys are generated per run and fake; no real provider token is used.
 """
@@ -20,13 +25,15 @@ if str(BACKEND_PARENT) not in sys.path:
 
 from backend.app import create_app  # noqa: E402
 from backend.config import Settings  # noqa: E402
-from backend.models import Base, PaymentSecretRecord  # noqa: E402
+from backend.models import Base, PaymentSecretRecord, ServiceCheckRecord  # noqa: E402
 from backend.secret_box import decrypt_secret  # noqa: E402
 from backend.security import hash_password  # noqa: E402
 
 PASSWORD = "correct-horse-staple-42"
 FAKE_KEY = "123456789:AAFakeWalletKeyForTestsOnly_0123456789"
 FAKE_KEY_2 = "987654321:BBAnotherFakeKeyForTests_9876543210"
+SETTINGS_URL = "/api/owner/service-settings"
+WALLET_URL = SETTINGS_URL + "/bale_wallet"
 
 
 @pytest.fixture
@@ -72,32 +79,30 @@ def write_headers(client: TestClient) -> dict[str, str]:
     return {"Origin": "http://testserver", "X-CSRF-Token": client.cookies.get("nora_csrf", "")}
 
 
+def wallet_field(payload: dict) -> dict:
+    payment = next(service for service in payload["services"] if service["key"] == "payment")
+    return next(field for field in payment["fields"] if field["key"] == "bale_wallet")
+
+
 def test_settings_read_requires_owner(client):
-    response = client.get("/api/owner/payment-settings")
-    assert response.status_code in {401, 403}
+    for url in (SETTINGS_URL, "/api/owner/data/status", "/api/owner/data/uploads"):
+        response = client.get(url)
+        assert response.status_code in {401, 403}, url
 
 
 def test_saving_key_requires_owner_session(client):
-    response = client.put(
-        "/api/owner/payment-settings/bale-wallet",
-        json={"api_key": FAKE_KEY},
-        headers={"Origin": "http://testserver"},
-    )
+    response = client.put(WALLET_URL, json={"value": FAKE_KEY}, headers={"Origin": "http://testserver"})
     assert response.status_code in {401, 403}
 
 
 def test_save_stores_only_ciphertext_and_returns_hint(client, engine):
     login(client)
-    response = client.put(
-        "/api/owner/payment-settings/bale-wallet",
-        json={"api_key": FAKE_KEY},
-        headers=write_headers(client),
-    )
+    response = client.put(WALLET_URL, json={"value": FAKE_KEY}, headers=write_headers(client))
     assert response.status_code == 200, response.text
-    body = response.json()["bale_wallet"]
-    assert body["configured"] is True
-    assert body["source"] == "database"
-    assert body["hint"].endswith(FAKE_KEY[-4:])
+    field = wallet_field(response.json())
+    assert field["configured"] is True
+    assert field["source"] == "database"
+    assert field["hint"].endswith(FAKE_KEY[-4:])
     assert FAKE_KEY not in response.text
 
     from sqlalchemy.orm import Session
@@ -111,56 +116,69 @@ def test_save_stores_only_ciphertext_and_returns_hint(client, engine):
 
 def test_get_never_returns_full_key(client):
     login(client)
-    client.put(
-        "/api/owner/payment-settings/bale-wallet",
-        json={"api_key": FAKE_KEY},
-        headers=write_headers(client),
-    )
-    response = client.get("/api/owner/payment-settings")
+    client.put(WALLET_URL, json={"value": FAKE_KEY}, headers=write_headers(client))
+    response = client.get(SETTINGS_URL)
     assert response.status_code == 200
     assert FAKE_KEY not in response.text
-    assert response.json()["bale_wallet"]["encryption_ready"] is True
+    assert wallet_field(response.json())["encryption_ready"] is True
 
 
 def test_invalid_format_is_rejected(client):
     login(client)
-    response = client.put(
-        "/api/owner/payment-settings/bale-wallet",
-        json={"api_key": "not-a-key"},
-        headers=write_headers(client),
-    )
+    response = client.put(WALLET_URL, json={"value": "not-a-key"}, headers=write_headers(client))
     assert response.status_code == 422
-    assert response.json()["detail"] == "invalid_bale_wallet_key_format"
+    assert response.json()["detail"] == "invalid_payment_bot_token"
 
 
 def test_save_refused_without_encryption_key(client, monkeypatch):
     monkeypatch.delenv("NORA_SETTINGS_ENCRYPTION_KEY", raising=False)
     login(client)
-    response = client.put(
-        "/api/owner/payment-settings/bale-wallet",
-        json={"api_key": FAKE_KEY},
-        headers=write_headers(client),
-    )
+    response = client.put(WALLET_URL, json={"value": FAKE_KEY}, headers=write_headers(client))
     assert response.status_code == 503
     assert response.json()["detail"] == "settings_encryption_not_configured"
 
 
-def test_clear_removes_saved_key(client):
+def test_clear_removes_saved_key(client, engine):
     login(client)
-    client.put(
+    client.put(WALLET_URL, json={"value": FAKE_KEY}, headers=write_headers(client))
+    # A real check result is invalidated by deletion too, not only by rotation.
+    from backend.secret_box import encrypt_secret
+    from sqlalchemy.orm import Session
+
+    with Session(engine) as session:
+        session.add(ServiceCheckRecord(storage_id="bale_wallet", ok=True, code="bot_api_ok"))
+        session.commit()
+    response = client.delete(WALLET_URL, headers=write_headers(client))
+    assert response.status_code == 200
+    assert wallet_field(response.json())["configured"] is False
+    with Session(engine) as session:
+        assert session.get(ServiceCheckRecord, "bale_wallet") is None
+
+
+def test_blank_value_never_deletes_a_stored_key(client):
+    login(client)
+    client.put(WALLET_URL, json={"value": FAKE_KEY}, headers=write_headers(client))
+    response = client.put(WALLET_URL, json={"value": "   "}, headers=write_headers(client))
+    assert response.status_code == 422
+    assert response.json()["detail"] == "empty_secret_value"
+    current = client.get(SETTINGS_URL).json()
+    assert wallet_field(current)["hint"].endswith(FAKE_KEY[-4:])
+
+
+def test_legacy_payment_settings_endpoints_are_gone(client):
+    login(client)
+    assert client.get("/api/owner/payment-settings").status_code == 404
+    assert client.put(
         "/api/owner/payment-settings/bale-wallet",
         json={"api_key": FAKE_KEY},
         headers=write_headers(client),
-    )
-    response = client.delete("/api/owner/payment-settings/bale-wallet", headers=write_headers(client))
-    assert response.status_code == 200
-    assert response.json()["bale_wallet"]["configured"] is False
+    ).status_code == 404
 
 
 def test_payment_config_prefers_saved_key(client, engine):
     from sqlalchemy.orm import Session
 
-    from backend.app import _payment_cfg
+    from backend.app import _runtime_settings as _payment_cfg
     from backend.config import Settings as _S
     from backend.secret_box import encrypt_secret
 

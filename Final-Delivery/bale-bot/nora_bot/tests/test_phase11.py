@@ -68,6 +68,8 @@ bale_api.send_photo = lambda c, p, cap=None, kb=None: _file("sendPhoto", "p", c,
 bale_api.send_document = lambda c, d, cap=None, kb=None: _file("sendDocument", "d", c, d, cap, kb)
 
 import database  # noqa: E402
+sys.path.insert(0, str(ROOT / "tests"))
+import _points_fixture as _pf  # noqa: E402  (موجودی آزمایشی از مسیر دفترکل)
 import auth  # noqa: E402
 import forms as F  # noqa: E402
 import form_fill as FL  # noqa: E402
@@ -290,7 +292,7 @@ M.handle_callback(cb(S, f"evnum_min_points_required_{eid}"))
 M.process_message(msg(S, "500"))
 ok, m_, _ = EV.check_eligibility(U1, EV.get_event(eid))
 check("🔴 امتیاز کم رد شد", not ok and "امتیاز" in m_)
-database.db_execute("UPDATE users SET total_points=600 WHERE bale_user_id=?", (U1,))
+_pf.set_balance(U1, 600)
 check("✅ با امتیاز کافی قبول",
       EV.check_eligibility(U1, EV.get_event(eid))[0])
 M.handle_callback(cb(S, f"evnum_min_points_required_{eid}"))

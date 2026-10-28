@@ -1,0 +1,76 @@
+{
+  "at": "2026-10-23T00:41:02.655Z",
+  "db": "test",
+  "server": [
+    {
+      "id": "ev-ede282c2bd",
+      "reg": {
+        "form_id": "bb1a6737-db80-4123-8ae2-0d616d01b402",
+        "form_name": "فرم ثبت‌نام آزمایشی",
+        "accepted": 0,
+        "waitlisted": 0,
+        "cap": 0,
+        "wait": 0,
+        "full": false,
+        "source": "form_responses"
+      },
+      "acceptedViaResponsesApi": 0,
+      "totalViaResponsesApi": 0
+    },
+    {
+      "id": "ev-4e00784d7b",
+      "reg": {
+        "form_id": "2c4db702-0aa7-435d-bbc2-c6a5b3df14f2",
+        "form_name": "فرم ثبت‌نام آزمایشی",
+        "accepted": 0,
+        "waitlisted": 0,
+        "cap": 0,
+        "wait": 0,
+        "full": false,
+        "source": "form_responses"
+      },
+      "acceptedViaResponsesApi": 0,
+      "totalViaResponsesApi": 0
+    }
+  ],
+  "ui": [
+    {
+      "id": "ev-4e00784d7b",
+      "text": "ظرفیت آزاد · ثبت‌نام قطعی ۰"
+    },
+    {
+      "id": "ev-c7e6d9c569",
+      "text": "بدون فرم ثبت‌نام منتشرشده"
+    },
+    {
+      "id": "ev-d2df6a604d",
+      "text": "بدون فرم ثبت‌نام منتشرشده"
+    }
+  ],
+  "results": [
+    {
+      "ok": true,
+      "label": "A6: دست‌کم یک رویداد منتشرشده با فرم ثبت‌نام متصل دارد (2)"
+    },
+    {
+      "ok": true,
+      "label": "A6: ظرفیت و ثبت‌نام قطعی با فرم و پاسخ‌های همان فرم (API مستقل) برابر است [{\"id\":\"ev-ede282c2bd\",\"reg\":{\"form_id\":\"bb1a6737-db80-4123-8ae2-0d616d01b402\",\"form_name\":\"فرم ثبت‌نام آزمایشی\",\"accepted\":0,\"waitlisted\":0,\"cap\":0,\"wait\":0,\"full\":false,\"source\":\"form_responses\"},\"acceptedViaResponsesApi\":0,\"totalViaResponsesApi\":0},{\"id\":\"ev-4e00784d7b\",\"reg\":{\"form_id\":\"2c4db702"
+    },
+    {
+      "ok": true,
+      "label": "A6: رویداد بدون فرم منتشرشده → registration=null (بدون عدد)"
+    },
+    {
+      "ok": true,
+      "label": "A6: متن کارت‌های داشبورد با پاسخ سرور یکی است [{\"id\":\"ev-4e00784d7b\",\"text\":\"ظرفیت آزاد · ثبت‌نام قطعی ۰\"},{\"id\":\"ev-c7e6d9c569\",\"text\":\"بدون فرم ثبت‌نام منتشرشده\"},{\"id\":\"ev-d2df6a604d\",\"text\":\"بدون فرم ثبت‌نام منتشرشده\"}]"
+    },
+    {
+      "ok": true,
+      "label": "A6: ردیف فهرست رویدادها هم همان شمارش را نشان می‌دهد"
+    },
+    {
+      "ok": true,
+      "label": "بدون خطای JS []"
+    }
+  ]
+}

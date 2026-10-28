@@ -1,0 +1,240 @@
+........................................................................ [ 17%]
+........................................................................ [ 35%]
+........................................................................ [ 52%]
+.......................ssss.................................F........... [ 70%]
+........................................................................ [ 87%]
+..................................................                       [100%]
+=================================== FAILURES ===================================
+__ test_large_file_streams_to_disk_and_back_over_real_http_without_buffering ___
+
+tmp_path = PosixPath('/tmp/pytest-of-user/pytest-1/test_large_file_streams_to_dis0')
+
+    def test_large_file_streams_to_disk_and_back_over_real_http_without_buffering(tmp_path):
+        app, engine = storage_app(tmp_path)
+        store_root = tmp_path / "private-store"
+        incoming = store_root / storage_mod.INCOMING_DIR
+        try:
+            with TestClient(app) as owner, LiveServer(app) as live:
+                owner_login(owner)
+                event_id, resource_id, _recording_id = product_with_file_resource(owner)
+                limits = owner.get(f"/api/admin/events/{event_id}/resources").json()["limits"]
+                assert limits["storage"]["configured"] is True and limits["storage"]["backend"] == "local_disk"
+                assert limits["max_bytes"] == 256 * 1024 * 1024 and limits["inline_max_bytes"] == 8 * 1024 * 1024
+                upload_path = f"/api/admin/events/{event_id}/resources/{resource_id}/file"
+                upload_headers = {
+                    "Cookie": cookie_header(owner), "Origin": live.origin, "X-CSRF-Token": owner.cookies.get("nora_csrf", ""),
+                    "X-File-Name": "lecture-02.mp4", "Transfer-Encoding": "chunked", "Content-Type": "application/octet-stream",
+                }
+    
+                tracemalloc.start()
+                response = chunked_put(live, upload_path, upload_headers, big_mp4_chunks())
+                body = response.read()
+                _current, upload_peak = tracemalloc.get_traced_memory()
+                tracemalloc.stop()
+                assert response.status == 200, body[:300]
+                assert upload_peak < MEMORY_CEILING, f"upload buffered in memory: peak={upload_peak}"
+                view = json.loads(body)
+                assert view["size"] == BIG_SIZE and view["content_type"] == "video/mp4" and view["file_name"] == "lecture-02.mp4"
+                assert view["storage"] == {"backend": "local_disk", "state": "ready"}
+                assert "storage_key" not in view and "private-store" not in body.decode()
+                with Session(engine) as db:
+                    row = db.get(EventResourceRecord, resource_id)
+                    assert row is not None and row.content is None and row.storage_key and row.content_hash == big_mp4_sha256()
+                    key = row.storage_key
+                path = store_root / key
+                assert path.is_file() and path.stat().st_size == BIG_SIZE and stat.S_IMODE(path.stat().st_mode) == 0o600
+                assert UI_ROOT not in path.parents and list(incoming.iterdir()) == []
+    
+                # Publish and grant; the holder streams it back with Range through the real server.
+                assert owner.put(f"/api/admin/events/{event_id}/resources/{resource_id}", json={"status": "published"},
+                                 headers=owner_write_headers(owner)).status_code == 200
+                assert set_status(owner, event_id, "ready").status_code == 200
+                went_live = set_status(owner, event_id, "published")
+                assert went_live.status_code == 200, went_live.text
+                holder = TestClient(app)
+                holder_id = bale_login(holder, 97001)
+                grant = owner.post(f"/api/admin/events/{event_id}/recording/access",
+                                   json={"account_id": holder_id, "reason": "آزمون ۹.۴"}, headers=owner_write_headers(owner))
+                assert grant.status_code == 201, grant.text
+                download = f"/api/public/events/{event_id}/resources/{resource_id}/download"
+                holder_cookie = cookie_header(holder)
+    
+                tracemalloc.start()
+                full = ranged_get(live, download, holder_cookie)
+                digest, received = hashlib.sha256(), 0
+                while True:
+                    piece = full.read(CHUNK)
+                    if not piece:
+                        break
+                    digest.update(piece)
+                    received += len(piece)
+                _current, download_peak = tracemalloc.get_traced_memory()
+                tracemalloc.stop()
+                assert full.status == 200 and received == BIG_SIZE and digest.hexdigest() == big_mp4_sha256()
+                assert full.getheader("Accept-Ranges") == "bytes" and full.getheader("Content-Length") == str(BIG_SIZE)
+                assert full.getheader("Content-Encoding") == "identity" and "no-store" in (full.getheader("Cache-Control") or "")
+                assert "inline" in (full.getheader("Content-Disposition") or "") and full.getheader("X-Nora-Resource-Access") == "purchased"
+                leaked = str(full.getheaders())
+                assert "private-store" not in leaked and key not in leaked
+                assert download_peak < MEMORY_CEILING, f"download buffered in memory: peak={download_peak}"
+    
+                # Valid ranges: middle, open-ended tail, suffix, over-long end; invalid: beyond EOF, inverted, empty.
+                expected = b"".join(big_mp4_chunks())
+                for header, start, end in (
+                    ("bytes=1048576-1048579", 1048576, 1048579),
+                    (f"bytes={BIG_SIZE - 10}-", BIG_SIZE - 10, BIG_SIZE - 1),
+                    ("bytes=-16", BIG_SIZE - 16, BIG_SIZE - 1),
+                    (f"bytes=0-{BIG_SIZE + 999}", 0, BIG_SIZE - 1),
+                ):
+                    part = ranged_get(live, download, holder_cookie, header)
+                    data = part.read()
+                    assert part.status == 206, header
+                    assert part.getheader("Content-Range") == f"bytes {start}-{end}/{BIG_SIZE}"
+                    assert part.getheader("Content-Length") == str(end - start + 1) and data == expected[start:end + 1]
+                for header in (f"bytes={BIG_SIZE}-", "bytes=10-5", "bytes=-"):
+                    bad = ranged_get(live, download, holder_cookie, header)
+                    bad.read()
+                    assert bad.status == 416 and bad.getheader("Content-Range") == f"bytes */{BIG_SIZE}", header
+                multi = ranged_get(live, download, holder_cookie, "bytes=0-1,5-6")
+                assert multi.status == 200 and len(multi.read()) == BIG_SIZE  # multi-range → whole body, never 500
+    
+                # Authorization is per request: stranger 403, guest 401, revoked holder 403 on the very next request.
+                stranger = TestClient(app)
+                bale_login(stranger, 97002)
+                assert stranger.get(download).status_code == 403
+                assert stranger.get(download, headers={"Range": "bytes=0-1"}).status_code == 403
+                assert TestClient(app).get(download).status_code == 401
+                access_id = grant.json()["access"]["id"]
+                assert owner.post(f"/api/admin/events/{event_id}/recording/access/{access_id}/revoke",
+                                  json={"reason": "آزمون لغو"}, headers=owner_write_headers(owner)).status_code == 200
+                assert holder.get(download).status_code == 403
+                assert holder.get(download, headers={"Range": "bytes=0-1"}).status_code == 403
+                regrant = owner.post(f"/api/admin/events/{event_id}/recording/access",
+                                     json={"account_id": holder_id, "reason": "بازگردانی"}, headers=owner_write_headers(owner))
+                assert regrant.status_code in (200, 201), regrant.text
+                assert holder.get(download, headers={"Range": "bytes=0-1"}).status_code == 206
+    
+                # Replacement: a small (inline-sized) file still goes to disk; new key, old file pruned, access rows kept.
+                small = MP4 + b"\x00" * 2048
+                replaced = owner.put(upload_path, content=small, headers={**owner_write_headers(owner), "X-File-Name": "lecture-02-v2.mp4"})
+                assert replaced.status_code == 200, replaced.text
+                with Session(engine) as db:
+                    row = db.get(EventResourceRecord, resource_id)
+                    assert row is not None and row.storage_key and row.storage_key != key and row.content is None
+                    new_key = row.storage_key
+                    statuses = db.scalars(select(RecordingAccessRecord.status).where(RecordingAccessRecord.account_id == holder_id)).all()
+                    assert statuses == ["active"]  # the re-granted row is untouched by the file replacement
+                assert not path.exists() and (store_root / new_key).is_file() and list(incoming.iterdir()) == []
+                assert holder.get(download).content == small
+    
+                # Rejections never touch the row or the disk: wrong type, aborted body.
+                before = (store_root / new_key).stat().st_mtime_ns
+                assert owner.put(upload_path, content=b"MZ\x90\x00" + b"\x00" * 64,
+                                 headers={**owner_write_headers(owner), "X-File-Name": "evil.exe"}).status_code == 415
+                conn = live.connection()
+                conn.putrequest("PUT", upload_path)
+                for name, value in {**upload_headers, "X-File-Name": "aborted.mp4"}.items():
+                    conn.putheader(name, value)
+                conn.endheaders()
+                conn.send(f"{len(MP4):x}\r\n".encode() + MP4 + b"\r\n")
+                conn.close()  # the client goes away mid-body
+                for _ in range(40):
+                    if list(incoming.iterdir()) == []:
+                        break
+                    time.sleep(0.1)
+                with Session(engine) as db:
+                    row = db.get(EventResourceRecord, resource_id)
+                    assert row is not None and row.storage_key == new_key and row.content_size == len(small)
+>               assert (store_root / new_key).stat().st_mtime_ns == before and list(incoming.iterdir()) == []
+E               AssertionError: assert (1793124705925899204 == 1793124705925899204 and [PosixPath('/...c10bf7.part')] == []
+E                +  where 1793124705925899204 = os.stat_result(st_mode=33152, st_ino=549737, st_dev=65024, st_nlink=1, st_uid=1001, st_gid=1001, st_size=2136, st_atime=1793124705, st_mtime=1793124705, st_ctime=1793124705).st_mtime_ns
+E                +    where os.stat_result(st_mode=33152, st_ino=549737, st_dev=65024, st_nlink=1, st_uid=1001, st_gid=1001, st_size=2136, st_atime=1793124705, st_mtime=1793124705, st_ctime=1793124705) = stat()
+E                +      where stat = (PosixPath('/tmp/pytest-of-user/pytest-1/test_large_file_streams_to_dis0/private-store') / '2026/10/7c457d8d23684437a7be629612402a8c').stat
+E                 
+E                 Left contains one more item: PosixPath('/tmp/pytest-of-user/pytest-1/test_large_file_streams_to_dis0/private-store/.incoming/2d2086ec29c5422ba39bef3786c10bf7.part')
+E                 Use -v to get more diff)
+
+tests/test_private_storage.py:337: AssertionError
+----------------------------- Captured stderr call -----------------------------
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "<local>", line 422, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<local>", line 63, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<local>", line 1194, in __call__
+    await super().__call__(scope, receive, send)
+  File "<local>", line 96, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "<local>", line 186, in __call__
+    raise exc
+  File "<local>", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "<local>", line 151, in __call__
+    await self.app(scope, receive, send)
+  File "<local>", line 203, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<local>", line 1522, in security_headers
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<local>", line 179, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "<local>", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "<local>", line 79, in __call__
+    await responder(scope, receive, send)
+  File "<local>", line 104, in __call__
+    await self.app(scope, receive, self.send_with_compression)
+  File "<local>", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "<local>", line 53, in wrapped_app
+    raise exc
+  File "<local>", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "<local>", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "<local>", line 683, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "<local>", line 2811, in app
+    await route.handle(scope, receive, send)
+  File "<local>", line 1330, in handle
+    await super().handle(scope, receive, send)
+  File "<local>", line 289, in handle
+    await self.app(scope, receive, send)
+  File "<local>", line 166, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "<local>", line 53, in wrapped_app
+    raise exc
+  File "<local>", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "<local>", line 152, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "<local>", line 745, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<local>", line 372, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<local>", line 5592, in admin_upload_event_resource_file
+    async for chunk in request.stream():
+  File "<local>", line 252, in stream
+    raise ClientDisconnect()
+starlette.requests.ClientDisconnect
+=============================== warnings summary ===============================
+../../../../../venvs/nora/lib/python3.11/site-packages/fastapi/testclient.py:1
+  <local> StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+Final-Delivery/website/nora-ui/backend/tests/test_event_file_api.py::test_owner_delete_response_also_keeps_the_snapshot
+Final-Delivery/website/nora-ui/backend/tests/test_forms_api.py::test_publish_public_form_persist_and_recover_anonymous_response
+  <local> SAWarning: DELETE statement on table 'form_responses' expected to delete 1 row(s); 0 were matched.  Please set confirm_deleted_rows=False within the mapper configuration to prevent this warning.
+    db.commit()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [4] tests/test_migrations_postgres.py:50: requires an explicitly configured disposable NORA_TEST_POSTGRES_URL
+1 failed, 405 passed, 4 skipped, 3 warnings in 196.25s (0:03:16)

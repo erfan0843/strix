@@ -57,6 +57,7 @@ from auth import (
 import profile as profile_mod
 import admin as admin_mod
 import shared_workflows as shared_workflows_mod
+import account_link as account_link_mod
 import import_excel as imp_mod
 import events as ev_mod
 import settings_admin as set_mod
@@ -406,6 +407,11 @@ def handle_deep_link(cid, uid, param, user):
     param = (param or "").strip()
     if not param:
         return show_main_menu(cid, user)
+
+    # 🔗 پیوند حساب:  ?start=link_account  → بازکردن صفحهٔ حساب داخل بله
+    # (خودِ پیوند فقط داخل مینی‌اپ و با امضای بله انجام می‌شود؛ این‌جا هیچ هویتی وصل نمی‌شود)
+    if param == "link_account":
+        return account_link_mod.start(cid, uid, user)
 
     if param in {"mycerts", "myfiles"} and str(cid) != str(uid):
         return send(cid, "این دریافت برای حفظ حریم خصوصی فقط در گفتگوی خصوصی ربات انجام می‌شود.")
@@ -1700,6 +1706,17 @@ def handle_callback(cb):
     if data.startswith("cc_alist_"):
         _i, _p = two("cc_alist_")
         return cc_mod.show_share_list(cid, uid, _i, _p)
+    # 🎬 فاز ۹.۲ — نوع گواهی طرح و ابطال گواهی یک گیرندهٔ مرکز
+    if data.startswith("cc_kind_"):
+        return cc_mod.show_kind_pick(cid, uid, num("cc_kind_"))
+    if data.startswith("cc_setkind_"):
+        _rest = data[len("cc_setkind_"):]
+        _i, _, _k = _rest.partition("_")
+        return cc_mod.set_kind(cid, uid, _i, _k)
+    if data.startswith("cc_sunrev_"):
+        return cc_mod.revoke_share(cid, uid, num("cc_sunrev_"), undo=True)
+    if data.startswith("cc_srev_"):
+        return cc_mod.revoke_share(cid, uid, num("cc_srev_"))
     if data.startswith("cc_prev_"):
         return cc_mod.show_preview(cid, uid, num("cc_prev_"))
     if data.startswith("cc_pw_"):
@@ -2202,6 +2219,12 @@ def handle_callback(cb):
             return admin_mod.set_profile_choice(cid, uid, _parts[0],
                                                 _parts[1], _parts[2])
         return send(cid, "❌ نامعتبر")
+    if data.startswith("uptsok_"):
+        return admin_mod.confirm_points_adjust(cid, uid, num("uptsok_"), True)
+    if data.startswith("uptsno_"):
+        return admin_mod.confirm_points_adjust(cid, uid, num("uptsno_"), False)
+    if data.startswith("upts_"):
+        return admin_mod.start_points_adjust(cid, uid, num("upts_"))
     if data.startswith("upst_"):
         return admin_mod.toggle_profile_status(cid, uid, num("upst_"))
     if data.startswith("uprc_"):
@@ -3153,7 +3176,14 @@ def handle_callback(cb):
     if data == "cl_board":
         return club_mod.show_leaderboard(cid, uid, "points")
     if data.startswith("cl_buyok_"):
-        return club_mod.do_buy(cid, uid, num("cl_buyok_"))
+        # cl_buyok_{reward_id}_{nonce}؛ nonce کلید یک‌بارمصرف همان تأیید است
+        rest = data[len("cl_buyok_"):]
+        rid_s, _, nonce = rest.partition("_")
+        try:
+            rid = int(rid_s)
+        except (TypeError, ValueError):
+            return _bad_id()
+        return club_mod.do_buy(cid, uid, rid, nonce or None)
     if data.startswith("cl_buy_"):
         return club_mod.confirm_buy(cid, uid, num("cl_buy_"))
 
@@ -3737,6 +3767,8 @@ def process_message(msg):
             return admin_mod.handle_add_user(msg)
         if state_name == admin_mod.STATE_EDIT_PROFILE:
             return admin_mod.handle_edit_profile(msg)
+        if state_name == admin_mod.STATE_POINTS_ADJUST:
+            return admin_mod.handle_points_adjust(msg)
         if state_name == tk_mod.STATE_INBOX_REPLY:
             return tk_mod.handle_inbox_reply(msg)
         if state_name == pay_mod.STATE_CARD_ADD:
@@ -4124,6 +4156,16 @@ def main():
     seed_default_settings()
     set_mod.seed_phase5_settings()
     ensure_super_admin(SUPER_ADMIN_ID)
+
+    # 🏅 دفترکل امتیاز: بدون افتتاحیهٔ ثبت‌شده یا بدون نگهبان اجرا نمی‌شود
+    import points_ledger as _pl
+    _pl_problems = _pl.startup_check()
+    if _pl_problems:
+        guard.release_lock()
+        for _pp in _pl_problems:
+            log(f"❌ دفترکل امتیاز: {_pp}")
+        log("💡 ترتیب درست: توقف ربات → پشتیبان معتبر → افتتاحیه → اجرای این نسخه")
+        return 1
 
     for w in config_warnings():
         log(f"⚠️ {w}")

@@ -1,0 +1,24 @@
+PASS capability contract ready
+PASS empty canvas auto-opens the picker
+PASS three fields added quickly through the picker, each saved with defaults
+PASS «+» at the top: picker opens with the position note «ابتدای فهرست»
+PASS search box receives focus when the picker opens
+PASS new field landed first
+PASS row menu «افزودن پرسش پس از این» opens the picker with «پس از پرسش ۲»
+PASS new field sits exactly after that row
+PASS Escape closes the picker
+PASS «+» at the bottom: no position note (append)
+PASS «تاریخ» lists two patterns of the same technical type (birth-date / jalali-date)
+PASS upload row is disabled with the server reason inline
+PASS type-change list offers the sibling pattern (jalali-date) explicitly, not only other types
+PASS pattern swap keeps the custom title (consequences say so)
+PASS after the pattern swap: type still date, preset jalali-date, title unchanged
+PASS conditional question saved with its rule
+PASS moving the conditional question down the list but still after its reference keeps the rule
+PASS moving the referenced question below the dependent one drops the rule and says so
+PASS mobile: picker is a full-width sheet
+PASS mobile: category chips do not stack into a tall block
+PASS mobile: «افزودن پرسش پس از این» is a ≥40px visible menu item (no hover-only action)
+PASS mobile: picker opens from the row menu with the position note
+PASS no page errors in the browser
+e2e-picker-ux: 23 قبول، 0 خطا

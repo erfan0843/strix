@@ -21,7 +21,7 @@ const N=window.NORA||{}, A=N.ACCOUNT||{}, POL=A.policy||{}, SUP=A.support||{};
 // Production routing needs labels, not the unrelated prototype fixture dataset.
 const SERVER_SECTIONS=[
   {k:'events',n:'رویدادهای من',s:'',i:'i-calendar'},
-  {k:'pay',n:'پرداخت‌ها',s:'وضعیت اتصال اطلاعات پرداخت به حساب وب.',i:'i-wallet'},
+  {k:'pay',n:'پرداخت‌ها',s:'وضعیت پرداخت ثبت‌نام‌های پولی این حساب از سرور.',i:'i-wallet'},
   {k:'book',n:'باشگاه',s:'وضعیت اتصال اطلاعات باشگاه به حساب وب.',i:'i-users'}
 ];
 const SECT=TEST_FIXTURE_MODE?(A.sections||[]):SERVER_SECTIONS, PAY=SECT.find(s=>s.card)||null;
@@ -56,17 +56,12 @@ function dtParts(v){
 const dtTxt=t=>t?(t.y+'/'+String(t.m).padStart(2,'0')+'/'+String(t.d).padStart(2,'0')):'';
 const myUp=()=>EVENTS.filter(e=>MY_UP.indexOf(e.id)>-1);
 const myPast=()=>PAST.filter(e=>MY_PAST.indexOf(e.id)>-1);
-function cdParts(e){
-  /* روز و ساعت و دقیقهٔ مانده؛ در پیش‌نمایش از شمارهٔ روز خود داده می‌آید */
-  const days=+String(e.dn||'').replace(/\D/g,'')||0;
-  const mins=((days*24+7)*60)+37;
-  return {d:Math.floor(mins/1440), h:Math.floor(mins%1440/60), m:mins%60};
-}
+/* شمارش معکوس فقط با شمارشگر مشترک و زمان معتبر سرور (startsAt/registration)؛ هیچ عدد نمونه‌ای ساخته نمی‌شود */
 function cdLine(e){
-  const t=cdParts(e);
-  return `<span class="cdline">${ico('i-clock')}
-    <b>شمارش نمونه</b> · ${faN(t.d)} روز و ${faN(t.h)} ساعت و ${faN(t.m)} دقیقه
-    <small>زمان واقعی رویداد وصل نیست.</small></span>`;
+  const CD=window.NORA_COUNTDOWN;
+  if(!CD||typeof CD.eventTarget!=='function'||typeof CD.markup!=='function') return '';
+  const target=CD.eventTarget(e);
+  return target?`<span class="cdline">${CD.markup(target)}</span>`:'';
 }
 /* هر پارامتر فرم پروفایل، یک خط از پروفایل تو می‌شود؛ عکس هم پارامتر است */
 const PHOTO_SEED=['people/p5.svg','people/p2.svg','people/p7.svg'];
@@ -128,9 +123,18 @@ const S={view:'',vtab:'up',ptab:'info',ctab:'home',invF:'all',txAll:false,edit:f
 const SERVER_ACCOUNT_STATE={account:null,checking:true,checked:false,error:'',
   registrations:[],registrationsTotal:0,registrationsLoaded:false,registrationsLoading:false,registrationsError:'',registrationsMore:false,
   notifications:[],notificationsLoaded:false,notificationsLoading:false,notificationsError:'',notificationsMore:false,
-  files:[],filesLoaded:false,filesLoading:false,filesError:'',filesMore:false};
+  files:[],filesLoaded:false,filesLoading:false,filesError:'',filesMore:false,
+  /* فاز ۹: دسترسی‌های محتوای ضبط‌شده و سفارش‌های آن؛ فقط از سرور، هیچ‌جا محلی ساخته نمی‌شود. */
+  library:[],libraryLoaded:false,libraryLoading:false,libraryError:'',
+  /* فاز ۹.۲ — گواهینامه‌های من: فقط آینهٔ سرور از صدور واقعی ربات؛ مرورگر چیزی نمی‌سازد. */
+  certificates:[],certsCounts:null,certsLoaded:false,certsLoading:false,certsError:'',
+  recOrders:[],recOrdersTotal:0,recOrdersLoaded:false,recOrdersLoading:false,recOrdersError:'',recOrdersMore:false,recOrderBusy:''};
 const SERVER_ACCOUNT_PAGE=50;
 const SERVER_DATA_VIEW={k:'server-data',n:'اعلان‌ها و فایل‌های من',s:'داده‌های حساب تو از سرور خوانده می‌شود.'};
+/* وضعیت پیوند هویت‌ها. جدا نگه داشته می‌شود چون هم بار خودش را دارد و هم
+   باید در خروج/انقضای نشست یک‌جا پاک شود. `busy` جلوی ارسال مکرر و مصرف
+   دوبارهٔ امضای یک‌بارمصرف را می‌گیرد. */
+const IDENTITY_STATE={list:null,loaded:false,loading:false,error:'',busy:'',confirmUnlink:false,outcome:null};
 
 /* ── رفتن به یک بخش: مهمان، ورقهٔ ورود؛ عضو، همان بخش ─────────────── */
 function go(k){
@@ -139,7 +143,7 @@ function go(k){
   location.hash='#'+k;
 }
 /* ورود نمونهٔ حساب در همان ورقهٔ محلی است؛ ورود امن سروری جداگانه در login.html می‌ماند. */
-function goLogin(after){ location.href='login.html?mode=server&next='+encodeURIComponent('account.html'+(after?'#'+after:'')) }
+function goLogin(after){ location.href=serverLoginHref(after) }
 function loginSheet(){
   const next=S.after; S.after='';
   const openDemoLogin=UI().authSheet;
@@ -285,153 +289,411 @@ function serverAccountAccessCard(next='notifications'){
   if(state.account) return '';
   if(state.checking) return card('حساب امن','در حال بررسی وضعیت ورود…','i-shield',
     `<p class="cap">اطلاعات شخصی فقط پس از تأیید سرور نمایش داده می‌شود.</p>`);
-  const destination=['events','notifications','my-files'].includes(next)?next:'notifications';
-  const loginHref='login.html?mode=server&next='+encodeURIComponent('account.html#'+destination);
-  const description=destination==='events'?'برای دیدن ثبت‌نام‌ها وارد حساب شو.':'برای دیدن اطلاعات حساب وارد شو.';
+  const destination=['events','notifications','my-files','forms','payments','profile','library'].includes(next)?next:'notifications';
+  const loginHref=serverLoginHref(destination);
+  const description=destination==='events'?'برای دیدن ثبت‌نام‌ها وارد حساب شو.':destination==='forms'?'برای دیدن فرم‌های خودت وارد حساب شو.'
+    :destination==='payments'?'برای دیدن سفارش‌ها و وضعیت پرداخت‌هایت وارد حساب شو.'
+    :destination==='library'?'برای دیدن محتوای ضبط‌شده‌ای که به آن دسترسی داری وارد حساب شو.':'برای دیدن اطلاعات حساب وارد شو.';
   const retry=state.error?`<button class="btn quiet" data-server-account-retry>${ico('i-refresh')} تلاش دوباره</button>`:'';
   return card('نیاز به ورود',description,'i-mobile',
     `<div class="row" style="flex-wrap:wrap">
        <a class="btn primary" href="${esc(loginHref)}">ورود/ثبت‌نام</a>${retry}
      </div>`);
 }
+function serverAccountProviderLabel(a){
+  return a&&a.provider==='manager-password'?'ورود مدیر با نام کاربری':a&&a.provider==='phone'?'ورود با شمارهٔ موبایل':'حساب بله';
+}
+function serverAccountDisplayName(){
+  const p=prof()||{}; const name=String(p.fullName||'').trim();
+  return name;
+}
+/* سر صفحهٔ حساب با همان چیدمان تأییدشده (phead)؛ همهٔ اعداد از سرور می‌آیند و تا خوانده نشده‌اند «—» هستند. */
 function serverAccountHead(){
   const state=SERVER_ACCOUNT_STATE;
   if(!state.account) return '';
-  const providerLabel=state.account.provider==='manager-password'?'ورود مدیر با نام کاربری':state.account.provider==='phone'?'ورود با شمارهٔ موبایل':'حساب بله';
+  const providerLabel=serverAccountProviderLabel(state.account);
   const unread=state.notifications.filter(item=>item&&!item.read).length;
   const noticeCount=state.notificationsLoaded?faN(state.notifications.length):'—';
   const fileCount=state.filesLoaded?faN(state.files.length):'—';
-  return `<section class="card acct anim server-account-head">
-    <div class="row">${ico('i-shield')}<span class="sp"><b>${esc(providerLabel)} وصل است</b>
-      <small class="cap">ورود و دسترسی از سرور تأیید شده‌اند.</small></span>${chip('حساب امن','ok')}</div>
-    <div class="acct-server-stats">
-      <span><b>${noticeCount}</b><small>اعلان${unread?` · ${faN(unread)} تازه`:''}</small></span>
-      <span><b>${fileCount}</b><small>فایل حساب</small></span>
-    </div>
-    <div class="row" style="margin-top:10px;flex-wrap:wrap">
-      <button class="btn primary" data-server-data-open="registrations">${ico('i-calendar')} ثبت‌نام‌های من</button>
-      <button class="btn quiet" data-server-data-open="notifications">${ico('i-bell')} اعلان‌ها</button>
-      <button class="btn quiet" data-server-data-open="files">${ico('i-archive')} فایل‌ها</button>
-      <span class="sp"></span><button class="btn sm quiet" data-server-account-logout>خروج</button>
+  const regCount=state.registrationsLoaded&&!state.registrationsError?faN(state.registrationsTotal):'—';
+  const name=serverAccountDisplayName(), initial=(name||'ن').slice(0,1);
+  const role=state.account.role==='owner'?'مالک سامانه':state.account.role==='manager'?'مدیر':state.account.role==='club-supervisor'?'سرپرست باشگاه':'';
+  /* بازطراحی ۱۴۰۵/۰۸/۰۳ (مرحلهٔ E): بدون نوار گرادیانی و چیپ تزئینی؛ هویت + وضعیت ورود در یک ردیف، سه شمارندهٔ قابل‌کلیک،
+     بدون دکمه‌های تکراری (ثبت‌نام‌ها/فرم‌ها/فایل‌ها از همین شمارنده‌ها و «بخش‌های من» باز می‌شوند). «خروج» پایین صفحه است. */
+  return `<section class="phead anim server-account-head is-flat" aria-label="حساب من">
+    <div class="pbody">
+      <div class="ptop">
+        <span class="av">${esc(initial)}<i class="pdot" aria-hidden="true"></i></span>
+        <span class="who"><b>${esc(name||'حساب نورا')}</b>
+          <span class="pmeta">${chip(providerLabel+' وصل است','ok')}${role?chip(role,'brand'):''}${name?'':`<a class="chip" href="account.html#profile">${ico('i-idcard')}تکمیل نام در پروفایل</a>`}</span></span>
+        <button class="icon-btn edit" data-server-data-open="notifications" aria-label="اعلان‌های حساب${unread?`؛ ${faN(unread)} تازه`:''}">${ico('i-bell')}</button>
+      </div>
+      <div class="pstats">
+        <button class="pstat" data-server-data-open="registrations"><b>${regCount}</b><small>ثبت‌نام</small></button>
+        <button class="pstat" data-server-data-open="notifications"><b>${noticeCount}</b><small>اعلان${unread?` · ${faN(unread)} تازه`:''}</small></button>
+        <button class="pstat" data-server-data-open="files"><b>${fileCount}</b><small>فایل حساب</small></button>
+      </div>
     </div>
   </section>`;
 }
+function serverAccountFoot(){
+  if(!SERVER_ACCOUNT_STATE.account) return '';
+  return `<div class="row anim server-account-foot" style="--i:6;justify-content:flex-start;margin-top:var(--sp-2)"><button class="btn sm quiet" data-server-account-logout>خروج از حساب</button></div>`;
+}
+/* نوار فشردهٔ هویت برای زیرصفحه‌ها (فرم‌ها، پرداخت‌ها، بخش‌ها): سر صفحهٔ کامل فقط در «حساب من» تکرار می‌شود. */
+function serverAccountStrip(){
+  const state=SERVER_ACCOUNT_STATE;
+  if(!state.account) return '';
+  const name=serverAccountDisplayName(), initial=(name||'ن').slice(0,1);
+  return `<div class="card acct server-account-strip server-account-head-mini">
+    <span class="av sm">${esc(initial)}</span>
+    <span class="who"><b>${esc(name||'حساب نورا')}</b><small>${esc(serverAccountProviderLabel(state.account))} وصل است</small></span>
+    <a class="btn sm quiet" href="account.html">${ico('i-user')} حساب من</a>
+  </div>`;
+}
+/* نورا پی در حساب تولیدی: همان کارت تأییدشده، فقط با چیزی که سرور واقعاً دارد (وضعیت پرداخت ثبت‌نام‌ها). */
+function serverPayBar(){
+  const state=SERVER_ACCOUNT_STATE, guest=!state.account;
+  const paid=state.registrations.filter(item=>item&&item.payment_status).length;
+  const meta=guest?chip('وارد شو و وضعیت پرداخت‌هایت را ببین')
+    :state.registrationsLoaded&&!state.registrationsError?chip(paid?faN(paid)+' ثبت‌نام دارای وضعیت پرداخت':'هنوز پرداختی ثبت نشده')
+    :chip('وضعیت از سرور خوانده می‌شود');
+  if(guest) return `<div class="paybar anim server-paybar is-guest" style="--i:1">
+    <a class="pbmain" href="account.html#payments" aria-label="نورا پی · سفارش‌ها و پرداخت‌ها">
+      <span class="pwal" aria-hidden="true">${ico('i-wallet')}</span>
+      <span class="ptx"><small>نورا پی</small><b>سفارش‌ها و پرداخت‌ها</b></span>
+      <span class="mini mini-guest">${ico('i-lock')}بعد از ورود</span>
+      <svg class="i chev" aria-hidden="true"><use href="#i-chev-left"/></svg>
+    </a>
+  </div>`;
+  return `<div class="paybar anim server-paybar" style="--i:1">
+    <button class="pbmain" type="button" data-view="pay" aria-label="نورا پی · سفارش‌ها و پرداخت‌ها">
+      <span class="pwal" aria-hidden="true">${ico('i-wallet')}</span>
+      <span class="ptx"><small>نورا پی</small>
+        <b>سفارش‌ها و پرداخت‌ها</b>
+        <span class="pmeta">${meta}</span></span>
+      <svg class="i chev" aria-hidden="true"><use href="#i-chev-left"/></svg>
+    </button>
+    <div class="pbrow">
+      <a class="pbtn" href="account.html#payments">${ico('i-wallet')}پرداخت‌ها و رسیدها</a>
+    </div>
+  </div>`;
+}
+/* «بخش‌های من» با همان ردیف‌های طراحی: رویدادهای من، فرم‌های من، پروفایل من، باشگاه کتاب‌خوانی. */
+const SERVER_ROWS=[
+  {k:'events',h:'account.html#events',n:'رویدادهای من',s:'ثبت‌نام‌ها، وضعیت و بلیت هر رویداد',i:'i-calendar'},
+  {k:'forms',h:'account.html#forms',n:'فرم‌های من',s:'پاسخ‌های فرم و وضعیت بررسی',i:'i-doc'},
+  {k:'library',h:'account.html#library',n:'محتوای من',s:'محتوای ضبط‌شده‌ای که به آن دسترسی داری',i:'i-play'},
+  {k:'profile',h:'account.html#profile',n:'پروفایل من',s:'نوع ورود، دسترسی‌ها و پیوند حساب بله',i:'i-idcard'},
+  {k:'book',h:'account.html#book',n:'باشگاه کتاب‌خوانی خط زندگی',s:'کتاب ماه، جلسه‌ها و تازه‌های باشگاه',i:'i-book'}
+];
+function serverRowsBox(){
+  const state=SERVER_ACCOUNT_STATE, loaded=state.account&&state.registrationsLoaded&&!state.registrationsError;
+  const guest=!state.account;
+  /* مهمان: بخش‌های خصوصی با نشانهٔ «بعد از ورود» می‌آیند تا پیش از کلیک معلوم باشد چه انتظاری داشته باشد؛ مقصد و رفتار ورود همان قبلی است. */
+  /* شمارندهٔ ثبت‌نام در سرِ حساب هست؛ این‌جا تکرار نمی‌شود (بازطراحی مرحلهٔ E) */
+  const mini=k=>k==='library'&&state.account&&state.libraryLoaded&&!state.libraryError?faN(state.library.filter(x=>x.access&&x.access.state==='active').length)+' دسترسی فعال'
+    :k==='book'?(guest?'':'تازه‌ها در خانه'):guest?'بعد از ورود':'';
+  return `<div class="mrows anim server-rows${guest?' is-guest':''}" style="--i:3">
+    <div class="mhead">${ico('i-layers')}<b>بخش‌های من</b><span class="sp" style="flex:1"></span>
+      <span class="cap">${faN(SERVER_ROWS.length)} بخش</span></div>
+    ${SERVER_ROWS.map(r=>`<a class="mrow2" href="${esc(r.h)}">
+      <span class="ic">${ico(r.i)}</span>
+      <span class="tx"><b>${esc(r.n)}</b>${guest?'':`<small>${esc(r.s)}</small>`}</span>
+      ${mini(r.k)?`<span class="mini${guest&&r.k!=='book'?' mini-guest':''}">${ico(r.k==='book'?'i-book':guest?'i-lock':'i-check')}${esc(mini(r.k))}</span>`:''}
+      <svg class="i chev" aria-hidden="true"><use href="#i-chev-left"/></svg>
+    </a>`).join('')}</div>`;
+}
 function serverAccountGuestLanding(){
-  const loginHref='login.html?mode=server&next=account.html';
+  const loginHref=serverLoginHref();
+  /* «حساب من» برای مهمان، کمینه: یک بلوک کوتاه (آیکون، عنوان، یک جمله، یک کنش) و زیرش
+     همان بخش‌های واقعی حساب. هیچ معرفی قابلیت، نمای ساختگی یا دادهٔ خصوصی ساخته نمی‌شود.
+     مهمانِ مسیر پیوند باید بداند کجاست و چه باید بکند؛ کارت هویت‌ها برای کاربر بی‌نشست
+     اصلاً ساخته نمی‌شود، پس توضیح همان‌جا می‌آید که چشمش است. */
+  const linkNotice=linkModeRequested()?`<p class="cap ident-hint">${ico('i-lock')} این صفحه از
+    <b>مسیر پیوند حساب</b> باز شده است. برای وصل‌کردن حساب بله، اول با شمارهٔ موبایلی که
+    حسابت را با آن ساخته‌ای وارد شو؛ مالکیت حساب بله بعد از ورود و با امضای خودِ بله اثبات می‌شود.</p>`:'';
   const retry=SERVER_ACCOUNT_STATE.error?`<button class="btn account-promo-retry" data-server-account-retry aria-label="بررسی دوبارهٔ وضعیت ورود">${ico('i-refresh')} بررسی دوباره</button>`:'';
   return `<div class="account-promo">
     <section class="account-promo-hero" aria-labelledby="accountPromoTitle">
+      <span class="account-promo-avatar" aria-hidden="true">${ico('i-user')}</span>
       <div class="account-promo-copy">
-        <span class="account-promo-eyebrow">${ico('i-sparkle')} حساب کاربری نورا</span>
-        <h2 id="accountPromoTitle"><span>رویدادهایت،</span> <strong>همه یک‌جا.</strong></h2>
-        <p>با حساب نورا ثبت‌نام‌ها، اعلان‌ها و فایل‌های مربوط به خودت را یک‌جا پیگیری کن.</p>
-        <div class="account-promo-actions">
-          <a class="btn primary" href="${esc(loginHref)}">${ico('i-mobile')} ورود یا ساخت حساب</a>
-          <a class="account-promo-public" href="events.html">دیدن رویدادها ${ico('i-chev-left')}</a>
-        </div>
-        <div class="account-promo-meta"><small class="account-promo-secure">${ico('i-shield')} ورود امن با شمارهٔ همراه</small>${retry}</div>
+        <h2 id="accountPromoTitle">حساب من</h2>
+        <p>برای ادامه وارد حساب شو.</p>
+        ${linkNotice}
       </div>
-      <div class="account-promo-showcase">
-        <div class="account-promo-preview" aria-label="معرفی بخش‌های حساب پس از ورود">
-          <div class="account-promo-preview-head">
-            <span class="account-promo-preview-brand"><img src="nora-mark-mini.svg" alt="" width="24" height="24"/><span>حساب تو در نورا</span></span>
-            <span class="account-promo-pill">خصوصی</span>
-          </div>
-          <div class="account-promo-preview-event">
-            <span class="account-promo-preview-icon">${ico('i-calendar')}</span>
-            <span class="account-promo-preview-label"><b>رویدادهای من</b><small>ثبت‌نام‌ها و وضعیتشان</small></span>
-            ${ico('i-chev-left')}
-          </div>
-          <div class="account-promo-preview-grid">
-            <div><span class="account-promo-mini-icon notice">${ico('i-bell')}</span><b>اعلان‌ها</b><small>خبرهای حساب</small></div>
-            <div><span class="account-promo-mini-icon files">${ico('i-archive')}</span><b>فایل‌ها</b><small>مربوط به تو</small></div>
-          </div>
-          <div class="account-promo-preview-foot">${ico('i-shield')} فقط برای حساب خودت</div>
-        </div>
+      <div class="account-promo-actions">
+        <a class="btn primary" href="${esc(loginHref)}">${ico('i-mobile')} ورود یا ساخت حساب</a>
+        ${retry}
       </div>
     </section>
-    <section class="account-promo-benefits" aria-labelledby="accountPromoBenefitsTitle">
-      <div class="account-promo-section-head"><span>با ورود به نورا</span><h3 id="accountPromoBenefitsTitle">چه چیزهایی دم دستت است؟</h3></div>
-      <div class="account-promo-features">
-        <article class="account-promo-feature">
-          <span class="account-promo-feature-icon events">${ico('i-calendar')}</span>
-          <div><h4>ثبت‌نام‌هایت</h4><p>رویدادهایی که با حسابت ثبت‌نام کرده‌ای، با وضعیت هرکدام.</p></div>
-        </article>
-        <article class="account-promo-feature">
-          <span class="account-promo-feature-icon notices">${ico('i-bell')}</span>
-          <div><h4>اعلان‌های حساب</h4><p>خبرهای مربوط به حسابت را در یک‌جا دنبال کن.</p></div>
-        </article>
-        <article class="account-promo-feature">
-          <span class="account-promo-feature-icon files">${ico('i-archive')}</span>
-          <div><h4>فایل‌های شخصی</h4><p>فایل‌های ثبت‌شده برای حسابت را راحت‌تر پیدا کن.</p></div>
-        </article>
-      </div>
-    </section>
-    <section class="account-promo-bottom">
-      <span class="account-promo-bottom-icon">${ico('i-sparkle')}</span>
-      <span><b>حسابت را بساز و همراه رویدادهایت باش.</b><small>ورود یا ثبت‌نام با شمارهٔ همراه</small></span>
-      <a class="btn primary" href="${esc(loginHref)}">شروع کن ${ico('i-chev-left')}</a>
-    </section>
+    ${serverRowsBox()}
+    ${serverPayBar()}
   </div>`;
 }
 /* ══ همهٔ بخش‌های حساب (طبق طراحی تأییدشدهٔ prototype-34-user) ══
-   بخش فقط وقتی «فعال» است که endpoint واقعی حساب وب داشته باشد؛ بقیه بدون داده‌ی نمونه
-   با وضعیت «در دست ساخت» نشان داده می‌شوند. */
+   دامنهٔ نسخهٔ اول (تصمیم ۲۶ مهر ۱۴۰۵):
+   • h: مقصد واقعی موجود در وب (صفحه یا نمای حساب با endpoint)؛
+   • st:'flow' مرحله‌ای از روند ثبت‌نام است که از صفحهٔ رویداد آغاز می‌شود؛
+   • st:'bot' فعلاً فقط در ربات بله کار می‌کند؛ در وب وضعیتش گفته می‌شود و دادهٔ نمونه ندارد؛
+   • st:'later' قابلیت مالی/محصولی خارج از نسخهٔ اول؛ هیچ رابط تراکنشی ساخته نمی‌شود. */
 const ACCOUNT_SCREENS=[
   {n:'اطلاعات حساب',h:''},{n:'رویدادهای من',h:'account.html#events'},{n:'اعلان‌ها',h:'account.html#notifications'},
-  {n:'تقویم رویدادها'},{n:'ثبت حضور رویداد'},{n:'کارنامهٔ حضور'},{n:'جزئیات گواهی'},{n:'استعلام گواهی'},{n:'آیدی‌کارت'},
-  {n:'امتیاز و رتبه'},{n:'باشگاه من'},{n:'دعوت دوستان'},{n:'قرعه‌کشی'},{n:'هدایا و پاداش'},{n:'نظرسنجی'},
-  {n:'برگزارشده‌ها و آفلاین'},{n:'خرید آفلاین'},{n:'فرم‌های من'},{n:'کانال‌ها'},{n:'کیف پول'},{n:'اقساط من'},
-  {n:'اعتبار من'},{n:'سررسید و صورت‌حساب'},{n:'انتقال به دوست'},{n:'کارت هدیه'},{n:'افزایش و برداشت'},
-  {n:'امنیت و سقف‌ها'},{n:'لینک پرداخت'},{n:'لغو / انتقال'},{n:'پیگیری پستی'},{n:'سفارش چاپی / VIP'},
-  {n:'همراه آوردن'},{n:'پیام ربات'},{n:'پیام به کارشناس'},{n:'تیکت'},{n:'نظر و پیشنهاد'},{n:'تأیید'},
-  {n:'خانه'},
-  {n:'رویدادها'},
-  {n:'قواعد و شرایط'},
-  {n:'فرم'},
-  {n:'پرداخت'},
-  {n:'کارت‌به‌کارت'},
-  {n:'رسید'},
-  {n:'درگاه بله'},
-  {n:'پایان'},
+  {n:'تقویم رویدادها',h:'events.html#cal'},{n:'ثبت حضور رویداد',st:'bot'},{n:'کارنامهٔ حضور',st:'bot'},{n:'جزئیات گواهی',st:'bot'},{n:'استعلام گواهی',st:'bot'},{n:'آیدی‌کارت',st:'bot'},
+  {n:'امتیاز و رتبه',st:'bot'},{n:'باشگاه من',st:'bot'},{n:'دعوت دوستان',st:'bot'},{n:'قرعه‌کشی',st:'bot'},{n:'هدایا و پاداش',st:'bot'},{n:'نظرسنجی',st:'bot'},
+  {n:'برگزارشده‌ها و آفلاین',h:'events.html?status=past'},{n:'خرید آفلاین',st:'later'},{n:'فرم‌های من',h:'account.html#forms'},{n:'کانال‌ها',st:'bot'},{n:'کیف پول',st:'later'},{n:'اقساط من',st:'later'},
+  {n:'اعتبار من',st:'later'},{n:'سررسید و صورت‌حساب',st:'later'},{n:'انتقال به دوست',st:'later'},{n:'کارت هدیه',st:'later'},{n:'افزایش و برداشت',st:'later'},
+  {n:'امنیت و سقف‌ها',st:'later'},{n:'لینک پرداخت',st:'later'},{n:'لغو / انتقال',st:'bot'},{n:'پیگیری پستی',st:'bot'},{n:'سفارش چاپی / VIP',st:'bot'},
+  {n:'همراه آوردن',st:'flow'},{n:'پیام ربات',h:'account.html#notifications'},{n:'پیام به کارشناس',h:'support.html'},{n:'تیکت',st:'bot'},{n:'نظر و پیشنهاد',st:'bot'},{n:'تأیید',st:'flow'},
+  {n:'خانه',h:'home.html'},
+  {n:'رویدادها',h:'events.html'},
+  {n:'قواعد و شرایط',h:'support.html'},
+  {n:'فرم',st:'flow'},
+  {n:'پرداخت',h:'account.html#payments'},
+  {n:'کارت‌به‌کارت',st:'flow'},
+  {n:'رسید',h:'account.html#payments'},
+  {n:'درگاه بله',st:'flow'},
+  {n:'پایان',st:'flow'},
   {n:'حساب من',h:'account.html'},
-  {n:'ورود'},
-  {n:'یک قدم مانده'},
-  {n:'جزئیات رویداد'},
-  {n:'خانهٔ نورا پی'},
-  {n:'پشتیبانی'},
-  {n:'سؤالات'},
-  {n:'درباره ما'}
+  {n:'ورود',h:'login.html'},
+  {n:'یک قدم مانده',st:'flow'},
+  {n:'جزئیات رویداد',h:'events.html'},
+  {n:'خانهٔ نورا پی',st:'later'},
+  {n:'پشتیبانی',h:'support.html'},
+  {n:'سؤالات',h:'support.html'},
+  {n:'درباره ما',h:'support.html'}
 ];
+const ACCOUNT_SCREEN_STATUS={
+  bot:{tag:'فعلاً در ربات بله',cls:'tag',note:'این قابلیت در ربات بلهٔ نورا فعال است و هنوز در وب ارائه نمی‌شود.'},
+  later:{tag:'خارج از نسخهٔ اول',cls:'tag warn',note:'این قابلیت مالی/محصولی در نسخهٔ اول وب ارائه نمی‌شود و رابط تراکنشی ندارد.'},
+  flow:{tag:'از صفحهٔ رویداد',cls:'tag',note:'این مرحله بخشی از روند ثبت‌نام است و از صفحهٔ رویداد و فرم همان رویداد آغاز می‌شود.'}
+};
+function accountScreenAction(x,i){
+  if(x.h!==undefined) return `<a class="btn sm quiet" href="${esc(x.h||'account.html#acc-0')}">باز کردن</a>`;
+  const st=ACCOUNT_SCREEN_STATUS[x.st];
+  if(x.st==='flow') return `<a class="btn sm quiet" href="events.html?status=upcoming">رویدادها</a> <span class="${st.cls}">${esc(st.tag)}</span>`;
+  return `<a class="btn sm quiet" href="account.html#acc-${i}">وضعیت</a> <span class="${st?st.cls:'tag warn'}">${esc(st?st.tag:'در دست ساخت')}</span>`;
+}
 function accountScreensCard(){
   const rows=ACCOUNT_SCREENS.map((x,i)=>{ x.i=i;
-    const action=x.h?`<a class="btn sm quiet" href="${esc(x.h)}">باز کردن</a>`
-      :`<a class="btn sm quiet" href="account.html#acc-${x.i}">باز کردن</a> <span class="tag warn">در دست ساخت</span>`;
-    return `<div class="srow"><span class="sp"><b>${esc(x.n)}</b></span>${action}</div>`;
+    return `<div class="srow"><span class="sp"><b>${esc(x.n)}</b></span>${accountScreenAction(x,i)}</div>`;
   }).join('');
   return `<section class="card acct account-screens-index" aria-label="همهٔ بخش‌های حساب">
     <div class="head">همهٔ بخش‌های حساب</div>
-    <p class="cap">بخش‌هایی که endpoint واقعی ندارند، داده‌ی نمونه نمی‌گیرند و تا اتصال سرویس «در دست ساخت» می‌مانند.</p>
-    <div class="stack" style="margin-top:8px">${rows}</div>
+    <p class="cap">هر بخش با وضعیت واقعی‌اش: آنچه فعلاً در ربات بله است و آنچه خارج از نسخهٔ اول است، جدا برچسب خورده‌اند.</p>
+    <details class="adv account-screens-list" style="margin-top:8px"><summary>فهرست کامل · ${faN(ACCOUNT_SCREENS.length)} بخش</summary>
+      <div class="adv-body stack">${rows}</div></details>
   </section>`;
 }
+/* ══ پیوند هویت: بله، شماره، آیندهٔ سکوهای دیگر ═════════════════════════
+   قاعده‌ها:
+   • مدرک اثبات مالکیت، فقط امضای `initData` خودِ بله است. در مرورگرِ بیرونِ
+     بله چنین امضایی وجود ندارد، پس دکمهٔ بی‌اثر نشان نمی‌دهیم؛ راه درست را
+     می‌گوییم.
+   • تا وقتی سرور ۲۰۰ نداده، هیچ موفقیتی اعلام نمی‌شود و وضعیت «وصل شد» از
+     پاسخ سرور خوانده می‌شود، نه از حدس.
+   • دکمه در حال کار قفل می‌شود تا امضای یک‌بارمصرف دوباره فرستاده نشود.
+   • می‌گوییم سرور چه گفته: `bale_link_available=false` یعنی این قابلیت روی
+     این سرور پیکربندی نشده و همان را صادقانه نشان می‌دهیم. */
+function identityProviders(){ return (IDENTITY_STATE.list&&IDENTITY_STATE.list.providers)||[] }
+/* مسیر پیوند حساب را خودِ نشانی صفحه می‌گوید (`?link=bale`)، همان نشانه‌ای که
+   ربات در دکمهٔ مینی‌اپ می‌گذارد و ui.js هم به‌خاطر آن ورود خودکار را کنار
+   می‌گذارد. این‌جا فقط رابط با آن هم‌سو می‌شود؛ هیچ تشخیص حدسی‌ای نیست. */
+function linkModeRequested(){
+  const ui=UI();
+  return !!(ui&&typeof ui.baleLinkMode==='function'&&ui.baleLinkMode());
+}
+function accountHasPhoneIdentity(){ return identityProviders().indexOf('phone')>-1 }
+/* نشانی ورود با شماره، با حفظ نشانهٔ مسیر پیوند تا کاربر پس از ورود به همین
+   مسیر برگردد و امضای بله همچنان دست‌نخورده بماند. */
+function serverLoginHref(after){
+  const next='account.html'+(linkModeRequested()?'?link=bale':'')+(after?'#'+after:'');
+  return 'login.html?mode=server&next='+encodeURIComponent(next);
+}
+function isBaleLinked(){ return identityProviders().indexOf('bale')>-1 }
+function identityLinkedAt(provider){
+  const rows=(IDENTITY_STATE.list&&IDENTITY_STATE.list.rows)||[];
+  const row=rows.find(x=>x.provider===provider);
+  return row&&row.linked_at?accountServerDate(row.linked_at):'';
+}
+/* امضای آمادهٔ بله، از همان قاعدهٔ ui.js (یک مرجع، دو مصرف‌کننده). */
+function baleInitDataReady(){
+  const ui=UI();
+  return !!(ui&&typeof ui.baleMiniAppInitData==='function'&&ui.baleMiniAppInitData());
+}
+/* نشان هر سطر، خودِ سکوست و وضعیت را «نشان» می‌گوید؛ پس وضعیت هم با رنگ و
+   هم با متن بیان می‌شود، نه فقط با یک آیکون. */
+function identityRow(icon,label,connected,detail){
+  return `<div class="srow ident-row">
+    ${ico(icon)}
+    <span class="sp"><b>${esc(label)}</b><small class="cap">${esc(detail)}</small></span>
+    ${chip(connected?'وصل است':'وصل نیست',connected?'ok':'warn')}</div>`;
+}
+function identityActionButton(){
+  const state=IDENTITY_STATE, busy=state.busy==='link';
+  if(isBaleLinked()) return '';
+  if(!state.list||state.list.baleAvailable!==true) return '';
+  /* در مسیر پیوند، نشستی که هویت شماره ندارد نمی‌تواند پیوند بزند: هویت بله
+     از قبل به همان حساب خودکار تعلق دارد و سرور ۴۰۹ می‌دهد. به‌جای دکمهٔ
+     بی‌سرانجام، راه درست (ورود با شماره) در یادآور همین کارت گفته می‌شود. */
+  if(linkModeRequested()&&!accountHasPhoneIdentity()) return '';
+  if(!baleInitDataReady()) return '';
+  return `<button class="btn primary" data-identity-link ${busy||state.busy?'disabled':''}${busy?' aria-busy="true"':''}>
+    ${busy?ico('i-refresh')+' در حال پیوند…':ico('i-link')+' پیوند حساب بله'}</button>`;
+}
+function identityOutsideBaleNote(){
+  const ui=UI();
+  const href=ui&&typeof ui.baleStartHref==='function'?ui.baleStartHref('link_account'):'';
+  const action=href?`<a class="btn sm primary" href="${esc(href)}" target="_blank" rel="noopener noreferrer">${ico('i-send')} بازکردن بله</a>`:'';
+  return `<p class="cap ident-hint">${ico('i-lock')} برای اثبات مالکیت، این صفحه باید از داخل خودِ بله باز شود؛
+    آن‌جا امضای یک‌بارمصرف حسابت در دسترس است. پیوند با شماره یا نام انجام نمی‌شود.
+    ${action}</p>`;
+}
+function identityUnlinkButton(){
+  const state=IDENTITY_STATE;
+  if(!isBaleLinked()) return '';
+  if(state.busy==='unlink') return `<button class="btn quiet" disabled aria-busy="true">${ico('i-refresh')} در حال برداشتن…</button>`;
+  /* اگر بله تنها هویت حساب باشد، سرور برداشتنش را رد می‌کند؛ از پیش توضیح می‌دهیم. */
+  if(identityProviders().length<2)
+    return `<span class="tag warn">تنها راه ورود حساب است؛ برداشتنش ممکن نیست.</span>`;
+  if(state.confirmUnlink) return `<div class="row" style="flex-wrap:wrap">
+      <button class="btn quiet" data-identity-unlink-confirm>${ico('i-check')} بله، پیوند برداشته شود</button>
+      <button class="btn sm quiet" data-identity-unlink-cancel>انصراف</button></div>`;
+  return `<button class="btn sm quiet" data-identity-unlink>${ico('i-close')} برداشتن پیوند بله</button>`;
+}
+function identityRowsBody(){
+  const phoneLinked=identityProviders().indexOf('phone')>-1;
+  const baleLinked=isBaleLinked();
+  return `<div class="stack" style="margin-top:8px">
+      ${identityRow('i-mobile','شمارهٔ موبایل',phoneLinked,
+        phoneLinked?'ورود با پیامک یک‌بارمصرف انجام می‌شود.':'این حساب با شماره ساخته نشده است.')}
+      ${identityRow('i-send','حساب بله',baleLinked,
+        baleLinked?(identityLinkedAt('bale')?`پیوندشده در ${esc(identityLinkedAt('bale'))}`:'به همین حساب وصل است.')
+          :'با پیوند بله، اعلان‌ها و فایل‌هایت در ربات هم به همین حساب می‌رسد.')}
+    </div>`;
+}
+/* هدایت صریح مسیر پیوند: تا کاربر بداند اول باید با کدام حساب وارد شود. */
+function identityLinkModeNotice(){
+  const state=IDENTITY_STATE;
+  if(!linkModeRequested()||state.error) return '';
+  if(!SERVER_ACCOUNT_STATE.account)
+    return `<p class="cap ident-hint">${ico('i-lock')} این صفحه از <b>مسیر پیوند حساب</b> باز شده است.
+      برای وصل‌کردن، اول با شمارهٔ موبایلی که حسابت را با آن ساخته‌ای وارد شو؛ بعد مالکیت حساب بله با امضای خودِ بله اثبات می‌شود.</p>`;
+  /* تا وضعیت هویت‌ها از سرور نیامده، هیچ ادعایی دربارهٔ نوع حساب نمی‌کنیم. */
+  if(!state.list) return '';
+  /* حسابی که هویت شماره دارد، مسیر عادی پیوند را می‌رود؛ این یادآور برای
+     حسابی است که فقط بله دارد (زادهٔ ورود خودکار) و باید مالکش با شماره
+     وارد شود. توجه: حساب «فقط بله» می‌تواند پیوندشده هم باشد؛ ولی همان حساب
+     برای کاربرِ شماره‌ای او حساب دیگری است و هویت بله جابه‌جا نمی‌شود. */
+  if(accountHasPhoneIdentity()) return '';
+  const login=serverLoginHref();
+  return `<p class="cap ident-hint">${ico('i-lock')} این نشست یک <b>حساب بله</b> است، نه حساب شماره‌ای‌ات.
+    برای وصل‌کردن، اول با شمارهٔ موبایل وارد شو تا حساب شماره‌ای همان‌جا باز شود.
+    <a class="btn sm primary" href="${esc(login)}">${ico('i-mobile')} ورود با شماره</a></p>`;
+}
+function identityHintLine(){
+  /* دلیل نبودِ دکمه را می‌گوییم تا کاربر پشت دکمهٔ نبوده نماند. */
+  const state=IDENTITY_STATE;
+  if(isBaleLinked()||state.error) return '';
+  if(state.list&&state.list.baleAvailable!==true)
+    return `<p class="cap ident-hint">${ico('i-lock')} پیوند بله روی این سرور پیکربندی نشده است؛ اکنون فقط ورود با شماره فعال است.</p>`;
+  if(!baleInitDataReady()) return identityOutsideBaleNote();
+  return '';
+}
+function identityOutcomeLine(){
+  const outcome=IDENTITY_STATE.outcome;
+  if(!outcome||!outcome.text) return '';
+  const good=outcome.kind==='ok';
+  return `<p class="cap ${good?'ident-notice':'ident-error'}" role="${good?'status':'alert'}">
+    ${ico(good?'i-check':'i-flag')} ${esc(outcome.text)}</p>`;
+}
+function identityOutcome(kind,text){ IDENTITY_STATE.outcome={kind,text} }
+/* پیام خطای سرور از قبل فارسی و قابل‌اقدام است؛ اگر متن، «کد» خام بود
+   (خطای داخلی کلاینت)، به‌جای کد، جملهٔ روشن نشان می‌دهیم. */
+function identityErrorText(error,fallback){
+  const message=error&&typeof error.message==='string'?error.message:'';
+  return message&&!/^[a-z0-9_]+$/.test(message)?message:fallback;
+}
+function serverAccountIdentitiesCard(){
+  const state=IDENTITY_STATE;
+  if(!SERVER_ACCOUNT_STATE.account) return '';
+  const body=state.loading&&!state.loaded
+    ? `<div class="empty2"><b>در حال خواندن وضعیت پیوند…</b></div>`
+    : state.error
+      ? `<div class="empty2"><b>${esc(state.error)}</b><button class="btn quiet" data-identity-retry>${ico('i-refresh')} تلاش دوباره</button></div>`
+      : identityRowsBody();
+  /* نتیجهٔ عملیات جدا از خطای خواندن نشان داده می‌شود؛ موفقیتی که سرور تأیید
+     کرده با شکستِ بازخوانیِ فهرست باطل نمی‌شود. نتیجهٔ ناموفق هم پایدار می‌ماند:
+     تعارض حساب یا امضای نامعتبر چیزی است که کاربر باید بخواند و برایش تصمیم
+     بگیرد، نه پیامی که با محو شدن اعلان از یاد برود. */
+  const notice=identityOutcomeLine();
+  const settled=state.loaded&&!state.error;
+  return `<section class="card acct server-account-identities anim">
+    <div class="row">${ico('i-shield')}<span class="sp"><b>راه‌های ورود و پیوند حساب</b>
+      <small class="cap">پیوند فقط با اثبات مالکیت انجام می‌شود؛ سرور مرجع نهایی است.</small></span>
+      ${settled?chip(isBaleLinked()?'بله وصل است':'فقط شماره',isBaleLinked()?'ok':''):''}</div>
+    ${body}
+    ${identityLinkModeNotice()}
+    ${identityHintLine()}
+    ${notice}
+    <div class="row" style="margin-top:10px;flex-wrap:wrap">${identityActionButton()}${identityUnlinkButton()}</div>
+  </section>`;
+}
+/* پیوند: مدرک از بله خوانده می‌شود، نه از ورودی کاربر. */
+async function linkBaleIdentity(){
+  const state=IDENTITY_STATE, api=window.NORA_SERVER_API;
+  if(state.busy) return;
+  if(!api||typeof api.linkBaleIdentity!=='function'){toast('رابط حساب سرور در دسترس نیست');return}
+  const ui=UI();
+  const initData=ui&&typeof ui.baleMiniAppInitData==='function'?ui.baleMiniAppInitData():'';
+  if(!initData){toast('امضای بله در دسترس نیست؛ این صفحه را از داخل بله باز کن.');return}
+  state.busy='link'; state.outcome=null; renderProfile();
+  try{
+    const result=await api.linkBaleIdentity(initData);
+    if(!result||result.linked!==true) throw new Error('invalid_identity_link_response');
+    state.busy='';
+    const done=result.already_linked===true?'این حساب بله از قبل به همین حساب وصل بود.':'حساب بله به حسابت وصل شد.';
+    identityOutcome('ok',done); toast(done);
+    /* وضعیت را از سرور بازمی‌خوانیم تا «وصل شد» ادعای کلاینت نباشد. اگر این
+       خواندن شکست خورد، موفقیتِ واقعیِ پاسخ سرور را انکار نمی‌کنیم و در کنارش
+       خطای خواندن و دکمهٔ تلاش دوباره می‌ماند؛ فهرست جعلی نمی‌سازیم. */
+    await loadAccountIdentities(true);
+  }catch(error){
+    state.busy='';
+    if(error&&error.status===401&&error.code==='authentication_required'){serverAccountExpired();return}
+    identityOutcome('error',identityErrorText(error,'پیوند انجام نشد؛ دوباره تلاش کن.'));
+    renderProfile();
+    return;
+  }
+  renderProfile();
+}
+async function unlinkBaleIdentity(){
+  const state=IDENTITY_STATE, api=window.NORA_SERVER_API;
+  if(state.busy) return;
+  if(!api||typeof api.unlinkBaleIdentity!=='function'){toast('رابط حساب سرور در دسترس نیست');return}
+  state.busy='unlink'; state.confirmUnlink=false; state.outcome=null; renderProfile();
+  try{
+    const result=await api.unlinkBaleIdentity();
+    if(!result||result.linked!==false) throw new Error('invalid_identity_unlink_response');
+    state.busy='';
+    const done='پیوند بله برداشته شد؛ هیچ سابقه‌ای پاک نشد.';
+    identityOutcome('ok',done); toast(done);
+    await loadAccountIdentities(true);
+  }catch(error){
+    state.busy='';
+    if(error&&error.status===401&&error.code==='authentication_required'){serverAccountExpired();return}
+    identityOutcome('error',identityErrorText(error,'برداشتن پیوند انجام نشد؛ دوباره تلاش کن.'));
+    renderProfile();
+    return;
+  }
+  renderProfile();
+}
 function serverAccountModulesCard(){
-  const rows=SERVER_ACCOUNT_STATE.account?[
-    ['پروفایل و امتیاز','اطلاعات تکمیلی و امتیاز سروری متصل نشده.'],
-    ['پرداخت‌ها','سوابق پرداخت از API حساب خوانده نمی‌شوند.'],
-    ['باشگاه','عضویت و امتیاز باشگاه به حساب سروری متصل نیست.']
-  ]:[];
-  return `<section class="card acct server-account-modules">
-    <div class="head">رویدادهای من</div>
-    <div class="srow" style="margin-top:8px"><span class="sp"><b>ثبت‌نام‌ها</b>
-      <small class="cap">فهرست ثبت‌نام‌های متصل به همین حساب وب</small></span>
-      <a class="btn sm quiet" href="account.html#events">دیدن فهرست</a></div>
-    ${rows.length?`<div class="stack" style="margin-top:8px">${rows.map(([title,description])=>`<div class="srow"><span class="sp"><b>${esc(title)}</b><small class="cap">${esc(description)}</small></span><span class="tag warn">هنوز وصل نیست</span></div>`).join('')}</div>`:''}
-  </section>`+accountScreensCard();
+  return accountScreensCard();
 }
 function serverAccountFeatureView(t,title,description){
   if(SERVER_ACCOUNT_STATE.checking) return viewHead(t,'',null)+serverAccountAccessCard();
-  return viewHead(t,'',null)+serverAccountHead()+serverAccountAccessCard()+card(title,description,'i-info',
+  return viewHead(t,'',null)+serverAccountStrip()+serverAccountAccessCard()+card(title,description,'i-info',
     `<p class="cap">این بخش در API حساب وب موجود نیست؛ هیچ دادهٔ محلی یا نمونه‌ای نمایش داده نمی‌شود.</p>
      <a class="btn quiet" href="account.html">بازگشت به حساب من</a>`);
 }
@@ -439,7 +701,9 @@ function serverAccountFeatureView(t,title,description){
 function profileHTML(){
   const state=SERVER_ACCOUNT_STATE;
   if(!TEST_FIXTURE_MODE) return state.account
-    ?serverAccountHead()+serverAccountModulesCard():serverAccountGuestLanding();
+    /* بازآرایی ۱۴۰۵/۰۸/۰۳: هویت → بخش‌های من (کار روزمره) → نورا پی (فشرده) → همهٔ بخش‌ها → راه‌های ورود (کم‌تکرار) */
+    ?serverAccountHead()+serverRowsBox()+serverPayBar()+serverAccountModulesCard()+serverAccountIdentitiesCard()+serverAccountFoot()
+    :serverAccountGuestLanding();
   if(state.checking) return serverAccountAccessCard();
   const connected=!!state.account;
   const localHeader=connected?'':(login()?headMember():headGuest());
@@ -485,17 +749,35 @@ function accountNotificationFiles(item){
       :`<span class="tag warn">پیوند دریافت بات در دسترس نیست</span>`;
   }).join('')}</div>`;
 }
+/* فاز ۹.۴: پیوند اعلان فقط وقتی رندر می‌شود که نسبی و به صفحهٔ داخل برنامه باشد (همان قاعدهٔ سرور؛ هرگز URL فایل/API). */
+function accountNotificationHref(link){
+  const raw=typeof link==='string'?link.trim():'';
+  if(!raw||!/^\/(event|events|account|certificate)\.html(?:\?[A-Za-z0-9_\-=&.%]*)?(?:#[A-Za-z0-9_\-]*)?$/.test(raw)) return '';
+  return raw.slice(1);
+}
+function accountNotificationLinkLabel(item,href){
+  if(/^event\.html\?id=.*#qa$/.test(href)) return 'دیدن پاسخ در صفحهٔ رویداد';
+  if(/^event\.html/.test(href)) return item.kind==='recording_content'?'دیدن محتوای تازه':'رفتن به صفحهٔ محصول';
+  if(/#certificates$/.test(href)) return 'دیدن گواهی‌ها';
+  if(/#orders$/.test(href)) return 'دیدن سفارش‌ها';
+  if(/#events$/.test(href)) return 'دیدن رویدادهای من';
+  return 'باز کردن';
+}
 function accountNotificationsContent(){
   const state=SERVER_ACCOUNT_STATE;
   const items=state.notifications.map(item=>{
+    /* وضعیت ارسال از سرور: صف ≠ تحویل. حسابِ بدون هویت بلهٔ پیوندشده، اعلان را فقط همین‌جا می‌خواند و «خطای ارسال» نیست. */
     const delivery=item.delivery_status==='delivered'?'در ربات بله تحویل شد'
+      :item.last_delivery_error==='no_bale_identity'?'حساب شما به بله پیوند نخورده؛ این اعلان فقط همین‌جا خوانده می‌شود'
       :item.delivery_status==='failed'?'ارسال در بله انجام نشد؛ از پیوند بات استفاده کن'
-      :'برای ارسال از بات در صف است';
+      :item.delivery_state==='retrying'?`ارسال از بات در حال تلاش دوباره است (${faN(item.delivery_attempts||0)} تلاش)`
+      :'برای ارسال از بات در صف است؛ هنوز تحویل نشده';
     return `<article class="card acct server-notice ${item.read?'read':'unread'}">
       <div class="row"><b>${esc(item.title||'اعلان نورا')}</b><span class="sp"></span>${chip(item.read?'خوانده‌شده':'تازه',item.read?'':'warn')}</div>
       <p class="server-notice-body">${esc(item.body||'')}</p>
       <div class="cap">${esc(accountServerDate(item.created_at))} · ${esc(delivery)}</div>
       ${accountNotificationFiles(item)}
+      ${(()=>{const href=accountNotificationHref(item.link); return href?`<div class="row" style="margin-top:8px"><a class="btn sm" href="${esc(href)}" data-account-notice-link="${esc(item.kind||'')}">${ico('i-link')} ${esc(accountNotificationLinkLabel(item,href))}</a></div>`:''})()}
       ${item.read?'':`<div class="row" style="margin-top:8px"><span class="sp"></span><button class="btn sm quiet" data-account-notice-read="${esc(item.id)}">${ico('i-check')} خواندم</button></div>`}
     </article>`;
   }).join('');
@@ -534,14 +816,26 @@ function accountRegistrationPayment(item){
     rejected:'پرداخت رد شد',cancelled:'صورتحساب لغو شد',expired:'صورتحساب منقضی شد'};
   return labels[item.payment_status]||'';
 }
-function accountRegistrationsContent(){
+/* فاز ۹.۳: پیوند «مشاهدهٔ جلسات» در «رویدادهای من» فقط از کتابخانهٔ سرور (/api/account/recordings) می‌آید؛
+   ثبت‌نام یا حتی «حضور ثبت شده» به‌تنهایی پیوند نمی‌سازد — تصمیم دسترسی (خرید/رایگان/اعطا/حضور با سیاست محصول) با سرور است. */
+function accountRegistrationArchive(item){
   const state=SERVER_ACCOUNT_STATE;
-  const items=state.registrations.map(item=>{
+  if(!state.libraryLoaded||state.libraryError||!item||typeof item.event_id!=='string'||!item.event_id) return null;
+  const found=state.library.find(x=>x&&x.event_id===item.event_id&&x.access&&x.access.state==='active'&&typeof x.recording_id==='string');
+  return found||null;
+}
+function accountRegistrationsContent(mode){
+  const state=SERVER_ACCOUNT_STATE;
+  const source=mode==='payments'?state.registrations.filter(item=>!!item.payment_status):state.registrations;
+  const items=source.map(item=>{
     const status=item.status==='waitlisted'?chip('فهرست انتظار','warn'):chip('ثبت شد','ok');
     const schedule=[item.event_date,item.event_time].filter(Boolean).join(' · ');
     const payment=accountRegistrationPayment(item);
     const ticketType=item.ticket_type&&typeof item.ticket_type.name==='string'?item.ticket_type.name:'';
-    return `<article class="card acct server-registration">
+    const archive=mode==='events'||!mode?accountRegistrationArchive(item):null;
+    const schedule2=accountRegistrationSchedule(item);
+    const archiveSource=archive?({attended:'آرشیو برای حاضران این رویداد',purchase:'آرشیو خریداری‌شده',free:'آرشیو رایگان',granted:'آرشیو اعطاشده'}[archive.access.source]||'آرشیو در دسترس'):'';
+    return `<article class="card acct server-registration"${item.event_id?` data-account-registration-event="${esc(item.event_id)}"`:''}>
       <div class="row"><span class="sp"><b>${esc(item.event_title||item.form_name)}</b>
         <small class="cap">${esc(item.form_name)}${schedule?' · '+esc(schedule):''}</small></span>${status}</div>
       <div class="row" style="margin-top:7px;flex-wrap:wrap">
@@ -550,25 +844,288 @@ function accountRegistrationsContent(){
         ${ticketType?`<span class="tag">${esc(ticketType)}</span>`:''}
         ${item.ticket_checked_in?chip('حضور ثبت شده','ok'):''}
       </div>
+      ${schedule2}
+      ${archive?`<div class="row" style="margin-top:8px;flex-wrap:wrap;gap:8px" data-account-registration-archive="${esc(archive.recording_id)}" data-archive-source="${esc(archive.access.source||'')}">
+        <small class="cap">${esc(archiveSource)}${archive.session_count>0?' · '+faN(archive.session_count)+' جلسه':''}</small><span class="sp"></span>
+        <a class="btn sm primary" href="${esc(recEventHref(archive,'#recording-sessions'))}" data-account-registration-view>${ico('i-play')} مشاهدهٔ جلسات</a></div>`:''}
     </article>`;
   }).join('');
   const loading=state.registrationsLoading&&!state.registrationsLoaded||!state.registrationsLoaded&&!state.registrationsError;
   const body=loading?`<div class="empty2"><b>در حال خواندن ثبت‌نام‌ها…</b></div>`
     :state.registrationsError?`<div class="empty2"><b>${esc(state.registrationsError)}</b><button class="btn quiet" data-account-registrations-refresh>تلاش دوباره</button></div>`
-    :items||empty2('ثبت‌نامی به حسابت وصل نیست','ثبت‌نام بعدی‌ات اینجا می‌آید.','i-calendar');
-  return `<div class="row" style="margin:0 0 8px"><span class="cap">${faN(state.registrationsTotal)} ثبت‌نام در این حساب</span><span class="sp"></span>
+    :items||(mode==='payments'?empty2('پرداختی به حسابت وصل نیست','وضعیت پرداخت هر ثبت‌نام پولی همین‌جا می‌آید؛ رسید از صفحهٔ همان فرم دریافت می‌شود.','i-wallet')
+      :mode==='forms'?empty2('پاسخ فرمی به حسابت وصل نیست','فرم بعدی که با این حساب پر کنی اینجا می‌آید.','i-doc')
+      :empty2('ثبت‌نامی به حسابت وصل نیست','ثبت‌نام بعدی‌ات اینجا می‌آید.','i-calendar'));
+  const counter=mode==='payments'?`${faN(source.length)} ثبت‌نام دارای وضعیت پرداخت از ${faN(state.registrationsTotal)}`
+    :mode==='forms'?`${faN(state.registrationsTotal)} پاسخ فرم در این حساب`:`${faN(state.registrationsTotal)} ثبت‌نام در این حساب`;
+  /* سفارش‌های محتوای ضبط‌شده جدا از پرداخت ثبت‌نام‌ها فهرست می‌شوند: خرید محتوا ≠ ثبت‌نام رویداد. */
+  const orders=mode==='payments'&&!TEST_FIXTURE_MODE?`<h3 class="rec-h3">سفارش‌های محتوای ضبط‌شده</h3>${accountRecordingOrdersContent()}<h3 class="rec-h3" style="margin-top:14px">پرداخت ثبت‌نام‌ها</h3>`:'';
+  return orders+`<div class="row" style="margin:0 0 8px"><span class="cap">${counter}</span><span class="sp"></span>
     <button class="btn sm quiet" data-account-registrations-refresh aria-label="بازخوانی ثبت‌نام‌ها">${ico('i-refresh')} بازخوانی</button></div>
     <div class="stack">${body}</div>
     ${state.registrationsMore?`<div class="row"><span class="sp"></span><button class="btn quiet" data-account-registrations-more>ثبت‌نام‌های بیشتر</button></div>`:''}`;
 }
-function serverAccountRegistrationsView(t){
+const ACCOUNT_REGISTRATION_VIEWS={
+  forms:{k:'forms',n:'فرم‌های من',s:'پاسخ‌های فرم و ثبت‌نام‌های همین حساب از سرور',i:'i-doc'},
+  payments:{k:'payments',n:'سفارش‌ها و پرداخت‌ها',s:'سفارش‌های محتوای ضبط‌شده و وضعیت پرداخت ثبت‌نام‌های پولی همین حساب از سرور',i:'i-wallet'}
+};
+const ACCOUNT_LIBRARY_VIEW={k:'library',n:'محتوای من',s:'محتوای ضبط‌شده‌ای که این حساب به آن دسترسی دارد؛ وضعیت و مهلت از سرور خوانده می‌شود.',i:'i-play'};
+/* ── فاز ۹: سفارش‌های محتوای ضبط‌شده و کتابخانهٔ حساب ──
+   خرید ≠ ثبت‌نام ≠ حضور: این بخش فقط دسترسی‌ها و سفارش‌های محتوای ضبط‌شده را نشان می‌دهد.
+   فاز ۹.۱: خرید، رسید و پیگیری پرداخت فقط از فرم خریدِ فرم‌ساز (form.html) انجام می‌شود؛ این صفحه
+   دفتر داخلی سفارش را فقط می‌خواند و به همان فرم پیوند می‌دهد. دسترسی تنها با تصمیم سرور/درگاه ساخته می‌شود. */
+const REC_ORDER_STATUS={pending:['در انتظار پرداخت','warn'],awaiting_receipt:['در انتظار رسید','warn'],receipt_submitted:['رسید ثبت شد؛ در انتظار بررسی','warn'],
+  paid:['پرداخت شد','ok'],paid_manual:['پرداخت تأیید شد','ok'],needs_review:['نیازمند بررسی','warn'],rejected:['رد شد','bad'],
+  cancelled:['لغو شد',''],expired:['منقضی شد',''],refunded:['بازپرداخت شد','']};
+const REC_ACCESS_STATE={active:['دسترسی فعال','ok'],expired:['منقضی‌شده',''],revoked:['لغوشده','bad']};
+function recMoney(amount,currency){ const n=Math.max(0,Math.round(+amount||0)); return faN(n.toLocaleString('en-US'))+' '+(currency==='IRR'||!currency?'ریال':esc(String(currency))); }
+function recDuration(minutes){ const m=Math.max(0,Math.round(+minutes||0)); if(!m) return ''; const h=Math.floor(m/60), r=m%60;
+  return h?(faN(h)+' ساعت'+(r?' و '+faN(r)+' دقیقه':'')):faN(m)+' دقیقه'; }
+/* فاز ۹.۵ §۹: زمان رویداد ثبت‌نام‌شده فقط از event_schedule سرور (همان قاعدهٔ صفحات عمومی)؛ لغو/تعویق هرگز «فعال» دیده نمی‌شود و بدون زمان معتبر چیزی ساخته نمی‌شود */
+function accountRegistrationSchedule(item){
+  const sch=item&&item.event_schedule, CD=window.NORA_COUNTDOWN;
+  if(!sch||typeof sch!=='object'||!CD||typeof CD.eventTarget!=='function') return '';
+  if(sch.lifecycle==='cancelled'||sch.lifecycle==='postponed'){
+    const label=typeof CD.stateLabel==='function'?CD.stateLabel({lifecycle:sch.lifecycle}):'';
+    return label?`<div class="row" style="margin-top:6px" data-account-registration-lifecycle="${esc(sch.lifecycle)}">${chip(label,sch.lifecycle==='cancelled'?'stop':'warn')}</div>`:'';
+  }
+  const target=CD.eventTarget({registration:{state:sch.state,lifecycle:sch.lifecycle,startsIn:sch.startsIn||'',countdownTo:''}});
+  if(!target||target.kind!=='event_start') return '';
+  return `<div class="row" style="margin-top:6px" data-account-registration-countdown><span class="cdline">${CD.markup(target)}</span></div>`;
+}
+function recEventHref(item,anchor){ return 'event.html?id='+encodeURIComponent(String(item.event_id||''))+(anchor||'#recording'); }
+function recFormHref(item){ const id=String(item&&item.purchase_form_id||''); return /^[A-Za-z0-9_-]{1,100}$/.test(id)?'form.html?fid='+encodeURIComponent(id)+'&kind=reg':''; }
+function recOrderCard(order){
+  const state=SERVER_ACCOUNT_STATE, [label,tone]=REC_ORDER_STATUS[order.status]||[order.status,''];
+  const busy=state.recOrderBusy===order.id;
+  const title=order.title||order.event_title||'محتوای ضبط‌شده';
+  const openCard=order.open&&order.method==='card_transfer'&&order.card&&['pending','awaiting_receipt'].includes(order.status);
+  const cardNumber=openCard?String(order.card.number||'').replace(/\D/g,'').replace(/(\d{4})(?=\d)/g,'$1-'):'';
+  const facts=[`ثبت: ${esc(accountServerDate(order.created_at))}`,
+    order.paid_at?`پرداخت: ${esc(accountServerDate(order.paid_at))}`:'',
+    order.receipt_submitted_at?`رسید: ${esc(accountServerDate(order.receipt_submitted_at))}`:'',
+    order.decided_at?`تصمیم: ${esc(accountServerDate(order.decided_at))}`:'',
+    order.refunded_at?`بازپرداخت: ${esc(accountServerDate(order.refunded_at))}`:'',
+    order.open&&order.expires_at?`مهلت: ${esc(accountServerDate(order.expires_at))}`:''].filter(Boolean);
+  let actions='';
+  const formHref=recFormHref(order), viaForm=!!(order.form_payment_id||order.form_response_id);
+  const formLink=formHref?`<a class="btn sm primary" href="${esc(formHref)}" data-account-rec-form>${ico('i-doc')} ادامه در فرم خرید</a>`
+    :`<small class="cap" data-account-rec-form-missing>فرم خرید این محتوا فعلاً منتشر نیست؛ وضعیت را از صفحهٔ محصول پیگیری کن.</small>`;
+  if(order.paid) actions=`<a class="btn sm primary" href="${esc(recEventHref(order,'#recording-sessions'))}" data-account-rec-view>${ico('i-play')} مشاهدهٔ جلسات</a>`;
+  else if(order.open&&viaForm){
+    /* سفارش فرم‌دار: پرداخت/رسید/پیگیری در همان فرم خرید؛ این‌جا فقط وضعیت خوانده می‌شود. */
+    const note=order.status==='receipt_submitted'?'رسید در فرم خرید ثبت شده و در صف بررسی مدیران است؛ تا تصمیم، دسترسی فعال نمی‌شود.'
+      :order.status==='needs_review'?'پرداخت نیازمند بررسی دستی است؛ نتیجه پس از تصمیم همین‌جا و در اعلان‌ها می‌آید.'
+      :order.method==='bale_wallet'?'پرداخت کیف پول بله از همان فرم خرید ادامه می‌یابد؛ وضعیت فقط پس از تأیید وب‌هوک تغییر می‌کند.'
+      :'واریز و بارگذاری رسید در همان فرم خرید انجام می‌شود؛ مبلغ و کارت مقصد را فرم از سرور نشان می‌دهد.';
+    actions=`<small class="cap" data-account-rec-via-form>${esc(note)}</small>${['receipt_submitted','needs_review'].includes(order.status)?(formHref?`<a class="btn sm quiet" href="${esc(formHref)}" data-account-rec-form>${ico('i-doc')} مشاهدهٔ وضعیت در فرم خرید</a>`:''):formLink}`;
+  }else if(order.open){
+    /* سفارش قدیمی (پیش از ۹.۱) بدون فرم: مسیر رسید حساب بازنشسته است؛ فقط انصراف یا خرید از فرم. */
+    const invoice=order.method==='bale_wallet'&&order.status==='pending'&&typeof order.invoice_url==='string'&&/^https:\/\//.test(order.invoice_url)
+      ?`<a class="btn sm primary" href="${esc(order.invoice_url)}" target="_blank" rel="noopener" data-account-rec-invoice>${ico('i-wallet')} ادامهٔ پرداخت در بله</a>`:'';
+    const cancel=['pending','awaiting_receipt'].includes(order.status)?`<button class="btn sm quiet" type="button" data-account-rec-cancel="${esc(order.id)}" ${busy?'disabled':''}>انصراف از سفارش</button>`:'';
+    const waiting=order.status==='receipt_submitted'||order.status==='needs_review'?`<small class="cap">${order.status==='needs_review'?'پرداخت نیازمند بررسی دستی است؛ نتیجه پس از تصمیم همین‌جا می‌آید.':'رسید رسیده و در صف بررسی است؛ تا تصمیم، دسترسی فعال نمی‌شود.'}</small>`:'';
+    const legacy=order.method==='card_transfer'&&['pending','awaiting_receipt'].includes(order.status)
+      ?`<small class="cap" data-account-rec-legacy>این سفارش پیش از اتصال فروش به فرم‌ساز ثبت شده و بارگذاری رسید برای آن در این صفحه بسته است. اگر هنوز واریزی نکرده‌ای، انصراف بده و از فرم خرید اقدام کن؛ اگر واریز کرده‌ای، با برگزارکننده در تماس باش.</small>`:'';
+    actions=`${openCard?`<div class="rec-card-dest"><b>کارت مقصد:</b> <span dir="ltr">${esc(cardNumber)}</span>${order.card.bank?' · '+esc(order.card.bank):''}${order.card.holder?' · '+esc(order.card.holder):''}<br><b>مبلغ:</b> ${recMoney(order.amount,order.currency)}</div>`:''}${legacy}${invoice}${waiting}<div class="row" style="flex-wrap:wrap;gap:8px">${cancel}${cancel&&formHref?`<a class="btn sm quiet" href="${esc(formHref)}" data-account-rec-form>${ico('i-doc')} خرید از فرم خرید</a>`:''}</div>`;
+  }else if(order.status==='rejected'||order.status==='cancelled'||order.status==='expired') actions=formHref?`<a class="btn sm quiet" href="${esc(formHref)}" data-account-rec-retry>${ico('i-refresh')} خرید دوباره از فرم خرید</a>`
+    :`<a class="btn sm quiet" href="${esc(recEventHref(order))}" data-account-rec-retry>${ico('i-refresh')} صفحهٔ محصول</a>`;
+  else if(order.status==='refunded') actions=`<small class="cap">دسترسی این سفارش پس از بازپرداخت فعال نیست.</small>`;
+  return `<article class="card acct server-registration rec-order" data-account-rec-order="${esc(order.id)}" data-rec-order-status="${esc(order.status)}">
+    <div class="row"><span class="sp"><b>${esc(title)}</b>
+      <small class="cap">${esc(order.event_title&&order.event_title!==title?order.event_title+' · ':'')}${order.method==='bale_wallet'?'کیف پول بله':'کارت‌به‌کارت'} · ${recMoney(order.amount,order.currency)}</small></span>${chip(label,tone)}</div>
+    <div class="row" style="margin-top:7px;flex-wrap:wrap;gap:6px 12px">${facts.map(f=>`<small class="cap">${f}</small>`).join('')}
+      ${order.decision_reason&&(order.status==='rejected'||order.status==='refunded')?`<small class="cap">دلیل: ${esc(order.decision_reason)}</small>`:''}</div>
+    ${actions?`<div class="rec-actions" style="margin-top:8px;display:grid;gap:8px">${actions}</div>`:''}
+  </article>`;
+}
+function accountRecordingOrdersContent(){
+  const state=SERVER_ACCOUNT_STATE;
+  const loading=!state.recOrdersLoaded&&!state.recOrdersError;
+  const body=loading?`<div class="empty2"><b>در حال خواندن سفارش‌ها…</b></div>`
+    :state.recOrdersError?`<div class="empty2"><b>${esc(state.recOrdersError)}</b><button class="btn quiet" data-account-rec-orders-refresh>تلاش دوباره</button></div>`
+    :state.recOrders.length?state.recOrders.map(recOrderCard).join('')
+    :empty2('سفارشی برای محتوای ضبط‌شده نداری','خرید دسترسی از فرم خریدِ هر محتوا (از صفحهٔ رویداد) انجام می‌شود و همین‌جا پیگیری می‌شود.','i-play');
+  return `<div class="row" style="margin:0 0 8px"><span class="cap">${state.recOrdersLoaded&&!state.recOrdersError?faN(state.recOrdersTotal)+' سفارش محتوای ضبط‌شده':'سفارش‌های محتوای ضبط‌شده'}</span><span class="sp"></span>
+    <button class="btn sm quiet" data-account-rec-orders-refresh aria-label="بازخوانی سفارش‌ها">${ico('i-refresh')} بازخوانی</button></div>
+    <div class="stack" data-account-rec-orders>${body}</div>
+    ${state.recOrdersMore?`<div class="row"><span class="sp"></span><button class="btn quiet" data-account-rec-orders-more>سفارش‌های بیشتر</button></div>`:''}`;
+}
+function recLibraryCard(item){
+  const access=item.access||{}, [label,tone]=REC_ACCESS_STATE[access.state]||['نامشخص',''];
+  const active=access.state==='active';
+  const meta=[item.event_title&&item.event_title!==item.title?item.event_title:'',
+    item.session_count>0?faN(item.session_count)+' جلسه':'', recDuration(item.total_minutes)].filter(Boolean).join(' · ');
+  /* «attended»: دسترسی حاصل از حضور ثبت‌شده در خود رویداد (سیاست برگزارکننده)؛ خرید یا اعطا نیست و ردیف دسترسی ندارد. */
+  const source={purchase:'خریداری‌شده',free:'دسترسی رایگان',granted:'اعطاشده توسط برگزارکننده',attended:'دسترسی حاضران رویداد'}[access.source]||'';
+  const expiry=access.state==='revoked'?(access.revoked_at?'لغو در '+accountServerDate(access.revoked_at):'لغو شده')
+    :access.expires_at?(active?'دسترسی تا ':'پایان‌یافته در ')+accountServerDate(access.expires_at):active?'دسترسی دائمی':'';
+  /* صفحهٔ محصول برای دارندهٔ دسترسی فعال در «توقف فروش» و «بایگانی» هم باز می‌ماند؛ فقط پیش‌نویس/آماده از دید او بسته است. */
+  const unpublished=!!item.status&&!['published','sales_paused','archived'].includes(item.status);
+  /* گواهی پایان محتوا: فقط بیان سیاست سرور؛ هیچ دکمهٔ «دریافت گواهی» وجود ندارد چون صدور خودکار وجود ندارد. */
+  const cert=item.certificate&&!item.certificate.automatic?(item.certificate.policy==='manual'
+    ?'گواهی پایان محتوا: فقط با صدور دستی برگزارکننده؛ خرید یا تماشا به‌تنهایی گواهی نمی‌سازد. گواهی صادرشده در «گواهینامه‌های من» همین صفحه می‌آید'
+    :'گواهی پایان محتوا: برای این محتوا صادر نمی‌شود'):'';
+  return `<article class="card acct server-registration rec-library" data-account-rec-library="${esc(item.recording_id)}" data-rec-access-state="${esc(access.state||'')}">
+    <div class="row"><span class="sp"><b>${esc(item.title||'محتوای ضبط‌شده')}</b>${meta?`<small class="cap">${esc(meta)}</small>`:''}</span>${chip(label,tone)}</div>
+    <div class="row" style="margin-top:7px;flex-wrap:wrap;gap:6px 12px">
+      ${source?`<small class="cap">${esc(source)}</small>`:''}${expiry?`<small class="cap">${esc(expiry)}</small>`:''}
+      ${access.granted_at?`<small class="cap">از ${esc(accountServerDate(access.granted_at))}</small>`:''}</div>
+    ${cert?`<small class="cap" data-account-rec-certificate="${esc(item.certificate.policy)}">${esc(cert)}</small>`:''}
+    <div class="row" style="margin-top:8px;flex-wrap:wrap;gap:8px">
+      ${active&&!unpublished?`<a class="btn sm primary" href="${esc(recEventHref(item,'#recording-sessions'))}" data-account-rec-view>${ico('i-play')} مشاهدهٔ جلسات</a>`
+        :active&&unpublished?`<small class="cap">این محتوا فعلاً از سوی برگزارکننده در دسترس نیست.</small>`
+        :`<a class="btn sm quiet" href="${esc(recEventHref(item))}">صفحهٔ محصول</a>`}
+    </div>
+  </article>`;
+}
+function accountLibraryContent(){
+  const state=SERVER_ACCOUNT_STATE;
+  const loading=!state.libraryLoaded&&!state.libraryError;
+  const body=loading?`<div class="empty2"><b>در حال خواندن محتوای تو…</b></div>`
+    :state.libraryError?`<div class="empty2"><b>${esc(state.libraryError)}</b><button class="btn quiet" data-account-library-refresh>تلاش دوباره</button></div>`
+    :state.library.length?state.library.map(recLibraryCard).join('')
+    :empty2('هنوز به محتوای ضبط‌شده‌ای دسترسی نداری','با خرید یا دریافت رایگان از صفحهٔ هر رویداد برگزارشده، محتوای آن اینجا می‌آید.','i-play');
+  const active=state.library.filter(x=>x.access&&x.access.state==='active').length;
+  return `<div class="row" style="margin:0 0 8px"><span class="cap">${state.libraryLoaded&&!state.libraryError?faN(active)+' دسترسی فعال از '+faN(state.library.length):'محتوای ضبط‌شدهٔ این حساب'}</span><span class="sp"></span>
+    <button class="btn sm quiet" data-account-library-refresh aria-label="بازخوانی محتوای من">${ico('i-refresh')} بازخوانی</button></div>
+    <div class="stack" data-account-library>${body}</div>
+    <p class="trustline"><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg><span>پیشرفت تماشا هنوز در سرور ثبت نمی‌شود؛ هر بار از فهرست جلسات شروع می‌کنی. مهلت‌ها زمان واقعی سرورند.</span></p>`;
+}
+/* ── گواهینامه‌های من (فاز ۹.۲) ──
+   منبع: GET /api/account/certificates — آینهٔ سرور از گواهی‌هایی که ربات بله واقعاً صادر کرده است.
+   «پایان محتوای آموزشی ضبط‌شده» (kind=recording) از گواهی حضور/رویداد جدا نمایش داده می‌شود.
+   هیچ دکمهٔ «درخواست/ساخت گواهی» وجود ندارد؛ فایل از ربات بله دریافت می‌شود (همان سیاست فایل‌های خصوصی). */
+const ACCT_CERT_KIND={event:'گواهی رویداد / حضور',batch:'گواهی فهرستی',form:'گواهی فرم',manual:'صدور دستی',center:'مرکز صدور',recording:'پایان محتوای آموزشی ضبط‌شده'};
+const ACCT_CERT_STATUS={issued:['صادرشده','ok'],revoked:['باطل‌شده','stop'],expired:['منقضی','warn']};
+function accountCertificateCard(cert){
+  const st=cert.effective_status||cert.status||'issued', [label,tone]=ACCT_CERT_STATUS[st]||['نامشخص',''];
+  const kind=ACCT_CERT_KIND[cert.kind]||'گواهینامه', title=cert.title||cert.event_title||kind;
+  const code=cert.full_code||cert.serial||'', href=certBotHref();
+  const facts=[cert.event_title&&cert.event_title!==title?cert.event_title:'', cert.issued_on?'صدور '+cert.issued_on:(cert.issued_at?'صدور '+accountServerDate(cert.issued_at):''),
+    cert.expires_on?'اعتبار تا '+cert.expires_on:'', st==='revoked'&&cert.revoked_at?'ابطال در '+accountServerDate(cert.revoked_at):''].filter(Boolean);
+  return `<article class="card acct server-registration acct-cert" data-account-certificate="${esc(cert.id)}" data-cert-kind="${esc(cert.kind||'')}" data-cert-status="${esc(st)}">
+    <div class="row"><span class="sp"><b>${esc(title)}</b><small class="cap">${esc(kind)}</small></span>${chip(label,tone)}</div>
+    <div class="row" style="margin-top:7px;flex-wrap:wrap;gap:6px 12px">
+      ${code?`<small class="cap" dir="ltr">${esc(code)}</small>`:`<small class="cap">شماره در رکورد ثبت نشده</small>`}${facts.map(f=>`<small class="cap">${esc(f)}</small>`).join('')}</div>
+    ${cert.kind==='recording'?`<small class="cap">این گواهی حضور در رویداد نیست؛ با تأیید دستی برگزارکننده برای محتوای ضبط‌شده صادر شده است.</small>`:''}
+    <div class="row" style="margin-top:8px;flex-wrap:wrap;gap:8px">
+      ${st==='issued'?(href?`<a class="btn sm primary" href="${esc(href)}" target="_blank" rel="noopener noreferrer" data-account-cert-bot>${ico('i-send')} دریافت فایل از ربات بله</a>`:`<span class="tag warn">پیوند ربات در دسترس نیست</span>`)
+        :`<small class="cap">${st==='revoked'?'این گواهی باطل شده و در استعلام تأیید نمی‌شود.':'مهلت اعتبار این گواهی گذشته است.'}</small>`}
+    </div>
+  </article>`;
+}
+function accountCertificatesContent(){
+  const state=SERVER_ACCOUNT_STATE;
+  const loading=!state.certsLoaded&&!state.certsError;
+  const body=loading?`<div class="empty2"><b>در حال خواندن گواهینامه‌ها…</b></div>`
+    :state.certsError?`<div class="empty2"><b>${esc(state.certsError)}</b><button class="btn quiet" data-account-certs-refresh>تلاش دوباره</button></div>`
+    :state.certificates.length?state.certificates.map(accountCertificateCard).join('')
+    :empty2('هنوز گواهینامه‌ای در حساب ثبت نشده','گواهی فقط پس از صدور واقعی توسط برگزارکننده در ربات بله اینجا دیده می‌شود؛ خرید یا تماشای محتوا به‌تنهایی گواهی نمی‌سازد.','i-medal');
+  const c=state.certsCounts||{};
+  const summary=state.certsLoaded&&!state.certsError?[faN(c.issued||0)+' معتبر',c.revoked?faN(c.revoked)+' باطل‌شده':'',c.expired?faN(c.expired)+' منقضی':''].filter(Boolean).join(' · '):'';
+  return `<div class="row" style="margin:14px 0 8px"><span class="sp"><b>${ico('i-medal')} گواهینامه‌های من</b>${summary?`<small class="cap">${esc(summary)}</small>`:''}</span>
+    <button class="btn sm quiet" data-account-certs-refresh aria-label="بازخوانی گواهینامه‌ها">${ico('i-refresh')} بازخوانی</button></div>
+    <div class="stack" data-account-certificates>${body}</div>`;
+}
+async function loadAccountCertificates(force=false){
+  const state=SERVER_ACCOUNT_STATE, api=window.NORA_SERVER_API;
+  if(!state.account||state.certsLoading||(!force&&state.certsLoaded)) return;
+  state.certsLoading=true; state.certsError='';
+  if(S.view==='library') renderView();
+  try{
+    if(!api||typeof api.getAccountCertificates!=='function') throw new Error('account_api_unavailable');
+    const result=await api.getAccountCertificates();
+    if(!state.account) return;
+    const items=Array.isArray(result&&result.items)?result.items:[];
+    if(items.some(item=>!item||typeof item.id!=='string'||typeof item.kind!=='string'||typeof item.effective_status!=='string'))
+      throw new Error('invalid_account_certificates');
+    state.certificates=items; state.certsCounts=result&&result.counts&&typeof result.counts==='object'?result.counts:null; state.certsLoaded=true;
+  }catch(error){
+    if(error&&error.status===401){accountLoadError(error,'');return}
+    state.certsError=accountLoadError(error,'گواهینامه‌ها خوانده نشدند؛ دوباره تلاش کن.'); state.certsLoaded=true;
+  }finally{
+    state.certsLoading=false;
+    if(S.view==='library') renderView();
+  }
+}
+function serverAccountLibraryView(t){
   const state=SERVER_ACCOUNT_STATE;
   let content;
   if(state.checking) content=empty2('در حال بررسی حساب','وضعیت ورود از سرور بررسی می‌شود.','i-shield');
-  else if(!state.account) content=serverAccountAccessCard('events');
-  else content=accountRegistrationsContent();
-  return viewHead(t,state.account?'ثبت‌نام‌های تو':'نیاز به ورود',null)+
-    (state.account?serverAccountHead():'')+`<div class="panel stack">${content}</div>`;
+  else if(!state.account) content=serverAccountAccessCard('library');
+  else content=accountLibraryContent()+accountCertificatesContent();
+  return viewHead(t,state.account?'محتوای ضبط‌شدهٔ تو':'نیاز به ورود',null)+(state.account?serverAccountStrip():'')+`<div class="panel stack">${content}</div>`;
+}
+async function loadAccountLibrary(force=false){
+  const state=SERVER_ACCOUNT_STATE, api=window.NORA_SERVER_API;
+  if(!state.account||state.libraryLoading||(!force&&state.libraryLoaded)) return;
+  state.libraryLoading=true; state.libraryError='';
+  if(S.view==='library') renderView();
+  try{
+    if(!api||typeof api.getAccountRecordings!=='function') throw new Error('account_api_unavailable');
+    const result=await api.getAccountRecordings();
+    if(!state.account) return;
+    const items=Array.isArray(result&&result.items)?result.items:[];
+    if(items.some(item=>!item||typeof item.recording_id!=='string'||typeof item.event_id!=='string'||!item.access||typeof item.access.state!=='string'))
+      throw new Error('invalid_account_library');
+    state.library=items; state.libraryLoaded=true;
+  }catch(error){
+    if(error&&error.status===401){accountLoadError(error,'');return}
+    state.libraryError=accountLoadError(error,'محتوای تو خوانده نشد؛ دوباره تلاش کن.'); state.libraryLoaded=true;
+  }finally{
+    state.libraryLoading=false;
+    if(S.view==='library'||S.view==='events') renderView();
+    if(!TEST_FIXTURE_MODE) renderProfile();
+  }
+}
+async function loadAccountRecordingOrders(append=false,force=false){
+  const state=SERVER_ACCOUNT_STATE, api=window.NORA_SERVER_API;
+  if(!state.account||state.recOrdersLoading||(!force&&!append&&state.recOrdersLoaded)) return;
+  state.recOrdersLoading=true; state.recOrdersError='';
+  if(!append){state.recOrders=[];state.recOrdersTotal=0;state.recOrdersMore=false;state.recOrdersLoaded=false;}
+  if(S.view==='payments') renderView();
+  try{
+    if(!api||typeof api.getAccountRecordingOrders!=='function') throw new Error('account_api_unavailable');
+    const result=await api.getAccountRecordingOrders(SERVER_ACCOUNT_PAGE,append?state.recOrders.length:0);
+    if(!state.account) return;
+    const items=Array.isArray(result&&result.items)?result.items:[];
+    if(items.some(item=>!item||typeof item.id!=='string'||typeof item.status!=='string'||typeof item.recording_id!=='string'))
+      throw new Error('invalid_account_recording_orders');
+    state.recOrders=append?state.recOrders.concat(items):items;
+    state.recOrdersTotal=Number.isFinite(+result.total)?Math.max(0,+result.total):state.recOrders.length;
+    state.recOrdersMore=state.recOrders.length<state.recOrdersTotal; state.recOrdersLoaded=true;
+  }catch(error){
+    if(error&&error.status===401){accountLoadError(error,'');return}
+    state.recOrdersError=accountLoadError(error,'سفارش‌های محتوای ضبط‌شده خوانده نشدند؛ دوباره تلاش کن.'); state.recOrdersLoaded=true;
+  }finally{
+    state.recOrdersLoading=false;
+    if(S.view==='payments') renderView();
+    if(!TEST_FIXTURE_MODE) renderProfile();
+  }
+}
+function recReplaceOrder(order){
+  const state=SERVER_ACCOUNT_STATE, i=state.recOrders.findIndex(x=>x.id===order.id);
+  if(i>-1) state.recOrders[i]=Object.assign({},state.recOrders[i],order); else state.recOrders.unshift(order);
+}
+async function cancelAccountRecordingOrder(id){
+  const state=SERVER_ACCOUNT_STATE, api=window.NORA_SERVER_API;
+  if(!api||typeof api.cancelAccountRecordingOrder!=='function'){toast('رابط حساب سرور در دسترس نیست');return}
+  if(state.recOrderBusy) return;
+  if(!window.confirm('از این سفارش انصراف می‌دهی؟ اگر مبلغی واریز کرده‌ای، انصراف نده و با برگزارکننده تماس بگیر.')) return;
+  state.recOrderBusy=id; renderView();
+  try{ const order=await api.cancelAccountRecordingOrder(id); if(order&&order.id) recReplaceOrder(order); toast('سفارش لغو شد.'); }
+  catch(error){ toast(error&&error.status===409?'این سفارش دیگر قابل انصراف نیست؛ فهرست بازخوانی می‌شود.':accountLoadError(error,'انصراف انجام نشد؛ دوباره تلاش کن.')); if(error&&error.status===409) loadAccountRecordingOrders(false,true); }
+  finally{ state.recOrderBusy=''; renderView(); }
+}
+function serverAccountRegistrationsView(t,mode){
+  const state=SERVER_ACCOUNT_STATE;
+  let content;
+  if(state.checking) content=empty2('در حال بررسی حساب','وضعیت ورود از سرور بررسی می‌شود.','i-shield');
+  else if(!state.account) content=serverAccountAccessCard(mode||'events');
+  else content=accountRegistrationsContent(mode);
+  return viewHead(t,state.account?(mode==='payments'?'سفارش‌ها و پرداخت‌های تو':mode==='forms'?'فرم‌های تو':'ثبت‌نام‌های تو'):'نیاز به ورود',null)+
+    (state.account?serverAccountStrip():'')+`<div class="panel stack">${content}</div>`;
 }
 function serverAccountDataView(t){
   t=t||SERVER_DATA_VIEW;
@@ -594,12 +1151,20 @@ function resetServerAccountData(){
   state.notifications=[]; state.notificationsLoaded=false; state.notificationsLoading=false;
   state.notificationsError=''; state.notificationsMore=false;
   state.files=[]; state.filesLoaded=false; state.filesLoading=false; state.filesError=''; state.filesMore=false;
+  state.library=[]; state.libraryLoaded=false; state.libraryLoading=false; state.libraryError='';
+  state.certificates=[]; state.certsCounts=null; state.certsLoaded=false; state.certsLoading=false; state.certsError='';
+  state.recOrders=[]; state.recOrdersTotal=0; state.recOrdersLoaded=false; state.recOrdersLoading=false; state.recOrdersError=''; state.recOrdersMore=false; state.recOrderBusy='';
+  /* وضعیت پیوند هم به همین حساب گره خورده است؛ در خروج/انقضا پاک می‌شود تا
+     اطلاعات حساب قبلی روی صفحه نماند. */
+  IDENTITY_STATE.list=null; IDENTITY_STATE.loaded=false; IDENTITY_STATE.loading=false;
+  IDENTITY_STATE.error=''; IDENTITY_STATE.busy=''; IDENTITY_STATE.confirmUnlink=false; IDENTITY_STATE.outcome=null;
 }
 function serverAccountExpired(){
   const state=SERVER_ACCOUNT_STATE;
   delete window.NORA_ACCOUNT_SOURCE;
-  window.NORA_UI?.updateAccountNavigation?.();
+  window.NORA_UI?.updateAccountNavigation?.([]);
   state.account=null; state.checking=false; state.checked=true; state.error=''; resetServerAccountData();
+  if(UI().clearProfileCache) UI().clearProfileCache();
   updateAccountBanner(); render(); toast('ورود حساب پایان یافته؛ برای دسترسی به اطلاعاتت دوباره وارد شو.');
 }
 function accountLoadError(error,fallback){
@@ -612,7 +1177,7 @@ async function loadAccountRegistrations(append=false,force=false){
   if(!state.account||state.registrationsLoading||(!force&&!append&&state.registrationsLoaded)) return;
   state.registrationsLoading=true; state.registrationsError='';
   if(!append){state.registrations=[];state.registrationsTotal=0;state.registrationsMore=false;}
-  if(S.view==='events') renderView();
+  if(S.view==='events'||ACCOUNT_REGISTRATION_VIEWS[S.view]) renderView();
   try{
     if(!api||typeof api.getAccountRegistrations!=='function') throw new Error('account_api_unavailable');
     const result=await api.getAccountRegistrations(SERVER_ACCOUNT_PAGE,append?state.registrations.length:0);
@@ -630,7 +1195,8 @@ async function loadAccountRegistrations(append=false,force=false){
     state.registrationsLoaded=true;
   }finally{
     state.registrationsLoading=false;
-    if(S.view==='events') renderView();
+    if(S.view==='events'||ACCOUNT_REGISTRATION_VIEWS[S.view]) renderView();
+    if(!TEST_FIXTURE_MODE) renderProfile();
   }
 }
 async function loadAccountNotifications(append=false,force=false){
@@ -683,9 +1249,37 @@ async function loadAccountFiles(append=false,force=false){
     renderProfile();
   }
 }
+/* هویت‌های همین حساب را از سرور می‌خواند. سرور مرجع است؛ هیچ‌جا از روی
+   ورود فعلی «حدس» نمی‌زنیم که کاربر بله وصل است یا نه. */
+async function loadAccountIdentities(force=false){
+  const state=IDENTITY_STATE, api=window.NORA_SERVER_API;
+  if(!SERVER_ACCOUNT_STATE.account) return;
+  if(state.loading||(!force&&state.loaded)) return;
+  state.loading=true; state.error=''; renderProfile();
+  try{
+    if(!api||typeof api.getAccountIdentities!=='function') throw new Error('account_api_unavailable');
+    const result=await api.getAccountIdentities();
+    if(!SERVER_ACCOUNT_STATE.account) return;
+    const rows=Array.isArray(result&&result.identities)?result.identities:[];
+    if(rows.some(row=>!row||!['phone','bale'].includes(row.provider)
+      ||(row.linked_at!=null&&typeof row.linked_at!=='string'))) throw new Error('invalid_account_identities');
+    state.list={providers:rows.map(row=>row.provider),rows,
+      available:Array.isArray(result.available_providers)?result.available_providers:[],
+      baleAvailable:result.bale_link_available===true};
+    state.loaded=true;
+  }catch(error){
+    if(error&&error.status===401){accountLoadError(error,'');return}
+    state.error=accountLoadError(error,'وضعیت پیوند حساب خوانده نشد؛ دوباره تلاش کن.');
+    state.loaded=true;
+  }finally{
+    state.loading=false;
+    renderProfile();
+  }
+}
 function loadServerAccountData(force=false){
   if(!SERVER_ACCOUNT_STATE.account) return;
-  loadAccountNotifications(false,force); loadAccountFiles(false,force);
+  loadAccountNotifications(false,force); loadAccountFiles(false,force); loadAccountIdentities(force);
+  loadAccountRegistrations(false,force);
 }
 async function checkServerAccount(){
   const state=SERVER_ACCOUNT_STATE, api=window.NORA_SERVER_API;
@@ -695,14 +1289,22 @@ async function checkServerAccount(){
     const identity=await api.accountMe();
     if(!identity||identity.authenticated!==true||!['bale','phone','manager-password'].includes(identity.provider)||typeof identity.account_id!=='string')
       throw new Error('invalid_account_session');
-    if(typeof identity.delivery_bot_url==='string'&&/^https:\/\/ble[.]ir\/[A-Za-z0-9_]{3,64}$/i.test(identity.delivery_bot_url))
+    if(typeof identity.delivery_bot_url==='string'&&/^https:\/\/ble[.]ir\/[A-Za-z0-9_]{3,64}$/i.test(identity.delivery_bot_url)){
       N.BALE_BOT_URL=identity.delivery_bot_url;
+      /* فاز ۹.۲ — در حالت سرور data.js بارگذاری نمی‌شود و window.NORA وجود ندارد؛ ui.baleStartHref این
+         مقدار را به‌عنوان جایگزین می‌خواند تا پیوند دریافت از ربات (فایل خصوصی/گواهی) واقعاً ساخته شود. */
+      window.NORA_PUBLIC_BALE_BOT_URL=identity.delivery_bot_url;
+    }
     window.NORA_ACCOUNT_SOURCE='server';
     state.account=identity; state.checked=true; state.checking=false; state.error='';
-    window.NORA_UI?.updateAccountNavigation?.();
+    /* زبانهٔ «فرم‌ساز» نوار پایین از مجوزهای همین پاسخ سرور (fm_create)؛ کاوش عمومی ui.js در صفحهٔ حساب اجرا نمی‌شود */
+    window.NORA_UI?.updateAccountNavigation?.(Array.isArray(identity.permissions)?identity.permissions:[]);
     resetServerAccountData(); updateAccountBanner(); render(); loadServerAccountData(false);
     if(window.NORA_UI&&window.NORA_UI.syncServerProfile) window.NORA_UI.syncServerProfile().then(()=>{ if(window.NORA_ACCOUNT_SOURCE==='server') render() });
-    if(S.view==='events') loadAccountRegistrations();
+    if(S.view==='events'||ACCOUNT_REGISTRATION_VIEWS[S.view]) loadAccountRegistrations();
+    if(S.view==='events'&&!TEST_FIXTURE_MODE) loadAccountLibrary();
+    if(S.view==='payments'&&!TEST_FIXTURE_MODE) loadAccountRecordingOrders();
+    if(S.view==='library'){loadAccountLibrary();loadAccountCertificates();}
   }catch(error){
     delete window.NORA_ACCOUNT_SOURCE;
     window.NORA_UI?.updateAccountNavigation?.();
@@ -718,9 +1320,11 @@ async function logoutServerAccount(button){
   try{
     await api.accountLogout();
     delete window.NORA_ACCOUNT_SOURCE;
-    window.NORA_UI?.updateAccountNavigation?.();
+    window.NORA_UI?.updateAccountNavigation?.([]);
     SERVER_ACCOUNT_STATE.account=null; SERVER_ACCOUNT_STATE.checked=true; SERVER_ACCOUNT_STATE.checking=false;
-    SERVER_ACCOUNT_STATE.error=''; resetServerAccountData(); updateAccountBanner(); render();
+    SERVER_ACCOUNT_STATE.error=''; resetServerAccountData();
+    if(UI().clearProfileCache) UI().clearProfileCache();
+    updateAccountBanner(); render();
     toast('از حساب خارج شدی.');
   }catch(error){
     if(button) button.disabled=false;
@@ -1066,7 +1670,7 @@ function myEventSheet(id){
 function openMyEvent(id){
   if(!$('#shMyEvent')) return;
   S.myEventId=String(id||''); S.refreshEventPending=false;
-  fillSheet('shMyEvent',myEventSheet(id));
+  fillSheet('shMyEvent',myEventSheet(id)); if(window.NORA_COUNTDOWN) window.NORA_COUNTDOWN.mount($('#shMyEvent'));
   openSheet('shMyEvent');
 }
 function refreshMyEventFromStorage(){
@@ -1074,7 +1678,7 @@ function refreshMyEventFromStorage(){
   const sheet=$('#shMyEvent'), player=$('#shPlay');
   if(!S.myEventId||!sheet||!sheet.classList.contains('on'))return;
   if(player&&player.classList.contains('on')){S.refreshEventPending=true;return}
-  S.refreshEventPending=false; fillSheet('shMyEvent',myEventSheet(S.myEventId));
+  S.refreshEventPending=false; fillSheet('shMyEvent',myEventSheet(S.myEventId)); if(window.NORA_COUNTDOWN) window.NORA_COUNTDOWN.mount($('#shMyEvent'));
 }
 function refreshMyEventAfterPlayer(detail){
   const target=typeof detail==='string'?detail:String(detail&&detail.id||''),
@@ -1153,7 +1757,7 @@ function clubTab(){
       `<div class="kinds">${STORE.map(r=>{const can=pts>=r.cost, got=!!(bookState().rewards||{})[r.n];
         return `<div class="kind">
         ${ico(got?'i-check':'i-wallet','width:19px;height:19px;color:'+(got?'var(--ok)':'var(--ink-4)'))}
-        <span class="tx"><b>${esc(r.n)}</b><small>${esc(r.s)}</small></span>
+        <span class="tx"><b>${esc(r.n)}</b>${guest?'':`<small>${esc(r.s)}</small>`}</span>
         ${got?chip('گرفته شد','ok'):`<button class="btn sm ${can?'primary':'quiet'}" ${can?'':'disabled'} data-reward="${esc(r.n)}">${faNum(r.cost)} امتیاز</button>`}</div>`}).join('')}</div>`)+
     invitePanel();
 }
@@ -2175,7 +2779,7 @@ function authPanel(){
 /* پروفایل من: شش تب، هر چیزی که به خودِ عضو برمی‌گردد، یک‌جا */
 const PTABS=A.profileTabs||[{k:'info',n:'اطلاعات من'}];
 VS.profile=function(t){
-  if(!TEST_FIXTURE_MODE) return serverAccountFeatureView(t,'پروفایل حساب','ویرایش امن پروفایل و تاریخچهٔ حساب هنوز به API حساب وب متصل نیست.');
+  if(!TEST_FIXTURE_MODE) return serverAccountProfileView(t);
   if(!login()) return viewHead(t,'',PTABS,'ptab')+gate(t);
   const body=S.ptab==='auth'?authPanel()
     : S.ptab==='invite'?inviteTab()
@@ -2191,7 +2795,7 @@ VS.profile=function(t){
    تا عضو نشوی، پنل بسته است: اول فرمی که سرپرست گذاشته، بعد حق عضویت،
    بعد امکانات باشگاه. هر چیزی که سرپرست می‌فرستد همین‌جا می‌نشیند. */
 VS.book=function(t){
-  if(!TEST_FIXTURE_MODE) return serverAccountFeatureView(t,'باشگاه','وضعیت عضویت، امتیاز و فعالیت‌های باشگاه از API حساب وب ارائه نمی‌شود.');
+  if(!TEST_FIXTURE_MODE) return serverBookClubView(t);
   if(!login()) return viewHead(t,'',null)+gate(t);
   if(!clubIsMember()) return clubJoin(t);
   return clubPanel(t);
@@ -2535,7 +3139,7 @@ function linkGo(){
 /* ── داشبورد نورا پی ───────────────────────────────────────────────── */
 /* نما: مهمان درگاه ورود را می‌بیند، عضو داشبورد کامل را */
 VS.pay=function(t){
-  if(!TEST_FIXTURE_MODE) return serverAccountFeatureView(t,'پرداخت‌ها','فهرست پرداخت و ماندهٔ این حساب در API حساب وب ارائه نمی‌شود.');
+  if(!TEST_FIXTURE_MODE) return serverAccountRegistrationsView(t,'payments');
   if(!login()) return viewHead(t,'',null)+gate(t);
   return viewHead(t)+payPanel();
 };
@@ -2683,6 +3287,17 @@ const certReqOf=id=>{
 function accScreen(k){ const i=Number(String(k).slice(4)); return ACCOUNT_SCREENS[i]||null }
 function accScreenView(t){
   if(t.k==='acc-0') return serverAccountInfoView(t);
+  const x=accScreen(t.k)||{}, st=ACCOUNT_SCREEN_STATUS[x.st];
+  if(x.st==='bot'){
+    const a=SERVER_ACCOUNT_STATE.account||{};
+    const bot=a.delivery_bot_url&&/^https:\/\//.test(a.delivery_bot_url)?`<a class="btn primary" href="${esc(a.delivery_bot_url)}" target="_blank" rel="noopener">${ico('i-send')} باز کردن ربات بله</a>`:'';
+    return viewHead(t,'',null)+(SERVER_ACCOUNT_STATE.account?serverAccountStrip():'')+card(x.n,st.note,'i-send',
+      `<p><span class="${st.cls}">${esc(st.tag)}</span></p><p class="cap">در وب هیچ دادهٔ محلی یا نمونه‌ای برای این بخش نمایش داده نمی‌شود؛ وقتی سرویس مشترک آن در وب فراهم شود، همین‌جا فعال خواهد شد.</p>
+       <div class="row" style="flex-wrap:wrap">${bot}<a class="btn quiet" href="account.html">بازگشت به حساب من</a></div>`);
+  }
+  if(x.st==='later') return viewHead(t,'',null)+card(x.n,st.note,'i-info',
+    `<p><span class="${st.cls}">${esc(st.tag)}</span></p><p class="cap">تصمیم محصول دربارهٔ این بخش هنوز گرفته نشده است؛ هیچ موجودی، اعتبار یا تراکنشی در وب نمایش داده یا ساخته نمی‌شود.</p>
+     <a class="btn quiet" href="account.html">بازگشت به حساب من</a>`);
   return serverAccountFeatureView(t,t.n,'این بخش به سرویس واقعی حساب وصل نشده است؛ داده‌ی نمونه نمایش داده نمی‌شود.');
 }
 /* اطلاعات حساب: فقط آنچه /api/account/me می‌دهد (نوع ورود، نقش، بات تحویل). نام و موبایل در API نیست و نمایش داده نمی‌شود. */
@@ -2701,7 +3316,46 @@ function serverAccountInfoView(t){
      <p class="cap">نام، شمارهٔ موبایل و ویرایش اطلاعات در API حساب وب موجود نیست.</p>
      <div class="row" style="flex-wrap:wrap">${bot}<a class="btn quiet" href="account.html">بازگشت به حساب من</a></div>`);
 }
+function serverAccountProfileView(t){
+  const state=SERVER_ACCOUNT_STATE;
+  if(state.checking) return viewHead(t,'',null)+serverAccountAccessCard();
+  if(!state.account) return viewHead(t,'',null)+serverAccountAccessCard('profile');
+  const a=state.account, name=serverAccountDisplayName();
+  return viewHead(t,'اطلاعات حساب وب و پیوند هویت از سرور',null)+card('اطلاعات من','آنچه سرور دربارهٔ این حساب تأیید کرده است.','i-idcard',
+    `<div class="stack">
+       <div class="srow"><span class="sp"><b>نام</b><small class="cap">${esc(name||'هنوز در پروفایل حساب ثبت نشده است')}</small></span></div>
+       <div class="srow"><span class="sp"><b>نوع ورود</b><small class="cap">${esc(serverAccountProviderLabel(a))}</small></span></div>
+       <div class="srow"><span class="sp"><b>دسترسی‌ها</b><small class="cap">${esc(faN((a.permissions||[]).length))} مورد</small></span></div>
+     </div>
+     <p class="cap">شمارهٔ موبایل و کد یک‌بارمصرف هیچ‌وقت در مرورگر ذخیره نمی‌شوند؛ ویرایش اطلاعات تکمیلی پروفایل در نسخهٔ اول وب فعال نیست.</p>`)
+    +serverAccountIdentitiesCard();
+}
+function serverBookClubView(t){
+  const state=SERVER_ACCOUNT_STATE, a=state.account||{};
+  const bot=a.delivery_bot_url&&/^https:\/\//.test(a.delivery_bot_url)?`<a class="btn sm tint" href="${esc(a.delivery_bot_url)}" target="_blank" rel="noopener">${ico('i-send')} باشگاه من در ربات بله</a>`:'';
+  return viewHead(t,'کتاب ماه، جلسه‌ها و تازه‌های باشگاه',null)+`<div class="club server-club">
+    <div class="cl-hero" style="--g:linear-gradient(135deg,#2E6B7A,#0B2447)">
+      <div class="btop" style="position:static;display:flex;gap:6px"><span class="tagg tag-g">باشگاه کتاب‌خوانی خط زندگی</span></div>
+      <div class="bk"><span class="cv">${ico('i-book')}</span>
+        <span style="min-width:0"><h3>کتاب ماه هنوز منتشر نشده است</h3>
+          <div class="hrow" style="color:rgba(255,255,255,.9)">کتاب ماه، زمان جلسه و سرپرست باشگاه از پنل مدیریت منتشر می‌شوند و همین‌جا نمایش داده خواهند شد.</div></span></div>
+    </div>
+    <div class="cl-body">
+      <div class="stack tight">
+        <div class="memberline">${ico('i-clock')}<span class="sp" style="flex:1">زمان جلسهٔ بعدی پس از انتشار از پنل اعلام می‌شود.</span></div>
+        <div class="memberline">${ico('i-book')}<span style="flex:1">تازه‌های منتشرشدهٔ باشگاه (کتاب، صدا، مسابقه) در صفحهٔ خانه، بخش باشگاه، در دسترس است.</span></div>
+        <div class="memberline">${ico('i-users')}<span style="flex:1">عضویت، امتیاز و «باشگاه من» فعلاً در ربات بله انجام می‌شود؛ در وب موجودی یا امتیاز نمونه نشان داده نمی‌شود.</span></div>
+      </div>
+      <div class="row" style="flex-wrap:wrap">
+        <a class="btn primary" href="home.html#club">${ico('i-book')} تازه‌های باشگاه</a>${bot}
+        <span class="tag">فعلاً در ربات بله</span>
+      </div>
+    </div>
+  </div>`;
+}
 function viewOf(k){ if(String(k||'').indexOf('acc-')===0) return accScreen(k)?accScreenView:null;
+  if(ACCOUNT_REGISTRATION_VIEWS[k]) return t=>serverAccountRegistrationsView(t,k);
+  if(k==='library') return serverAccountLibraryView;
   return k==='events'?VS.events : k==='profile'?VS.profile
   : k==='pay'?VS.pay : k==='book'?VS.book : k==='server-data'?serverAccountDataView : null }
 /* نشانی‌های کوتاه، همان تب پروفایل را باز می‌کنند */
@@ -2711,10 +3365,11 @@ const ALIAS={info:['profile','ptab','info'], account:['profile','ptab','info'],
   club:['profile','ptab','club'], points:['profile','ptab','club'], points2:['profile','ptab','club'],
   invite:['profile','ptab','invite'], invite2:['profile','ptab','invite']};
 function renderView(){
-  const box=$('#viewBox'), t=S.view==='profile'?PROFILE_VIEW:S.view==='server-data'?SERVER_DATA_VIEW:String(S.view).indexOf('acc-')===0?accScreenTitle(S.view):SECT.find(s=>s.k===S.view), fn=viewOf(S.view);
+  const box=$('#viewBox'), t=S.view==='profile'?PROFILE_VIEW:S.view==='server-data'?SERVER_DATA_VIEW:S.view==='library'?ACCOUNT_LIBRARY_VIEW:ACCOUNT_REGISTRATION_VIEWS[S.view]||(String(S.view).indexOf('acc-')===0?accScreenTitle(S.view):SECT.find(s=>s.k===S.view)), fn=viewOf(S.view);
   if(!box||!t||!fn) return;
   box.innerHTML=`<section class="sec" aria-label="${esc(t.n)}">${fn(t)}</section>`;
   document.title='نورا · '+t.n;
+  if(window.NORA_COUNTDOWN) window.NORA_COUNTDOWN.mount(box);   /* همان شمارش معکوس مشترک؛ بدون آن فقط متن ایستا می‌ماند */
 }
 function accScreenTitle(k){ const x=accScreen(k); return x?{k,n:x.n,s:''}:null }
 function render(){
@@ -2726,7 +3381,8 @@ function render(){
   else { if(prof) prof.hidden=true; box.hidden=false; renderView() }
 }
 function route(){
-  const raw=(location.hash||'').replace('#','');
+  let raw=(location.hash||'').replace('#','');
+  if(raw==='pay'&&!TEST_FIXTURE_MODE) raw='payments';      /* #pay قدیمی در نسخهٔ سروری همان پرداخت‌های واقعی است */
   if(raw.indexOf('acc-')===0 && accScreen(raw)){ S.view=raw; render(); return; }
   if(raw.indexOf('fill=')===0){                       /* نشانی فرمی که سرپرست فرستاده */
     const id=raw.slice(5); S.view='book'; S.ctab='home'; render();
@@ -2739,9 +3395,16 @@ function route(){
     S.view='profile'; S.ptab='invite'; render(); try{window.scrollTo({top:0})}catch(e){}
     toast('این پیوند فقط نمونه است؛ ثبت‌نام، دعوت، امتیاز یا ارسال بیرونی انجام نمی‌شود');
     return }
-  if(raw==='events'){
-    S.view='events'; S.edit=false; S.errs={}; render();
+  if(raw==='events'||ACCOUNT_REGISTRATION_VIEWS[raw]){
+    S.view=raw; S.edit=false; S.errs={}; render();
     if(SERVER_ACCOUNT_STATE.account) loadAccountRegistrations();
+    if(raw==='events'&&SERVER_ACCOUNT_STATE.account&&!TEST_FIXTURE_MODE) loadAccountLibrary();
+    if(raw==='payments'&&SERVER_ACCOUNT_STATE.account&&!TEST_FIXTURE_MODE) loadAccountRecordingOrders();
+    try{window.scrollTo({top:0})}catch(e){}; return;
+  }
+  if(raw==='library'){
+    S.view='library'; S.edit=false; S.errs={}; render();
+    if(SERVER_ACCOUNT_STATE.account){loadAccountLibrary();loadAccountCertificates();}
     try{window.scrollTo({top:0})}catch(e){}; return;
   }
   if(raw==='notifications'||raw==='my-files'||raw==='account-data'){
@@ -2780,9 +3443,19 @@ document.addEventListener('click',ev=>{
     if(S.serverdata==='notifications'&&!SERVER_ACCOUNT_STATE.notificationsLoaded) loadAccountNotifications();
     return }
   if(t.closest('[data-server-account-retry]')){checkServerAccount();return}
+  if(t.closest('[data-identity-link]')){linkBaleIdentity();return}
+  if(t.closest('[data-identity-retry]')){loadAccountIdentities(true);return}
+  if(t.closest('[data-identity-unlink]')){IDENTITY_STATE.confirmUnlink=true;renderProfile();return}
+  if(t.closest('[data-identity-unlink-cancel]')){IDENTITY_STATE.confirmUnlink=false;renderProfile();return}
+  if(t.closest('[data-identity-unlink-confirm]')){unlinkBaleIdentity();return}
   const refreshData=t.closest('[data-account-data-refresh]'); if(refreshData){loadServerAccountData(true);return}
   if(t.closest('[data-account-registrations-refresh]')){loadAccountRegistrations(false,true);return}
   if(t.closest('[data-account-registrations-more]')){loadAccountRegistrations(true,true);return}
+  if(t.closest('[data-account-rec-orders-refresh]')){loadAccountRecordingOrders(false,true);return}
+  if(t.closest('[data-account-rec-orders-more]')){loadAccountRecordingOrders(true,true);return}
+  if(t.closest('[data-account-library-refresh]')){loadAccountLibrary(true);return}
+  if(t.closest('[data-account-certs-refresh]')){loadAccountCertificates(true);return}
+  const recCancel=t.closest('[data-account-rec-cancel]'); if(recCancel){cancelAccountRecordingOrder(recCancel.dataset.accountRecCancel);return}
   if(t.closest('[data-account-notices-more]')){loadAccountNotifications(true,true);return}
   if(t.closest('[data-account-files-more]')){loadAccountFiles(true,true);return}
   const noticeRead=t.closest('[data-account-notice-read]'); if(noticeRead){
@@ -2803,7 +3476,7 @@ document.addEventListener('click',ev=>{
   const g=t.closest('[data-go]'); if(g){ go(g.dataset.go); return }
   const vw=t.closest('[data-view]');
   if(vw){ const k=vw.dataset.view;
-    if(k==='pay'||login()){ location.hash='#'+k; return }
+    if(k==='pay'||login()||!TEST_FIXTURE_MODE){ location.hash='#'+k; return }
     S.after=k; loginSheet(); return }
   const pb=t.closest('[data-pay]'); if(pb){ location.hash='#pay'; return }
   const qt=t.closest('[data-qt]');

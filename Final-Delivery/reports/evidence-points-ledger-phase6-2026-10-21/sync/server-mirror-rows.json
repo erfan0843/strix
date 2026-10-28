@@ -1,0 +1,111 @@
+{
+ "note": "سرور آزمایشی sqlite (/tmp/nora-preview) پس از مهاجرت 0030؛ دادهٔ ساختگی؛ شناسهٔ حساب/بله حذف شده",
+ "alembic_head": "0030_club_points_entries",
+ "rows": 8,
+ "entries": [
+  {
+   "ledger_id": 1,
+   "external_key": "7f1eaeec-aa9a-474b-9e2f-abab6205e0a9:1",
+   "delta": 50,
+   "balance_after": 50,
+   "entry_type": "award",
+   "source": "achievement",
+   "ref_key": "ach:910001:first_event",
+   "reason": "دستاورد: نخستین رویداد",
+   "actor_kind": "system",
+   "reverses_external_key": null,
+   "bot_created_at": "2026-10-21T09:50:17.284Z"
+  },
+  {
+   "ledger_id": 2,
+   "external_key": "7f1eaeec-aa9a-474b-9e2f-abab6205e0a9:2",
+   "delta": 20,
+   "balance_after": 70,
+   "entry_type": "award",
+   "source": "event_finished",
+   "ref_key": "evfin:7:910001",
+   "reason": "پایان رویداد ۷",
+   "actor_kind": "system",
+   "reverses_external_key": null,
+   "bot_created_at": "2026-10-21T09:50:17.285Z"
+  },
+  {
+   "ledger_id": 3,
+   "external_key": "7f1eaeec-aa9a-474b-9e2f-abab6205e0a9:3",
+   "delta": -40,
+   "balance_after": 30,
+   "entry_type": "spend",
+   "source": "reward_redeem",
+   "ref_key": "redeem:4",
+   "reason": "خرید پاداش ۴",
+   "actor_kind": "system",
+   "reverses_external_key": null,
+   "bot_created_at": "2026-10-21T09:50:17.285Z"
+  },
+  {
+   "ledger_id": 4,
+   "external_key": "7f1eaeec-aa9a-474b-9e2f-abab6205e0a9:4",
+   "delta": 40,
+   "balance_after": 70,
+   "entry_type": "refund",
+   "source": "reward_reject_refund",
+   "ref_key": "redeem-refund:4",
+   "reason": "رد درخواست پاداش ۴",
+   "actor_kind": "system",
+   "reverses_external_key": null,
+   "bot_created_at": "2026-10-21T09:50:17.285Z"
+  },
+  {
+   "ledger_id": 5,
+   "external_key": "7f1eaeec-aa9a-474b-9e2f-abab6205e0a9:5",
+   "delta": 30,
+   "balance_after": 30,
+   "entry_type": "award",
+   "source": "attendance_session",
+   "ref_key": "att:12:910002",
+   "reason": "حضور جلسهٔ ۱۲",
+   "actor_kind": "system",
+   "reverses_external_key": null,
+   "bot_created_at": "2026-10-21T09:50:17.285Z"
+  },
+  {
+   "ledger_id": 6,
+   "external_key": "7f1eaeec-aa9a-474b-9e2f-abab6205e0a9:6",
+   "delta": -10,
+   "balance_after": 20,
+   "entry_type": "spend",
+   "source": "payment_spend",
+   "ref_key": "pay:tx-91",
+   "reason": "پرداخت با امتیاز",
+   "actor_kind": "system",
+   "reverses_external_key": null,
+   "bot_created_at": "2026-10-21T09:50:17.285Z"
+  },
+  {
+   "ledger_id": 7,
+   "external_key": "7f1eaeec-aa9a-474b-9e2f-abab6205e0a9:7",
+   "delta": 5,
+   "balance_after": 25,
+   "entry_type": "manual_adjust",
+   "source": "admin_manual",
+   "ref_key": "manual:evidence-p6-0001",
+   "reason": "اصلاح دستی آزمایشی",
+   "actor_kind": "admin",
+   "reverses_external_key": null,
+   "bot_created_at": "2026-10-21T09:50:17.286Z"
+  },
+  {
+   "ledger_id": 8,
+   "external_key": "7f1eaeec-aa9a-474b-9e2f-abab6205e0a9:8",
+   "delta": -5,
+   "balance_after": 20,
+   "entry_type": "reversal",
+   "source": "reversal",
+   "ref_key": "rev:7",
+   "reason": "برگشت اصلاح دستی",
+   "actor_kind": "admin",
+   "reverses_external_key": "7f1eaeec-aa9a-474b-9e2f-abab6205e0a9:7",
+   "bot_created_at": "2026-10-21T09:50:17.286Z"
+  }
+ ]
+}

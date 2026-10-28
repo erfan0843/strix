@@ -1,0 +1,70 @@
+owner auth/me 200
+=== e2e-field-types start 13:33:03
+e2e-field-types EXIT 0
+e2e-field-types: 474 قبول، 0 خطا
+=== e2e-rating start 13:36:44
+e2e-rating EXIT 0
+e2e-rating: 45 قبول، 0 خطا
+=== e2e-length-integer start 13:37:44
+e2e-length-integer EXIT 1
+}
+=== e2e-picker-ux start 13:37:46
+e2e-picker-ux EXIT 0
+e2e-picker-ux: 23 قبول، 0 خطا
+=== e2e-question-redesign start 13:39:08
+e2e-question-redesign EXIT 0
+e2e-question-redesign: 68 قبول، 0 خطا
+=== e2e-field-engine start 13:42:08
+e2e-field-engine EXIT 0
+e2e-field-engine: 43 قبول، 0 خطا
+=== e2e-event-file start 13:45:54
+e2e-event-file EXIT 0
+PASS no page errors: 
+
+TOTAL PASS 83 / FAIL 0
+=== e2e-duplicate start 13:49:34
+e2e-duplicate EXIT 0
+✓ انتشار نسخهٔ مدیر از API با 401 رد شد
+e2e-duplicate: 25 قبول، 0 خطا
+=== e2e-receipt-restore start 13:50:58
+e2e-receipt EXIT 0
+✓ ثبت‌نام در فهرست مدیران با وضعیت پرداخت «رسید فرستاده شده» دیده می‌شود (200)
+e2e-receipt-restore: 11 قبول، 0 خطا
+=== e2e-deeplinks start 13:51:32
+e2e-deeplinks EXIT 0
+e2e-deeplinks: 36 قبول، 0 خطا
+=== e2e-roles start 13:55:18
+e2e-roles EXIT 0
+PASS owner person file: audit shows manual decision + attendance
+TOTAL PASS 26 / FAIL 0
+=== e2e-builder-return start 13:55:57
+e2e-builder EXIT 0
+page errors: []
+TOTAL PASS 24 / FAIL 0
+=== a11y start 13:58:52
+a11y EXIT 0
+errors []
+TOTAL PASS 31 / FAIL 0
+=== e2e-nav start 14:00:53
+e2e-nav EXIT 0
+PASS صفحه‌کلید: Enter روی «فرم‌ساز» به مرکز فرم‌ها می‌رود
+TOTAL PASS 68 / FAIL 0
+=== e2e-builder-flows start 14:04:42
+e2e-builder-flows EXIT 0
+PASS بدون خطای جاوااسکریپت در کل زنجیره
+e2e-builder-flows: 69 قبول، 0 خطا
+=== node-suite start 14:08:33
+node-suite done: 40/41 exit 0
+=== pytest start 14:14:21
+pytest EXIT 0
+SKIPPED [4] tests/test_migrations_postgres.py:50: requires an explicitly configured disposable NORA_TEST_POSTGRES_URL
+406 passed, 4 skipped, 3 warnings in 149.47s (0:02:29)
+=== mypy start 14:16:56
+mypy EXIT 0
+Success: no issues found in 78 source files
+PASS types
+=== pg-migrations start 14:17:06
+pg EXIT 0
+.....                                                                    [100%]
+5 passed in 3.30s
+=== ALL DONE 14:17:11

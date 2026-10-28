@@ -43,6 +43,8 @@ async function load(store,hash){
       w.__NORA_TEST_FIXTURE_MODE__=true;
       w.scrollTo=()=>{};
       Object.defineProperty(w,'localStorage',{configurable:true,value:st});
+      /* jsdom کلیپ‌بورد ندارد؛ copyText فقط پس از موفقیت واقعی «رونوشت شد» می‌گوید، پس اینجا راهِ هم‌زمان execCommand موفق شبیه‌سازی می‌شود */
+      w.Document.prototype.execCommand=()=>true;
       if(!w.matchMedia) w.matchMedia=()=>({matches:false,addListener(){},removeListener(){}});
       w.addEventListener('error',e=>errs.push('error: '+e.message));
       w.console.error=(...a)=>errs.push('console.error: '+a.join(' '));
@@ -129,10 +131,10 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(p.all('.admbars i').length>=7,'نمودار میله‌ای هفته کشیده شد');
   ok(p.all('.card').length>=6,'داشبورد شش کارت دارد');
   ok(p.doc.title.includes('پنل مدیران'),'عنوان صفحه نام پنل را دارد');
-  ok(p.all('[data-clock]').length>=1,'ساعت و تاریخ روی ناوبری هست');
+  ok(p.all('#admBody [data-clock]').length>=1&&!p.doc.querySelector('#admBar [data-clock], #admBar .navclock, #admBar .nmark'),'ساعت و تاریخ در سطر تاریخ داشبورد است، نه در سربرگ (بازطراحی مرحلهٔ A)');
   const ck=p.txt('[data-clock]');
   ok(/[۰-۹]{2}:[۰-۹]{2}/.test(ck)&&/(شنبه|یکشنبه|دوشنبه|سه‌شنبه|چهارشنبه|پنجشنبه|جمعه)/.test(ck),
-    'ساعت زنده و تاریخ شمسی روی ناوبری نوشته می‌شود: '+ck);
+    'ساعت زنده و تاریخ شمسی روی داشبورد نوشته می‌شود: '+ck);
   const CJK=p.window.NORA_UI;
   ok(!!CJK&&typeof CJK.clockParts==='function','ساعت مشترک سامانه در ui.js است، نه فقط پنل');
   const cp=CJK.clockParts();
@@ -2397,7 +2399,7 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   const files=['admin.html','admin.js','admin.css','builder.html','create.html'];
   const adminSource=fs.readFileSync(DIR+'admin.js','utf8');
   ok(adminSource.includes("isReceipt&&key==='note'?'توضیح ثبت فیش'")
-      &&adminSource.includes('${esc(String(value))}'),
+      &&adminSource.includes("(WORKFLOW_VALUES[key]||{})[String(value)]||String(value)")&&adminSource.includes('${esc(shown)}'),
     'یادداشت اختیاری فیش در کارتابل برچسب روشن دارد و متن آن escape می‌شود');
   const dash=files.filter(f=>fs.readFileSync(DIR+f,'utf8').includes(' — '));
   ok(dash.length===0,'خط تیرهٔ بلند با فاصله در متن فارسی نمانده'+(dash.length?': '+dash.join('، '):''));
@@ -2418,13 +2420,24 @@ let KEEP=null;   /* صفحه‌ای که تا بلوک آخر نگه داشته 
   ok(/ثبت‌نام کارگاه سینک/.test(KEEP.txt('#admBody')),'و در صفحهٔ قدیمی فرم‌ها هم همین فرم دیده می‌شود');
 
   const html=fs.readFileSync(DIR+'admin.html','utf8');
-  ok(html.includes('admin.css?v=101')&&html.includes('admin.js?v=117')
-      &&html.includes('owner-api.js?v=106')&&html.includes('data.js?v=100')&&html.includes('ui.js?v=118')
-      &&html.includes('site-content-sync.js?v=101')&&html.includes('owner-banner-manager.css?v=2')
-      &&html.includes('owner-banner-manager.js?v=2')&&html.includes('nora.css?v=100'),
+  /* نسخهٔ بستهٔ مشترک (ui.js) عمداً اینجا سنجیده نمی‌شود؛ یکنواختی و
+     رو‌به‌جلو‌بودن آن در asset-audit.test.mjs برای همهٔ صفحه‌ها (از جمله همین
+     admin.html) یک‌جا بررسی می‌شود تا با هر به‌روزرسانیِ بسته، این فایل
+     بی‌دلیل نشکند. */
+  ok(html.includes('admin.css?v=126')&&html.includes('admin.js?v=196')
+      &&html.includes('owner-api.js?v=131')&&html.includes('data.js?v=101')
+      &&html.includes('site-content-sync.js?v=102')&&html.includes('owner-banner-manager.css?v=5')
+      &&html.includes('owner-banner-manager.js?v=5')&&html.includes('nora.css?v=108'),
     'نسخهٔ پرونده‌های پنل، همگام‌سازی و مدیر بنر تازه است');
   const sw=fs.readFileSync(DIR+'sw.js','utf8');
-  ok(sw.includes("'nora-v96'"),'کارگر سرویس نسخهٔ تازه است');
+  ok(sw.includes("'nora-v101'"),'کارگر سرویس نسخهٔ تازه است');
+  /* پوستر رویداد: قاب A4 عمودی (۲۱۰:۲۹۷) با contain در ویرایشگر، پیش‌نمایش و سربرگ پروندهٔ رویداد؛ جانگهدار صریح برای حالت خالی */
+  {
+    const acss=fs.readFileSync(DIR+'admin.css','utf8'), ajs=fs.readFileSync(DIR+'admin.js','utf8');
+    ok(/\.ctposter\{[^}]*aspect-ratio:210\/297/.test(acss)&&/\.ctposter img\{[^}]*object-fit:contain/.test(acss),'قاب پوستر A4 با contain در admin.css');
+    ok(ajs.includes('data-ct-poster-frame="${img?\'image\':\'empty\'}"')&&ajs.includes('پوستر عمودی A4</small>')&&ajs.includes('class="ctposter sm" data-ef-poster'),'ویرایشگر و پروندهٔ رویداد از قاب پوستر و جانگهدار استفاده می‌کنند');
+    ok(!/poster\)\)}" alt="" style="width:72px;height:72px;object-fit:cover/.test(ajs),'هیچ بندانگشتی پوستر رویداد با cover (برش) باقی نمانده است');
+  }
   ok(!sw.includes("'admin.html'")&&!sw.includes("'admin.js'"),'صفحهٔ خصوصی و اسکریپت بلااستفادهٔ پنل در پیش‌کش عمومی نیستند');
   /* هر آیکونی که پنل صدا می‌زند، باید در اسپرایت همان صفحه باشد */
   const have=new Set([...html.matchAll(/<symbol id="([^"]+)"/g)].map(m=>m[1]));

@@ -217,6 +217,48 @@ def test_request_and_verify_issue_one_phone_account_session_without_assigning_a_
         engine.dispose()
 
 
+def test_verify_reports_first_login_and_profile_state_without_duplicating_accounts(monkeypatch):
+    """The login page needs to tell «حساب تازه» from «عضو قدیمی» only after the code is proven."""
+    client, engine, _sends = make_client(monkeypatch=monkeypatch)
+    try:
+        first = verify_code(client, request_code(client).json()["challenge_id"])
+        assert first.status_code == 200, first.text
+        assert first.json()["created"] is True
+        assert first.json()["profile_saved"] is False
+        account_id = first.json()["account_id"]
+
+        saved = client.put(
+            "/api/account/profile",
+            json={"fullName": "عضو آزمایشی"},
+            headers={**ORIGIN, "X-CSRF-Token": client.cookies.get("nora_account_csrf")},
+        )
+        assert saved.status_code == 200, saved.text
+
+        assert client.post("/api/auth/account/logout", headers={**ORIGIN, "X-CSRF-Token": client.cookies.get("nora_account_csrf")}).status_code == 200
+        client.cookies.clear()
+
+        again = verify_code(client, request_code(client).json()["challenge_id"])
+        assert again.status_code == 200, again.text
+        assert again.json()["account_id"] == account_id
+        assert again.json()["created"] is False
+        assert again.json()["profile_saved"] is True
+
+        unauthenticated = client.post(
+            "/api/auth/phone-otp/verify",
+            json={"challenge_id": "00000000-0000-4000-8000-000000000000", "phone": PHONE, "code": CODE},
+            headers=ORIGIN,
+        )
+        assert unauthenticated.status_code == 401
+        assert "created" not in unauthenticated.text and "profile_saved" not in unauthenticated.text
+
+        with Session(engine) as db:
+            assert db.scalar(select(func.count()).select_from(AccountRecord)) == 1
+            assert db.scalar(select(func.count()).select_from(PlatformIdentityRecord)) == 1
+    finally:
+        client.close()
+        engine.dispose()
+
+
 def test_phone_account_role_is_only_granted_by_owner_and_phone_is_masked(monkeypatch):
     client, engine, _sends = make_client(monkeypatch=monkeypatch)
     try:

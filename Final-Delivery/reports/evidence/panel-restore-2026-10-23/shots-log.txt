@@ -1,0 +1,48 @@
+## settings
+settings-home--ref--desktop.png overflow=false
+settings-home--ref--mobile.png overflow=false
+settings-home--before--desktop.png overflow=false
+settings-home--before--mobile.png overflow=false
+settings-home--after--desktop.png overflow=false
+settings-home--after--mobile.png overflow=false
+settings-notify--ref--desktop.png overflow=false
+settings-notify--after--desktop.png overflow=false
+settings-money--ref--desktop.png overflow=false
+settings-money--after--desktop.png overflow=false
+settings-data--ref--desktop.png overflow=false
+settings-data--after--desktop.png overflow=false
+## nav
+dash--ref--desktop.png overflow=false
+dash--ref--mobile.png overflow=false
+dash--before--desktop.png overflow=false
+dash--before--mobile.png overflow=false
+dash--after--desktop.png overflow=false
+dash--after--mobile.png overflow=false
+wizard-step1--ref--desktop.png overflow=false
+wizard-step1--ref--mobile.png overflow=false
+wizard-step1--before--desktop.png overflow=false
+wizard-step1--after--desktop.png overflow=false
+wizard-step1--after--mobile.png overflow=false
+wizard-step4--after--desktop.png overflow=false
+wizard-step5--after--desktop.png overflow=false
+## file
+event-file-info--after--desktop.png overflow=false
+event-file-info--after--mobile.png overflow=false
+event-file-regs--after--desktop.png overflow=false
+event-file-notify--after--desktop.png overflow=false
+events-list--ref--desktop.png overflow=false
+events-list--after--desktop.png overflow=false
+## wizard
+seed form: 201 7289c270-e72e-43b1-8b83-bba8d2c36993
+POST /api/admin/content/events -> 200 {"kind":"events","record":{"id":"ev-f35638d01d","t":"رویداد آزمون ویزارد 14:08:06","kind":"رویداد","d":"شرح آزمایشی برای بازبینی ویزارد.","when":"یکشنبه ۲۰ دی","on":"1405/10/20","time":"","place":"تهر
+after save-stay: {"hash":"#events","step":true,"forms":"ev-f35638d01d","picker":true}
+POST /api/forms/7289c270-e72e-43b1-8b83-bba8d2c36993/event -> 200 {"id":"7289c270-e72e-43b1-8b83-bba8d2c36993","name":"فرم ثبت‌نام انبار (آزمون ویزارد)","model":"registration","need":"reg","slug":"qa/wizard-1792764484243","ev":"ev-f35638d01d","purpose":"registration
+link: {"row":true,"msg":"«فرم ثبت‌نام انبار (آزمون ویزارد)» به این رویداد وصل شد · نسخهٔ ۲"}
+review: 
+          وضعیت از سرور
+          انتشار: پیش‌نویسثبت‌نام: بدون فرم ثبت‌نامفرم‌های وصل‌شده: ۱ (منتشرشده: ۰)جلسه‌ها: ۰
+          فرم ثبت‌نام انبار (آزمون ویزارد) · ثبت‌نام · پیش‌نویس · ۰ پاسخ
+          صفحهٔ عمومی
+        
+after reload row: true
+server form: {"ev":"ev-f35638d01d","version":2} expected ev=ev-f35638d01d

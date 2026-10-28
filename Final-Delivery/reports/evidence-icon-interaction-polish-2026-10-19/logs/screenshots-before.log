@@ -1,0 +1,176 @@
+owner login 200 cookies nora_session,nora_csrf
+home 360x800 light: ctrls=57 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+home 390x844 light: ctrls=57 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+home 768x1024 light: ctrls=57 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+home 1280x800 light: ctrls=57 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+home 1440x900 light: ctrls=57 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+home 390x844 dark: ctrls=57 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+home 1280x800 dark: ctrls=57 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+events 360x800 light: ctrls=35 broken=0 small=5 iconOnlyNoName=0 emoji=1 overflowX=false errs=0
+events 390x844 light: ctrls=35 broken=0 small=5 iconOnlyNoName=0 emoji=1 overflowX=false errs=0
+events 768x1024 light: ctrls=35 broken=0 small=5 iconOnlyNoName=0 emoji=1 overflowX=false errs=0
+events 1280x800 light: ctrls=35 broken=0 small=5 iconOnlyNoName=0 emoji=1 overflowX=false errs=0
+events 1440x900 light: ctrls=35 broken=0 small=5 iconOnlyNoName=0 emoji=1 overflowX=false errs=0
+events 390x844 dark: ctrls=35 broken=0 small=5 iconOnlyNoName=0 emoji=1 overflowX=false errs=0
+events 1280x800 dark: ctrls=35 broken=0 small=5 iconOnlyNoName=0 emoji=1 overflowX=false errs=0
+event 360x800 light: ctrls=15 broken=0 small=2 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+event 390x844 light: ctrls=15 broken=0 small=2 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+event 768x1024 light: ctrls=16 broken=0 small=2 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+event 1280x800 light: ctrls=16 broken=0 small=2 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+event 1440x900 light: ctrls=16 broken=0 small=2 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+event 390x844 dark: ctrls=15 broken=0 small=2 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+event 1280x800 dark: ctrls=16 broken=0 small=2 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+post 360x800 light: ctrls=12 broken=0 small=2 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+post 390x844 light: ctrls=12 broken=0 small=2 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+post 768x1024 light: ctrls=12 broken=0 small=2 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+post 1280x800 light: ctrls=12 broken=0 small=2 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+post 1440x900 light: ctrls=12 broken=0 small=2 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+post 390x844 dark: ctrls=12 broken=0 small=2 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+post 1280x800 dark: ctrls=12 broken=0 small=2 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+person 360x800 light: ctrls=9 broken=0 small=2 iconOnlyNoName=0 emoji=1 overflowX=false errs=0
+person 390x844 light: ctrls=9 broken=0 small=2 iconOnlyNoName=0 emoji=1 overflowX=false errs=0
+person 768x1024 light: ctrls=9 broken=0 small=2 iconOnlyNoName=0 emoji=1 overflowX=false errs=0
+person 1280x800 light: ctrls=9 broken=0 small=2 iconOnlyNoName=0 emoji=1 overflowX=false errs=0
+person 1440x900 light: ctrls=9 broken=0 small=2 iconOnlyNoName=0 emoji=1 overflowX=false errs=0
+person 390x844 dark: ctrls=9 broken=0 small=2 iconOnlyNoName=0 emoji=1 overflowX=false errs=0
+person 1280x800 dark: ctrls=9 broken=0 small=2 iconOnlyNoName=0 emoji=1 overflowX=false errs=0
+partner 360x800 light: ctrls=13 broken=0 small=2 iconOnlyNoName=0 emoji=1 overflowX=false errs=0
+partner 390x844 light: ctrls=13 broken=0 small=2 iconOnlyNoName=0 emoji=1 overflowX=false errs=0
+partner 768x1024 light: ctrls=13 broken=0 small=2 iconOnlyNoName=0 emoji=1 overflowX=false errs=0
+partner 1280x800 light: ctrls=13 broken=0 small=2 iconOnlyNoName=0 emoji=1 overflowX=false errs=0
+partner 1440x900 light: ctrls=13 broken=0 small=2 iconOnlyNoName=0 emoji=1 overflowX=false errs=0
+partner 390x844 dark: ctrls=13 broken=0 small=2 iconOnlyNoName=0 emoji=1 overflowX=false errs=0
+partner 1280x800 dark: ctrls=13 broken=0 small=2 iconOnlyNoName=0 emoji=1 overflowX=false errs=0
+login 360x800 light: ctrls=15 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+login 390x844 light: ctrls=15 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+login 768x1024 light: ctrls=15 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+login 1280x800 light: ctrls=15 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+login 1440x900 light: ctrls=15 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+login 390x844 dark: ctrls=15 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+login 1280x800 dark: ctrls=15 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+account 360x800 light: ctrls=23 broken=0 small=3 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+account 390x844 light: ctrls=23 broken=0 small=3 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+account 768x1024 light: ctrls=23 broken=0 small=3 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+account 1280x800 light: ctrls=23 broken=0 small=3 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+account 1440x900 light: ctrls=23 broken=0 small=3 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+account 390x844 dark: ctrls=23 broken=0 small=3 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+account 1280x800 dark: ctrls=23 broken=0 small=3 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+form 360x800 light: ctrls=9 broken=1 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+form 390x844 light: ctrls=9 broken=1 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+form 768x1024 light: ctrls=9 broken=1 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+form 1280x800 light: ctrls=9 broken=1 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+form 1440x900 light: ctrls=9 broken=1 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+form 390x844 dark: ctrls=9 broken=1 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+form 1280x800 dark: ctrls=9 broken=1 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+support 360x800 light: ctrls=12 broken=0 small=3 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+support 390x844 light: ctrls=12 broken=0 small=3 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+support 768x1024 light: ctrls=12 broken=0 small=3 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+support 1280x800 light: ctrls=12 broken=0 small=3 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+support 1440x900 light: ctrls=12 broken=0 small=3 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+support 390x844 dark: ctrls=12 broken=0 small=3 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+support 1280x800 dark: ctrls=12 broken=0 small=3 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+404 360x800 light: ctrls=6 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+404 390x844 light: ctrls=6 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+404 768x1024 light: ctrls=6 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+404 1280x800 light: ctrls=6 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+404 1440x900 light: ctrls=6 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+404 390x844 dark: ctrls=6 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+404 1280x800 dark: ctrls=6 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+offline 360x800 light: ctrls=2 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+offline 390x844 light: ctrls=2 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+offline 768x1024 light: ctrls=2 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+offline 1280x800 light: ctrls=2 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+offline 1440x900 light: ctrls=2 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+offline 390x844 dark: ctrls=2 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+offline 1280x800 dark: ctrls=2 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+create 360x800 light: ctrls=71 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+create 390x844 light: ctrls=71 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+create 768x1024 light: ctrls=71 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+create 1280x800 light: ctrls=71 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+create 1440x900 light: ctrls=71 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+create 390x844 dark: ctrls=71 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+create 1280x800 dark: ctrls=71 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+builder 360x800 light: ctrls=47 broken=1 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+builder 390x844 light: ctrls=47 broken=1 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+builder 768x1024 light: ctrls=47 broken=1 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+builder 1280x800 light: ctrls=52 broken=1 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+builder 1440x900 light: ctrls=52 broken=1 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+builder 390x844 dark: ctrls=47 broken=1 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+builder 1280x800 dark: ctrls=52 broken=1 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+admin 360x800 light: ctrls=11 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+admin 390x844 light: ctrls=11 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+admin 768x1024 light: ctrls=11 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+admin 1280x800 light: ctrls=19 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+admin 1440x900 light: ctrls=19 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+admin 390x844 dark: ctrls=11 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+admin 1280x800 dark: ctrls=19 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+final-page-review 360x800 light: ctrls=1 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+final-page-review 390x844 light: ctrls=1 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+final-page-review 768x1024 light: ctrls=1 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+final-page-review 1280x800 light: ctrls=1 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+final-page-review 1440x900 light: ctrls=1 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+final-page-review 390x844 dark: ctrls=1 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+final-page-review 1280x800 dark: ctrls=1 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+loading-preview 360x800 light: ctrls=0 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+loading-preview 390x844 light: ctrls=0 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+loading-preview 768x1024 light: ctrls=0 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+loading-preview 1280x800 light: ctrls=0 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+loading-preview 1440x900 light: ctrls=0 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+loading-preview 390x844 dark: ctrls=0 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+loading-preview 1280x800 dark: ctrls=0 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+nora-pay-preview 360x800 light: ctrls=8 broken=1 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+nora-pay-preview 390x844 light: ctrls=8 broken=1 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+nora-pay-preview 768x1024 light: ctrls=8 broken=1 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+nora-pay-preview 1280x800 light: ctrls=8 broken=1 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+nora-pay-preview 1440x900 light: ctrls=8 broken=1 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+nora-pay-preview 390x844 dark: ctrls=8 broken=1 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+browserType.launch: Target page, context or browser has been closed
+Browser logs:
+
+<launching> /tmp/chromium --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,AvoidCorsURLLoaderRestartOnRedirect,Translate,AutoDeElevate,OptimizationHints,NetworkTimeServiceQuerying,AimEnabled,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --ash-no-nudges --disable-domain-reliability --disable-print-preview --disk-cache-size=33554432 --no-default-browser-check --no-pings --single-process --font-render-hinting=none --disable-features=AudioServiceOutOfProcess,IsolateOrigins,site-per-process --enable-features=SharedArrayBuffer --ignore-gpu-blocklist --in-process-gpu --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader --disable-setuid-sandbox --disable-site-isolation-trials --headless='shell' --no-sandbox --no-zygote --user-data-dir=/tmp/playwright_chromiumdev_profile-tPsrZy --remote-debugging-pipe --no-startup-window
+<launched> pid=33312
+Call log:
+  - <launching> /tmp/chromium --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,AvoidCorsURLLoaderRestartOnRedirect,Translate,AutoDeElevate,OptimizationHints,NetworkTimeServiceQuerying,AimEnabled,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --ash-no-nudges --disable-domain-reliability --disable-print-preview --disk-cache-size=33554432 --no-default-browser-check --no-pings --single-process --font-render-hinting=none --disable-features=AudioServiceOutOfProcess,IsolateOrigins,site-per-process --enable-features=SharedArrayBuffer --ignore-gpu-blocklist --in-process-gpu --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader --disable-setuid-sandbox --disable-site-isolation-trials --headless='shell' --no-sandbox --no-zygote --user-data-dir=/tmp/playwright_chromiumdev_profile-tPsrZy --remote-debugging-pipe --no-startup-window
+  - <launched> pid=33312
+  - [pid=33312] <gracefully close start>
+  - [pid=33312] <kill>
+  - [pid=33312] <will force kill>
+  - [pid=33312] <process did exit: exitCode=null, signal=SIGSEGV>
+  - [pid=33312] starting temporary directories cleanup
+  - [pid=33312] finished temporary directories cleanup
+  - [pid=33312] <gracefully close end>
+
+  log: [
+    "  - <launching> /tmp/chromium --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,AvoidCorsURLLoaderRestartOnRedirect,Translate,AutoDeElevate,OptimizationHints,NetworkTimeServiceQuerying,AimEnabled,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --ash-no-nudges --disable-domain-reliability --disable-print-preview --disk-cache-size=33554432 --no-default-browser-check --no-pings --single-process --font-render-hinting=none --disable-features=AudioServiceOutOfProcess,IsolateOrigins,site-per-process --enable-features=SharedArrayBuffer --ignore-gpu-blocklist --in-process-gpu --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader --disable-setuid-sandbox --disable-site-isolation-trials --headless='shell' --no-sandbox --no-zygote --user-data-dir=/tmp/playwright_chromiumdev_profile-tPsrZy --remote-debugging-pipe --no-startup-window",
+    '  - <launched> pid=33312',
+    '  - [pid=33312] <gracefully close start>',
+    '  - [pid=33312] <kill>',
+    '  - [pid=33312] <will force kill>',
+    '  - [pid=33312] <process did exit: exitCode=null, signal=SIGSEGV>',
+    '  - [pid=33312] starting temporary directories cleanup',
+    '  - [pid=33312] finished temporary directories cleanup',
+    '  - [pid=33312] <gracefully close end>'
+  ]
+}
+
+Node.js v22.22.3
+owner login 200 cookies nora_session,nora_csrf
+nora-pay-preview 360x800 light: ctrls=8 broken=1 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+nora-pay-preview 390x844 light: ctrls=8 broken=1 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+nora-pay-preview 768x1024 light: ctrls=8 broken=1 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+nora-pay-preview 1280x800 light: ctrls=8 broken=1 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+nora-pay-preview 1440x900 light: ctrls=8 broken=1 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+nora-pay-preview 390x844 dark: ctrls=8 broken=1 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+nora-pay-preview 1280x800 dark: ctrls=8 broken=1 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+index 360x800 light: ctrls=57 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+index 390x844 light: ctrls=57 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+index 768x1024 light: ctrls=57 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+index 1280x800 light: ctrls=57 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+index 1440x900 light: ctrls=57 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+index 390x844 dark: ctrls=57 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+index 1280x800 dark: ctrls=57 broken=0 small=0 iconOnlyNoName=0 emoji=0 overflowX=false errs=0
+done 14 shots → /tmp/qa/icons/before

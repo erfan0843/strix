@@ -1,0 +1,47 @@
+owner auth/me 200
+=== e2e-event-file start 17:09:34
+e2e-event-file EXIT 0
+PASS no page errors: 
+
+TOTAL PASS 82 / FAIL 1
+=== e2e-roles start 17:12:52
+e2e-roles EXIT 0
+PASS owner person file: audit shows manual decision + attendance
+TOTAL PASS 25 / FAIL 1
+=== e2e-builder-return start 17:13:27
+e2e-builder EXIT 0
+page errors: []
+TOTAL PASS 24 / FAIL 0
+=== a11y start 17:15:59
+a11y EXIT 0
+errors []
+TOTAL PASS 31 / FAIL 0
+=== g-shots start 17:17:55
+g-shots EXIT 0
+17-public-event-360.png	/event.html?id=ev-3b17401227	overflow=0
+18-home-360.png	/home.html	overflow=0
+=== ds-audit start 17:21:57
+ds-audit EXIT 0
+builder@360: sw=360 main=0|360|0 fonts=13.5px×33 12px×32 16px×16 15px×15 9.16667px×5 30px×1 18px×1 | btnH=44px×15 32px×11 34px×4 50px×3 75px×1 74px×1 | radii=16px×32 999px×22 22px×17 14px×10 50%×10 99px×6 12px×6 18px×3 | cls=0.000
+manager-first@360: sw=360 main=0|360|0 fonts=12px×22 11px×20 15px×12 13.5px×9 16px×4 18.5px×4 30px×1 | btnH=34px×10 23px×5 36px×2 | radii=18px×10 12px×10 999px×9 22px×3 16px×2 | cls=0.000
+manager-event-hub@360: sw=360 main=0|360|0 fonts=13.5px×14 11px×14 12px×13 30px×1 16px×1 15.75px×1 | btnH=34px×6 123px×6 | radii=12px×12 999px×11 16px×7 22px×3 18px×2 | cls=0.000
+owner auth/me after 200
+=== node-suite start 17:29:00
+node-suite done: 40/40 exit 0
+=== pytest start 17:34:00
+pytest EXIT 0
+SKIPPED [4] tests/test_migrations_postgres.py:50: requires an explicitly configured disposable NORA_TEST_POSTGRES_URL
+398 passed, 4 skipped, 3 warnings in 127.10s (0:02:07)
+=== mypy start 17:36:10
+mypy EXIT 0
+Success: no issues found in 78 source files
+PASS types
+=== pg-migrations start 17:36:19
+pg EXIT 0
+.....                                                                    [100%]
+5 passed in 2.53s
+=== audit-shots-after start 17:36:23
+audit-shots EXIT 0
+manager m-users 1440 {"sw":1440,"sh":1464,"btn":31,"links":3,"cards":2,"chips":23,"headings":4,"dupHeadings":[],"tabs":2,"details":0,"pTextLen":403,"nav":2,"inputs":1}
+manager m-users 390 {"sw":390,"sh":1865,"btn":18,"links":4,"cards":2,"chips":20,"headings":3,"dupHeadings":[],"tabs":6,"details":0,"pTextLen":270,"nav":1,"inputs":1}
+=== ALL DONE 17:44:28

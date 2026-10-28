@@ -1,0 +1,22 @@
+✓ m guest: account APIs 401; event CTA=login; no player frame for a guest
+✓ m attendee event page: CTA=view («مشاهدهٔ جلسات دسترسی فعال»), server reason=attended, participation registered=true/attended=true, locked file download → 200 (no buy CTA for a checked-in attendee)
+✓ m player honesty: youtube=ready/unverified «پخش‌کننده بارگذاری شد؛ پخش و خطاهای ویدیو را خود یوتیوب داخل قاب نشان می‌دهد و نورا آن را تأیید نمی‌کند.» — iframe load is never presented as playback; «بدون حفاظت یا DRM» stated; the sandbox has no route to youtube.com, so real playback is NOT claimed
+✓ m attendee «رویدادهای من»: held event card: «حضور ثبت شده» + «آرشیو برای حاضران این رویداد · ۲ جلسه مشاهدهٔ جلسات» → event.html?id=ev-6e9992506d#recording-sessions; API row access={"state":"active","source":"attended","expires_at":null,"granted_at":null,"revoked_at":null} (derived, no grant row, no fake progress)
+✓ m attendee «محتوای من»: library card labelled «دسترسی حاضران رویداد» with «مشاهدهٔ جلسات»; no «ادامهٔ مشاهده» without real progress
+✓ m absent member event page: CTA=buy; registered=true, attended=false; locked download → 403; not in library; no player frame (registration ≠ attendance ≠ access)
+✓ m absent «رویدادهای من»: registration card present, no «حضور ثبت شده», no archive link
+✓ m manager API: GET /api/admin/events/ev-6e9992506d/recording → 200; attendee_access=true; status=published
+✓ m manager product tab: product tab inside the event tool: status «نسخهٔ ضبط‌شدهٔ کارگاه حضوری رصد ماه در حال فروش ۹۰۰,۰۰۰ ریال دسترسی ۹۰ روزه حاضران: رایگان»; editor flag «حاضران تأییدشده رایگان دسترسی دارند» checked (server attendee_access=true)
+✓ m external-player warning: YouTube resource editor: data-ei-external-warning=paid: هشدار سطح حفاظت: این منبع پولی روی یوتیوب میزبانی می‌شود. اگر ویدیو «عمومی» یا «فهرست‌نشده (Unlisted)» باشد، هرکس پیوند یا شناسه را داشته باشد می‌تواند آن را بیرون از نورا تماشا کند؛ نورا فقط قاب را پ
+✓ d guest: account APIs 401; event CTA=login; no player frame for a guest
+✓ d attendee event page: CTA=view («مشاهدهٔ جلسات دسترسی فعال»), server reason=attended, participation registered=true/attended=true, locked file download → 200 (no buy CTA for a checked-in attendee)
+✓ d player honesty: youtube=ready/unverified «پخش‌کننده بارگذاری شد؛ پخش و خطاهای ویدیو را خود یوتیوب داخل قاب نشان می‌دهد و نورا آن را تأیید نمی‌کند.» — iframe load is never presented as playback; «بدون حفاظت یا DRM» stated; the sandbox has no route to youtube.com, so real playback is NOT claimed
+✓ d attendee «رویدادهای من»: held event card: «حضور ثبت شده» + «آرشیو برای حاضران این رویداد · ۲ جلسه مشاهدهٔ جلسات» → event.html?id=ev-6e9992506d#recording-sessions; API row access={"state":"active","source":"attended","expires_at":null,"granted_at":null,"revoked_at":null} (derived, no grant row, no fake progress)
+✓ d attendee «محتوای من»: library card labelled «دسترسی حاضران رویداد» with «مشاهدهٔ جلسات»; no «ادامهٔ مشاهده» without real progress
+✓ d absent member event page: CTA=buy; registered=true, attended=false; locked download → 403; not in library; no player frame (registration ≠ attendance ≠ access)
+✓ d absent «رویدادهای من»: registration card present, no «حضور ثبت شده», no archive link
+✓ d manager API: GET /api/admin/events/ev-6e9992506d/recording → 200; attendee_access=true; status=published
+✓ d manager product tab: product tab inside the event tool: status «نسخهٔ ضبط‌شدهٔ کارگاه حضوری رصد ماه در حال فروش ۹۰۰,۰۰۰ ریال دسترسی ۹۰ روزه حاضران: رایگان»; editor flag «حاضران تأییدشده رایگان دسترسی دارند» checked (server attendee_access=true)
+✓ d external-player warning: YouTube resource editor: data-ei-external-warning=paid: هشدار سطح حفاظت: این منبع پولی روی یوتیوب میزبانی می‌شود. اگر ویدیو «عمومی» یا «فهرست‌نشده (Unlisted)» باشد، هرکس پیوند یا شناسه را داشته باشد می‌تواند آن را بیرون از نورا تماشا کند؛ نورا فقط قاب را پ
+
+ARTIFACTS: 22 screenshots in phase9.3

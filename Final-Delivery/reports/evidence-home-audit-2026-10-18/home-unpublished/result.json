@@ -1,0 +1,180 @@
+[
+  {
+    "name": "mobile",
+    "w": 390,
+    "h": 844,
+    "info": {
+      "source": "unavailable",
+      "banners": 0,
+      "bannerHidden": true,
+      "bannerRect": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0
+      },
+      "scrollW": 390,
+      "innerW": 390,
+      "pageH": 2592,
+      "theme": "light",
+      "sections": [
+        {
+          "id": "searchSec",
+          "top": 92,
+          "h": 198
+        },
+        {
+          "id": "publicContentStatus",
+          "top": 312,
+          "h": 110
+        },
+        {
+          "id": "quick",
+          "top": 444,
+          "h": 325
+        },
+        {
+          "id": "row",
+          "top": 791,
+          "h": 44
+        },
+        {
+          "id": "evSec",
+          "top": 857,
+          "h": 182
+        },
+        {
+          "id": "pastSec",
+          "top": 1061,
+          "h": 268
+        },
+        {
+          "id": "club",
+          "top": 1351,
+          "h": 362
+        },
+        {
+          "id": "teachers",
+          "top": 1736,
+          "h": 140
+        },
+        {
+          "id": "staff",
+          "top": 1898,
+          "h": 103
+        },
+        {
+          "id": "articles",
+          "top": 2022,
+          "h": 140
+        },
+        {
+          "id": "partners",
+          "top": 2185,
+          "h": 150
+        },
+        {
+          "id": "hfoot",
+          "top": 2356,
+          "h": 123
+        }
+      ],
+      "h1": "خانهٔ نورا؛ رویدادها و مطالب گروه فرهنگی خط زندگی"
+    },
+    "errors": [
+      "console: Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "requests": [
+      "/api/public/site-content"
+    ]
+  },
+  {
+    "name": "desktop",
+    "w": 1280,
+    "h": 800,
+    "info": {
+      "source": "unavailable",
+      "banners": 0,
+      "bannerHidden": true,
+      "bannerRect": {
+        "x": 0,
+        "y": 0,
+        "w": 0,
+        "h": 0
+      },
+      "scrollW": 1280,
+      "innerW": 1280,
+      "pageH": 2448,
+      "theme": "light",
+      "sections": [
+        {
+          "id": "searchSec",
+          "top": 92,
+          "h": 134
+        },
+        {
+          "id": "publicContentStatus",
+          "top": 248,
+          "h": 90
+        },
+        {
+          "id": "quick",
+          "top": 360,
+          "h": 325
+        },
+        {
+          "id": "row",
+          "top": 707,
+          "h": 44
+        },
+        {
+          "id": "evSec",
+          "top": 773,
+          "h": 182
+        },
+        {
+          "id": "pastSec",
+          "top": 977,
+          "h": 256
+        },
+        {
+          "id": "club",
+          "top": 1255,
+          "h": 339
+        },
+        {
+          "id": "teachers",
+          "top": 1615,
+          "h": 140
+        },
+        {
+          "id": "staff",
+          "top": 1777,
+          "h": 103
+        },
+        {
+          "id": "articles",
+          "top": 1902,
+          "h": 140
+        },
+        {
+          "id": "partners",
+          "top": 2064,
+          "h": 126
+        },
+        {
+          "id": "hfoot",
+          "top": 2212,
+          "h": 123
+        }
+      ],
+      "h1": "خانهٔ نورا؛ رویدادها و مطالب گروه فرهنگی خط زندگی"
+    },
+    "errors": [
+      "console: Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "requests": [
+      "/api/public/site-content"
+    ]
+  }
+]

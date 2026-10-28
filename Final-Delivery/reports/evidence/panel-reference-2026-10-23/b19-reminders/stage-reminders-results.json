@@ -1,0 +1,77 @@
+{
+  "run": "f895e4",
+  "checks": [
+    {
+      "name": "d editor default off",
+      "ok": true,
+      "note": "switches unchecked; server read-model: ۲۴ ساعت پیش از شروع: خاموش | ۱ ساعت پیش از شروع: خاموش"
+    },
+    {
+      "name": "d save + reopen",
+      "ok": true,
+      "note": "GET detail: reminders={\"h24\":true,\"h1\":true}; editor: ۲۴ ساعت پیش از شروع: زمان‌بندی‌شده · زمان ارسال: 1405/08/12 13:37 | ۱ ساعت پیش از شروع: زمان‌بندی‌شده · زمان ارسال: 1405/08/13 12:37"
+    },
+    {
+      "name": "d soon event + form",
+      "ok": true,
+      "note": "event ev-5bc7cf014f starts in 20 h (24 h slot already «due», 1 h slot «scheduled»); registration form 86d3152b-a9f1-4405-a40d-15f755f485d2 published"
+    },
+    {
+      "name": "registrations",
+      "ok": true,
+      "note": "member A accepted on the soon event (status=accepted); member B on the far event only (no public form id exposed — B simply has no registration on the soon event)"
+    },
+    {
+      "name": "d scheduler run queued 1",
+      "ok": true,
+      "note": "manual run from the panel → reminders {\"events\":1,\"slots\":1,\"queued\":1,\"existing\":0,\"skipped\":0,\"recipients\":1,\"withdrawn\":0,\"ok\":true}; card: «اجرای دستی: در موعد ۰ · اعلان‌شده ۰ · اعلان‌های ساخته‌شده ۰ · یادآور رویداد صف‌شده ۱ · باطل‌شده ۰»"
+    },
+    {
+      "name": "d second run idempotent",
+      "ok": true,
+      "note": "re-run → queued 0, existing 1 (dedupe key per event/slot/start/account)"
+    },
+    {
+      "name": "d outbox queued row",
+      "ok": true,
+      "note": "outbox filtered by kind=event_reminder shows the queued reminder («یادآوری رویداد», «در صف»); API row pending, raw Bale id not exposed"
+    },
+    {
+      "name": "d editor queued counter",
+      "ok": true,
+      "note": "24 h slot: «۲۴ ساعت پیش از شروع: در نوبت اجرای زمان‌بند · در صف/ارسال‌شده: ۱ (در انتظار ۱، تحویل بله ۰، ناموفق ۰)»; 1 h slot: «۱ ساعت پیش از شروع: زمان‌بندی‌شده · زمان ارسال: 1405/08/02 08:46»"
+    },
+    {
+      "name": "d time change withdraws",
+      "ok": true,
+      "note": "PUT startsAt (+5 d) → run: withdrawn 1, queued 0; outbox row «باطل‌شده (تغییر زمان/لغو)» without retry; manual retry → 409 reminder_superseded"
+    },
+    {
+      "name": "d editor after move",
+      "ok": true,
+      "note": "24 h slot after the move: «۲۴ ساعت پیش از شروع: زمان‌بندی‌شده · زمان ارسال: 1405/08/05 13:46 · باطل‌شده پس از تغییر زمان/لغو: ۱»"
+    },
+    {
+      "name": "d member A in-app",
+      "ok": true,
+      "note": "account notifications: exactly 1 reminder row (title «یادآوری رویداد: کارگاه فردا (آزمون یادآور f895e4)»; original text with «فردا» + place + start time kept, now headed «دیگر معتبر نیست» because the start moved; link /event.html?id=ev-5bc7cf014f); shown in account.html; member → outbox 403"
+    },
+    {
+      "name": "member B + guest",
+      "ok": true,
+      "note": "member B (not registered on the soon event) has no reminder; guest → outbox 401"
+    },
+    {
+      "name": "m editor",
+      "ok": true,
+      "note": "mobile editor shows both switches on and the two server states"
+    },
+    {
+      "name": "m outbox",
+      "ok": true,
+      "note": "mobile outbox with kind filter shows 3 reminder row(s)"
+    }
+  ],
+  "soon_event": "ev-5bc7cf014f",
+  "form": "86d3152b-a9f1-4405-a40d-15f755f485d2"
+}

@@ -1,0 +1,37 @@
+
+== http://127.0.0.1:8000/admin.html @390 total=0.060
+  615ms 0.058 DIV.dash-grid 201->198 | DIV.admlirow 0->826 | BUTTON.btn.sm 168->165
+
+== http://127.0.0.1:8000/admin.html#reports @1024 total=0.010
+  279ms 0.01 DIV#admBody 82->95 | NAV#admTabs.tabbar 667->655
+
+== http://127.0.0.1:8000/admin.html#reports @390 total=0.053
+  147ms 0.053 DIV#admBody 82->149 | NAV#admTabs.tabbar 743->731
+
+== http://127.0.0.1:8080/admin.html @390 total=0.030
+  584ms 0.03 DIV#admBody 82->127 | NAV#admTabs.tabbar 743->731
+
+== http://127.0.0.1:8000/admin.html @390 total=0.030
+  188ms 0.03 DIV#admBody 82->127 | NAV#admTabs.tabbar 743->731
+
+== http://127.0.0.1:8000/admin.html#reports @1024 total=0.010
+  120ms 0.01 DIV#admBody 82->95 | NAV#admTabs.tabbar 667->655
+
+== http://127.0.0.1:8000/admin.html#reports @390 total=0.053
+  149ms 0.053 DIV#admBody 82->149 | NAV#admTabs.tabbar 743->731
+
+== http://127.0.0.1:8080/admin.html @390 total=0.047
+  382ms 0.03 DIV#admBody 82->127 | NAV#admTabs.tabbar 743->731
+  439ms 0.017 ? | ? | ?
+
+== http://127.0.0.1:8000/admin.html @390 total=0.030
+  217ms 0.03 DIV#admBody 82->127 | NAV#admTabs.tabbar 743->731
+
+== http://127.0.0.1:8000/admin.html#reports @1024 total=0.010
+  185ms 0.01 DIV#admBody 82->95 | NAV#admTabs.tabbar 667->655
+
+== http://127.0.0.1:8000/admin.html#reports @390 total=0.053
+  144ms 0.053 DIV#admBody 82->149 | NAV#admTabs.tabbar 743->731
+
+== http://127.0.0.1:8080/admin.html @390 total=0.030
+  276ms 0.03 DIV#admBody 82->127 | NAV#admTabs.tabbar 743->731

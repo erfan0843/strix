@@ -1,0 +1,26 @@
+{
+  "steps": [
+    "0 teacher created via H1: confirm=true state=افزودن پروفایل «مدرس آزمایشی مرحله ۲» در نسخهٔ ۵۵ سرور ذخیره شد؛ همین حالا در سایت دیده می‌شود.",
+    "0 person id: pp-mvk1jidq6xdy",
+    "1 editor pickers: {\"empty\":true,\"partner\":true}",
+    "1 search \"رصد\" hits: [\"pp-mvk1jidq6xdy\"]",
+    "1 Enter picked: pp-mvk1jidq6xdy preview= بدون تصویر رویداد ممیزی از صفر (آزمایشی)رویداد · 1405/09/15 · ۱۰ تا ۱۲ · سالن آزمایشی 1792703468071 · رایگان · مدرس: مدرس آزمایشی مرحله ۲شرح آزمایشی برای ممیزی",
+    "1 list row after save:  رویداد ممیزی از صفر (آزمایشی)رویداد · 1405/09/15 · ۱۰ تا ۱۲ · سالن آزمایشی 1792703468071 · ظرفیت ۱۲ · مدرس: مدرس آزمایشی مرحله ۲آخرین تغییر: ۱۴۰۵/۷/۳۰, ۲۱:۱۶ پیش‌نویس ویرایشمنابع و پرسش‌هاانتشاربایگانی",
+    "2 after reload linked id: pp-mvk1jidq6xdy (expected pp-mvk1jidq6xdy)",
+    "2 server record tchr: pp-mvk1jidq6xdy",
+    "2 link published event ev-a565e1b030 → PUT 200",
+    "2 public event page shows teacher name: true role: true",
+    "2 events.html list card (events-page.js resolves tchr by id): {\"card\":true,\"teacherOnCard\":true}",
+    "2 home.html mentions the teacher (teacher rail): true",
+    "2 unlink published event → PUT 200",
+    "3 ghost id: warning=\" ؟شناسهٔ pp-ghost در فهرست منتشرشدهٔ سایت نیست ذخیره با این مقدار رد می‌شود (پیوند شکسته). یکی از فهرست را انتخاب کن یا آن را بردار. بردار\" blocked client-side (requests unchanged=true) editorOpen=true err=\"این شناسه در فهرست افراد/نهادهای همکار سرور وجود ندارد؛ اول شخص یا نهاد را بسازید.\"",
+    "3 server PUT tchr=pp-ghost → {\"status\":422,\"detail\":{\"code\":\"unknown_reference\",\"field\":\"tchr\"}}",
+    "3 after clear + pick again saved; server tchr=pp-mvk1jidq6xdy",
+    "4 409 in editor: {\"editorOpen\":true,\"msg\":\"محتوا در این میان از جای دیگری تغییر کرده بود؛ فهرست تازه شد، دوباره تلاش کنید.\",\"tchr\":\"pp-mvk1jidq6xdy\"}",
+    "4 retry on fresh version saved; tchr still=pp-mvk1jidq6xdy",
+    "5 article saved: whoLabel=\"نویسندهٔ میهمان (نام آزاد، اختیاری)\" row={\"id\":\"ar-460b32a4a0\",\"text\":\" مطلب آزمایشی مرحله ۲ (حذف‌شدنی)مطلب · نویسنده: مدرس آزمایشی مرحله ۲ · ۱ بندآخرین تغییر: ۱۴۰۵/۷/۳۰, ۲۱:۱۹ پیش‌نویس ویرایشانتشاربایگانی\"}",
+    "6 manager editor: {\"picker\":true,\"manage\":false,\"ownerCalls\":0,\"publicCalls\":1}",
+    "6 mobile overflowX=false",
+    "7 cleanup: {\"unlink\":200,\"article\":[200,200],\"deletePerson\":200}"
+  ]
+}

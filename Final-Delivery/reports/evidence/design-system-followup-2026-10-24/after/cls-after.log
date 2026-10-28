@@ -1,0 +1,39 @@
+
+== http://127.0.0.1:8000/admin.html @390 total=0.030
+  598ms 0.03 DIV.dash-grid 201->198 | DIV.admlirow 0->826 | BUTTON.btn.sm 168->165
+
+== http://127.0.0.1:8000/admin.html#reports @1024 total=0.000
+
+== http://127.0.0.1:8000/admin.html#reports @390 total=0.000
+
+== http://127.0.0.1:8080/admin.html @390 total=0.017
+  585ms 0.017 DIV.admlirow 636->610 | DIV.admlirow 487->460 | DIV.admlirow 711->684
+
+== http://127.0.0.1:8000/admin.html @1440 total=0.003
+
+== http://127.0.0.1:8000/admin.html#settings @1024 total=0.000
+
+== http://127.0.0.1:8000/admin.html @390 total=0.000
+
+== http://127.0.0.1:8000/admin.html#reports @1024 total=0.000
+
+== http://127.0.0.1:8000/admin.html#reports @390 total=0.000
+
+== http://127.0.0.1:8080/admin.html @390 total=0.017
+  443ms 0.017 DIV.admlirow 636->610 | DIV.admlirow 487->460 | DIV.admlirow 711->684
+
+== http://127.0.0.1:8000/admin.html @1440 total=0.003
+
+== http://127.0.0.1:8000/admin.html#settings @1024 total=0.000
+
+== http://127.0.0.1:8000/admin.html @390 total=0.000
+
+== http://127.0.0.1:8000/admin.html#reports @1024 total=0.000
+
+== http://127.0.0.1:8000/admin.html#reports @390 total=0.000
+
+== http://127.0.0.1:8080/admin.html @390 total=0.000
+
+== http://127.0.0.1:8000/admin.html @1440 total=0.003
+
+== http://127.0.0.1:8000/admin.html#settings @1024 total=0.000

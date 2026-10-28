@@ -1,0 +1,79 @@
+events: {"A":"ev-ad82d888ea","B":"ev-461252630a"}
+PASS A: forms tab empty state with create action: 
+create reg form href: create.html?ev=ev-ad82d888ea&need=reg&name=%D8%B1%D9%88%DB%8C%D8%AF%D8%A7%D8%AF+%D8%A7%D9%84%D9%81+%28%D9%BE%D8%B1%D9%88%D9%86%D8%AF%D9%87%29+204253&back=admin.html%23event%3Dev-ad82d888ea%26tab%3Dforms
+PASS create link carries ev + need=reg + back to this event/tab: 
+builder chip: {"hidden":false,"href":"admin.html#event=ev-ad82d888ea&tab=forms","text":"بازگشت به پروندهٔ رویداد"}
+PASS builder shows back link to event file A (same tab): 
+PASS back link returns to event A, forms tab: 
+forms: {"regA":"d30a329f-050c-4e27-9893-093222dc912d","regB":"0957ef9a-c391-4959-8cf2-a0f813468d85","pub":"04f4dd0d-94c4-4057-8ea6-de841cc6c63b","survey":"cceb3f95-3adc-4a32-9010-aef4ec4c3505","quiz":"b528aea0-b38d-47b3-aedf-d14ade1669f9"}
+PASS overview renders head: 
+head: رویداد الف (پرونده) 204253ثبت‌نام باز 1405/10/20 · ۱۰:۰۰ · حضوری · سالن آزمایش ثبت‌نام: ۰ از ۳ نفر · باقی‌مانده ۳فرم ثبت‌نام: فعالمبلغ: ۵۰۰,۰۰۰ ریال · کارت‌به‌کارت ظرفیت و مبلغ: تنظیم‌شده در فرم ثبت‌نام «فرم ثبت‌نام الف 204253» مشاهدهٔ صفحهویرایش رویدادویرایش تنظیمات ثبت‌نام
+PASS head: title + ثبت‌نام باز + cap 3 + price 500,000 + source label: 
+PASS head buttons: مشاهدهٔ صفحه / ویرایش رویداد / ویرایش تنظیمات ثبت‌نام: 
+PASS overview says declared event values are not the source: 
+PASS overview KPI from server counts: 
+PASS hash kept after load: 
+PASS public projection cap=3 price=500000 from form: 
+PASS forms tab lists reg A only: 
+PASS hash switched to tab=forms: 
+picker options: ["","04f4dd0d-94c4-4057-8ea6-de841cc6c63b","b528aea0-b38d-47b3-aedf-d14ade1669f9","cceb3f95-3adc-4a32-9010-aef4ec4c3505","8a44bd39-b851-4f69-8b50-c7792bad8cb3","39a8da58-0ac1-4c96-b018-787d59195465","c55d6071-a5b2-4cc7-96cf-b168d4e38bd6","a2ac433f-d00a-401b-8d86-764e9273df47","58b23198-e68d-4230-bfd7-7ac6e7e2545a","e5a4382f-727d-4327-8f88-735bc3be9b15","b635bd55-f249-48b7-986c-58a68206ae8f"]
+PASS link picker offers unlinked survey/quiz/public form, not B’s linked form: 
+PASS survey linked (card appears): 
+PASS quiz linked (card appears): 
+PASS reg form card has no unlink (published) with reason: 
+PASS cross-event link rejected by server (B form → A): 
+PASS builder opened for the survey with fid: 
+PASS after refresh in builder, back link still points to A/forms: 
+PASS browser back returns to A/forms: 
+regA version: 2
+form settings update: 200
+republish: 200
+head after form change: رویداد الف (پرونده) 204253ثبت‌نام باز 1405/10/20 · ۱۰:۰۰ · حضوری · سالن آزمایش ثبت‌نام: ۰ از ۴ نفر · باقی‌مانده ۴فرم ثبت‌نام: فعالمبلغ: ۶۰۰,۰۰۰ ریال · کارت‌به‌کارت ظرفیت و مبلغ: تنظیم‌شده در فرم ثبت‌نام «فرم ثبت‌نام الف 204253» مشاهدهٔ صفحهویرایش رویدادویرایش تنظیمات ثبت‌نام
+PASS event file follows the form: cap 4, price 600,000: 
+PASS overview.registration_settings == form settings: 
+PASS editor shows capacity/price read-only «تنظیم‌شده در فرم ثبت‌نام»: 
+price field: {"value":"۶۰۰,۰۰۰ ریال","ro":true}
+PASS price field read-only too: 
+registrations: {"p1":"de08a8d3-0768-4a7e-a7d4-9971b58d1a21","p2":"c0778c5b-48d3-40a6-997e-a54e50b37795","p3":"80be9046-6c2f-4afd-8dc3-fb197a921955","pB":"65ee1e03-ce3a-4e62-ab6e-84e4d4a67569"}
+PASS public submit returned tracking codes (no row ids): 
+PASS registrants tab renders rows: 
+summary: کل: ۳پذیرفته‌شده: ۳فهرست انتظار: ۰پرداخت‌شده: ۰در انتظار پرداخت: ۳ناموفق: ۰رایگان: ۰حاضر: ۰ظرفیت باقی‌مانده: ۱ از ۴
+PASS summary: total 3, pending 3, remaining 1 of 4: 
+PASS B’s registrant is not in A: 
+PASS row shows «رسید فرستاده شده» separate from payment state: 
+PASS filter paid → empty state with real counts: 
+PASS search narrows to one row: 
+PASS person file opens, hash has reg=: 
+person file: بازگشت به ثبت‌نام‌کنندگاننفر اول پروندهپذیرفته‌شدهدر انتظار پرداختNORA-DE08A8D307684A7EA7D4 · فرم ثبت‌نام الف 204253 پاسخ‌های فرمنام کاملنفر اول پرونده پرداخت و رسیدروشکارت‌به‌کارتوضعیت پرداخترسید فرستاده شده؛ تأیید نشدهمبلغ۶۰۰,۰۰۰ ریالتصمیم دربارهٔ این پرداخت تأیید پرداخترد رسید و لغو ثبت‌نامتأیید 
+PASS person file: answer, payment method, receipt image, no ticket yet: 
+PASS receipt image actually loads from the access-controlled route: 
+PASS refresh keeps the person file open: 
+PASS empty reason blocked: 
+PASS approved → paid + ticket image link: 
+ticket image: {"status":200,"type":"image/jpeg"}
+PASS ticket image served by the existing renderer (image/*): 
+PASS repeat approve is idempotent (changed:false): 
+decision without CSRF header: 415
+PASS decision without CSRF blocked: 
+PASS reject → back to list, 2 rows, remaining 2 of 4: 
+summary after decisions: کل: ۲پذیرفته‌شده: ۲فهرست انتظار: ۰پرداخت‌شده: ۱در انتظار پرداخت: ۱ناموفق: ۰رایگان: ۰حاضر: ۰ظرفیت باقی‌مانده: ۲ از ۴
+PASS summary: paid 1, pending 1: 
+PASS payments tab: 3 transactions incl. the rejected one kept: 
+totals: جمع پرداخت‌های موفق: ۶۰۰,۰۰۰ ریالموفق: ۱در انتظار: ۱ناموفق: ۱
+PASS totals: paid 1 / pending 1 / failed 1 / sum 600,000: 
+PASS rejected payment row says registration cancelled: 
+PASS p2 row: «رسیدی ثبت نشده»: 
+PASS tickets tab: 2 accepted rows: 
+dialog: حضور همین حالا با زمان سرور ثبت می‌شود. ادامه می‌دهید؟
+PASS check-in recorded: 
+PASS summary shows حاضر: ۱: 
+PASS survey summary box from direct URL: 
+summary box: نتیجهٔ کلی «نظرسنجی الف 204253»۳ پاسخبستن رضایت کلی۳ پاسخ4۱3۱5۱میانگین ۴ · کمینه ۳ · بیشینه ۵بهترین بخش۳ پاسخمحتوا۱مدرس۲مکان۰پیشنهاد۲ پاسخ
+PASS aggregate: 3 responses, مدرس ۲ / محتوا ۱, mean 4: 
+PASS quiz card says scoring needs a service (no fake score): 
+PASS B registrants: only B’s one row: 
+PASS A’s registration id under B → 404: 
+PASS A’s survey under B → 404: 
+PASS unknown event → Persian error + retry, no crash: 
+PASS mobile: no horizontal overflow on person file: 
+PASS no page errors: 

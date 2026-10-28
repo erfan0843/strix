@@ -1,0 +1,81 @@
+# فاز ۹.۶ — اجرای واقعی alembic upgrade head روی پایگاه خالی (SQLite و PostgreSQL یک‌بارمصرف)
+
+## SQLite (فایل تازه)
+$ NORA_DATABASE_URL=sqlite+pysqlite:////tmp/…/fresh.db alembic -c backend/alembic.ini upgrade head
+INFO  [alembic.runtime.migration] Running upgrade 0033_form_aligned_store -> 0034_private_storage, Phase 9.4: event resource bytes may live in the private storage outside the web root.
+INFO  [alembic.runtime.migration] Running upgrade 0034_private_storage -> 0035_notification_dedupe, Phase 9.4: idempotent user notifications with an in-app link.
+INFO  [alembic.runtime.migration] Running upgrade 0034_private_storage -> 0035_notification_dedupe, Phase 9.4: idempotent user notifications with an in-app link.
+INFO  [alembic.runtime.migration] Running upgrade 0035_notification_dedupe -> 0036_upload_sessions, Phase 9.5: resumable uploads, operations markers, one-shot content announcements.
+INFO  [alembic.runtime.migration] Running upgrade 0035_notification_dedupe -> 0036_upload_sessions, Phase 9.5: resumable uploads, operations markers, one-shot content announcements.
+exit=0
+$ alembic current
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+0036_upload_sessions (head)
+tables= 40 upload_sessions cols= 18 version= ('0036_upload_sessions',)
+$ alembic upgrade head (دوباره؛ باید بی‌اثر باشد)
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+exit=0
+$ alembic downgrade 0035_notification_dedupe && upgrade head
+INFO  [alembic.runtime.migration] Running downgrade 0036_upload_sessions -> 0035_notification_dedupe, Phase 9.5: resumable uploads, operations markers, one-shot content announcements.
+downgrade exit=0
+INFO  [alembic.runtime.migration] Running upgrade 0035_notification_dedupe -> 0036_upload_sessions, Phase 9.5: resumable uploads, operations markers, one-shot content announcements.
+upgrade exit=0
+(هشدار platformdirs حذف شد)
+
+## PostgreSQL یک‌بارمصرف (pgserver، Unix socket، دیتابیس تازه)
+$ alembic upgrade head
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Running upgrade  -> 0001_initial_forms, Initial owner sessions and form-draft tables.
+INFO  [alembic.runtime.migration] Running upgrade 0001_initial_forms -> 0002_public_responses, Published forms, anonymous server drafts, and durable form responses.
+INFO  [alembic.runtime.migration] Running upgrade 0002_public_responses -> 0003_cooperation_requests, Durable cooperation request inbox.
+INFO  [alembic.runtime.migration] Running upgrade 0003_cooperation_requests -> 0004_public_site_content, Owner-published public site content snapshot.
+INFO  [alembic.runtime.migration] Running upgrade 0004_public_site_content -> 0005_shared_accounts, Shared account identity foundation for the Nora web app and Bale bot.
+INFO  [alembic.runtime.migration] Running upgrade 0005_shared_accounts -> 0006_bale_account_sessions, Verified Bale Mini App sessions with one-time initData replay protection.
+INFO  [alembic.runtime.migration] Running upgrade 0006_bale_account_sessions -> 0007_account_roles, Server-enforced roles for shared Bale accounts.
+INFO  [alembic.runtime.migration] Running upgrade 0007_account_roles -> 0008_shared_workflows, Shared manager inbox tasks and user notification delivery state.
+INFO  [alembic.runtime.migration] Running upgrade 0008_shared_workflows -> 0009_workflow_projection, Track bot-side effects for decisions made in either client.
+INFO  [alembic.runtime.migration] Running upgrade 0009_workflow_projection -> 0010_private_files, Private shared attachment storage for profile and receipt reviews.
+INFO  [alembic.runtime.migration] Running upgrade 0010_private_files -> 0011_bot_form_history, Associate conversational bot responses with their Bale account for history.
+INFO  [alembic.runtime.migration] Running upgrade 0011_bot_form_history -> 0012_shared_form_tickets, Persist shared-form ticket delivery and one-time admission state.
+INFO  [alembic.runtime.migration] Running upgrade 0012_shared_form_tickets -> 0013_form_receipt_review_link, Link a public registration to its shared receipt review task.
+INFO  [alembic.runtime.migration] Running upgrade 0013_form_receipt_review_link -> 0014_form_receipt_uploads, Store public-form receipt uploads before the Bale ticket claim.
+INFO  [alembic.runtime.migration] Running upgrade 0014_form_receipt_uploads -> 0015_phone_otp_login, Add verified phone OTP challenges and account session provider metadata.
+INFO  [alembic.runtime.migration] Running upgrade 0015_phone_otp_login -> 0016_manager_password_login, Add owner-managed username/password login credentials for managers.
+INFO  [alembic.runtime.migration] Running upgrade 0016_manager_password_login -> 0017_form_companions, Persist companion identities and their independent form answers.
+INFO  [alembic.runtime.migration] Running upgrade 0017_form_companions -> 0018_separate_companion_responses, Persist each companion as an independent form response.
+INFO  [alembic.runtime.migration] Running upgrade 0018_separate_companion_responses -> 0019_form_receipt_notes, Store an optional participant note with public-form receipt uploads.
+INFO  [alembic.runtime.migration] Running upgrade 0019_form_receipt_notes -> 0020_form_payments, Create shared, idempotent form payment intents.
+INFO  [alembic.runtime.migration] Running upgrade 0020_form_payments -> 0021_form_payment_transactions, Record each provider charge once, including duplicate/exceptional charges.
+INFO  [alembic.runtime.migration] Running upgrade 0021_form_payment_transactions -> 0022_web_account_registration_history, Link public form responses to a verified web account session.
+INFO  [alembic.runtime.migration] Running upgrade 0022_web_account_registration_history -> 0023_payment_secrets, Store owner-entered payment provider secrets encrypted at rest.
+INFO  [alembic.runtime.migration] Running upgrade 0023_payment_secrets -> 0024_account_profiles, Store member profile fields entered on the account page.
+INFO  [alembic.runtime.migration] Running upgrade 0024_account_profiles -> 0025_service_checks, Record the outcome of real service-connection tests.
+INFO  [alembic.runtime.migration] Running upgrade 0025_service_checks -> 0026_admin_audit_events, Append-only audit trail for administrative actions (no secret material).
+INFO  [alembic.runtime.migration] Running upgrade 0026_admin_audit_events -> 0027_ticket_checkin_account, Record which web-panel account performed a ticket check-in.
+INFO  [alembic.runtime.migration] Running upgrade 0027_ticket_checkin_account -> 0028_certificates, Shared copy of bot-issued certificates for the managers' panel.
+INFO  [alembic.runtime.migration] Running upgrade 0028_certificates -> 0029_public_media, Public images uploaded from the managers' panel (event posters, article covers).
+INFO  [alembic.runtime.migration] Running upgrade 0029_public_media -> 0030_club_points_entries, Read-only mirror of the Bale bot's points ledger for the managers' panel.
+INFO  [alembic.runtime.migration] Running upgrade 0030_club_points_entries -> 0031_event_interaction, Phase 8: event resources, Q&A, attendee reviews and content reports.
+INFO  [alembic.runtime.migration] Running upgrade 0031_event_interaction -> 0032_recorded_content, Phase 9: recorded-content products of held events, orders and access rights.
+INFO  [alembic.runtime.migration] Running upgrade 0032_recorded_content -> 0033_form_aligned_store, Phase 9.1: the form builder becomes the commercial source of truth of recorded products.
+INFO  [alembic.runtime.migration] Running upgrade 0033_form_aligned_store -> 0034_private_storage, Phase 9.4: event resource bytes may live in the private storage outside the web root.
+INFO  [alembic.runtime.migration] Running upgrade 0034_private_storage -> 0035_notification_dedupe, Phase 9.4: idempotent user notifications with an in-app link.
+INFO  [alembic.runtime.migration] Running upgrade 0035_notification_dedupe -> 0036_upload_sessions, Phase 9.5: resumable uploads, operations markers, one-shot content announcements.
+exit=0
+$ alembic current
+0036_upload_sessions (head)
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+exit=0
+tables=40 version=0036_upload_sessions upload_sessions cols=18 alembic_version.version_num length=64
+$ alembic upgrade head
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+exit=0
+$ alembic downgrade 0035_notification_dedupe
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Running downgrade 0036_upload_sessions -> 0035_notification_dedupe, Phase 9.5: resumable uploads, operations markers, one-shot content announcements.
+exit=0
+$ alembic upgrade head
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Running upgrade 0035_notification_dedupe -> 0036_upload_sessions, Phase 9.5: resumable uploads, operations markers, one-shot content announcements.
+exit=0

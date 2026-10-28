@@ -1,0 +1,14 @@
+1440 {"sw":1440,"cw":1440,"cards":[71,74,71,71,71],"sheet":760,"inline":true}
+1024 {"sw":1024,"cw":1024,"cards":[71,74,71,71,71],"sheet":760,"inline":true}
+390 {"sw":390,"cw":390,"cards":[122,124,122,122,122],"sheet":390,"inline":false}
+360 {"sw":360,"cw":360,"cards":[122,124,122,122,122],"sheet":360,"inline":false}
+1440 {"sw":1440,"cw":1440,"added":0,"top":224}
+1024 {"sw":1024,"cw":1024,"added":0,"top":224}
+390 {"sw":390,"cw":390,"added":0,"top":184}
+360 {"sw":360,"cw":360,"added":0,"top":184}
+1440 {"docked":true,"on":true,"inCard":true,"isEditing":true,"modal":"false","scrim":false,"head":"ویرایش پرسش ۳ از ۵","active":"fdTitle","sw":1440,"cw":1440,"scrollY":509}
+1440 toggle {"stillDocked":true,"req1":true,"toggle1":"true","active":"toggle","titleVal":"تک‌انتخاب"}
+1440 esc {"docked":false,"on":false,"parent":"BODY","editing":0,"active":"edit-btn"}
+1024 {"docked":true,"on":true,"inCard":true,"isEditing":true,"modal":"false","scrim":false,"head":"ویرایش پرسش ۳ از ۵","active":"fdTitle","sw":1024,"cw":1024,"scrollY":497}
+1024 toggle {"stillDocked":true,"req1":true,"toggle1":"true","active":"toggle","titleVal":"تک‌انتخاب"}
+1024 esc {"docked":false,"on":false,"parent":"BODY","editing":0,"active":"edit-btn"}

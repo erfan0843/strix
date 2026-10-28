@@ -1,0 +1,46 @@
+✓ d guest home: home.html renders 4 event link(s); banner section #bnr visible=true; «فایل‌های شخصی» absent for guests=true
+✓ d guest archive: events page lists 28 event link(s)
+✓ d guest product page: CTA=login (login required, no purchase without identity); no player/iframe; download → 401; /api/account/me → 401; Q&A visible read-only (ask form=false, review form=false)
+✓ d guest purchase form: form.html for the product's purchase form: login required before purchase (text «خرید نسخهٔ ضبط‌شده خرید دسترسی به محتوای ضبط‌شده نسخهٔ ضبط‌شدهٔ کارگاه نجوم رصدی ۱٬۵۰۰٬۰۰۰»)
+✓ d registered-absent: «رویدادهای من» shows the held registration «کارگاه حضوری رصد ماه (برگزارشده، با آرشیو حاضران) فرم ثبت‌نا»; registration checked_in=false; event page CTA=buy; attended-only archive download → 403 resource_access_denied; certs for event=0; purchase rows=0; participation={"registered":true,"attended":false,"pending":false}
+✓ d checked-in attendee archive: participation={"registered":true,"attended":true,"pending":false}; download → 206 x-nora-resource-access=attended; 5 resource(s) rendered; attendee badge=false; can ask=undefined, can review=undefined (forms: ask=true, review=true); purchase rows=0 (attendance ≠ purchase)
+✓ d checked-in certificates section: account certificates section present; rendered=0, API total=0 (issued only through the bot certcenter / explicit staff path; bot link=false) «هنوز گواهینامه‌ای در حساب ثبت نشده گواهی فقط پس از صدور واقعی توسط برگزارکننده در ربات بله»
+✓ d holder authorized playback: Range download → 206 (x-nora-resource-access=purchased); CTA=view; 6 resource(s); no buy button; no raw storage hrefs; library rows for event=1; ledger rows for event=1 (paid_manual); «محتوای من» library cards=2; «پرداخت‌ها» order cards=1; «رویدادهای من» registration cards=0 (purchase is not a registration)
+✓ d holder purchase ≠ attendance ≠ certificate: viewer.buyer=true; participation={"registered":false,"attended":false,"pending":false}; registrations for event=0; certificates for event=0
+✓ d pending buyer: download → 403 resource_access_denied; CTA=order_open «»; ledger rows for event=1 (receipt_submitted); library rows=0; no second order from a revisit; «پرداخت‌ها» order cards=1 ["receipt_submitted"]
+✓ d 6-manager archive/sessions admin: product status «نسخهٔ ضبط‌شدهٔ کارگاه نجوم رصدی در حال فروش ۱,۵۰۰,۰۰۰ ریال دسترسی ۹۰ روزه گواهی »; sessions listed=3; grant button=true (ev_publish=true); orders tab=false
+✓ d 6-manager resources admin: resource rows=6; storage notice «فایل‌های تازه بیرون ریشهٔ وب و روی دیسک خصوصی سرور ذخیره می‌شوند (سقف هر فایل ۵۱۲ مگابایت · فضای آزاد دیسک: ۱۷.۵ گیگابایت). فایل‌های بزرگ‌تر»
+✓ d 6-manager orders admin: order rows=1; refund buttons=0 (finance=false); decide buttons=0
+✓ d 6-manager certificates admin: certificate rows=0; approve controls=0; mentions bot path=true
+✓ d 6-manager scheduler + outbox: scheduler state=ok; run button=true; last-run line «آخرین اجرا: ۱۴۰۵/۰۷/۳۰ ۱۳:۵۳ به وقت تهران · عامل: دستی از پنل · موفق · در موعد: ۰ · اعلان‌شده: ۰ · اعلان‌های ساخته‌شده: » (datetime=2026-10-22T10:23:54.201591Z); outbox rows=21, retry buttons=0 (only failed rows)
+✓ d manager permissions: manager permissions from server: ev_publish=true, rp_view=true, finance=false
+✓ d 7-owner archive/sessions admin: product status «نسخهٔ ضبط‌شدهٔ کارگاه نجوم رصدی در حال فروش ۱,۵۰۰,۰۰۰ ریال دسترسی ۹۰ روزه گواهی »; sessions listed=3; grant button=true (ev_publish=true); orders tab=false
+✓ d 7-owner resources admin: resource rows=6; storage notice «فایل‌های تازه بیرون ریشهٔ وب و روی دیسک خصوصی سرور ذخیره می‌شوند (سقف هر فایل ۵۱۲ مگابایت · فضای آزاد دیسک: ۱۷.۵ گیگابایت). فایل‌های بزرگ‌تر»
+✓ d 7-owner orders admin: order rows=1; refund buttons=0 (finance=true); decide buttons=0
+✓ d 7-owner certificates admin: certificate rows=0; approve controls=0; mentions bot path=true
+✓ d 7-owner scheduler + outbox: scheduler state=ok; run button=true; last-run line «آخرین اجرا: ۱۴۰۵/۰۷/۳۰ ۱۳:۵۳ به وقت تهران · عامل: دستی از پنل · موفق · در موعد: ۰ · اعلان‌شده: ۰ · اعلان‌های ساخته‌شده: » (datetime=2026-10-22T10:23:54.201591Z); outbox rows=21, retry buttons=0 (only failed rows)
+✓ d owner permissions: owner permissions from server include finance=true, ev_publish=true
+✓ m guest home: home.html renders 4 event link(s); banner section #bnr visible=true; «فایل‌های شخصی» absent for guests=true
+✓ m guest archive: events page lists 28 event link(s)
+✓ m guest product page: CTA=login (login required, no purchase without identity); no player/iframe; download → 401; /api/account/me → 401; Q&A visible read-only (ask form=false, review form=false)
+✓ m guest purchase form: form.html for the product's purchase form: login required before purchase (text «خرید نسخهٔ ضبط‌شده خرید دسترسی به محتوای ضبط‌شده نسخهٔ ضبط‌شدهٔ کارگاه نجوم رصدی ۱٬۵۰۰٬۰۰۰»)
+✓ m registered-absent: «رویدادهای من» shows the held registration «کارگاه حضوری رصد ماه (برگزارشده، با آرشیو حاضران) فرم ثبت‌نا»; registration checked_in=false; event page CTA=buy; attended-only archive download → 403 resource_access_denied; certs for event=0; purchase rows=0; participation={"registered":true,"attended":false,"pending":false}
+✓ m checked-in attendee archive: participation={"registered":true,"attended":true,"pending":false}; download → 206 x-nora-resource-access=attended; 5 resource(s) rendered; attendee badge=false; can ask=undefined, can review=undefined (forms: ask=true, review=true); purchase rows=0 (attendance ≠ purchase)
+✓ m checked-in certificates section: account certificates section present; rendered=0, API total=0 (issued only through the bot certcenter / explicit staff path; bot link=false) «هنوز گواهینامه‌ای در حساب ثبت نشده گواهی فقط پس از صدور واقعی توسط برگزارکننده در ربات بله»
+✓ m holder authorized playback: Range download → 206 (x-nora-resource-access=purchased); CTA=view; 6 resource(s); no buy button; no raw storage hrefs; library rows for event=1; ledger rows for event=1 (paid_manual); «محتوای من» library cards=2; «پرداخت‌ها» order cards=1; «رویدادهای من» registration cards=0 (purchase is not a registration)
+✓ m holder purchase ≠ attendance ≠ certificate: viewer.buyer=true; participation={"registered":false,"attended":false,"pending":false}; registrations for event=0; certificates for event=0
+✓ m pending buyer: download → 403 resource_access_denied; CTA=order_open «»; ledger rows for event=1 (receipt_submitted); library rows=0; no second order from a revisit; «پرداخت‌ها» order cards=1 ["receipt_submitted"]
+✓ m 6-manager archive/sessions admin: product status «نسخهٔ ضبط‌شدهٔ کارگاه نجوم رصدی در حال فروش ۱,۵۰۰,۰۰۰ ریال دسترسی ۹۰ روزه گواهی »; sessions listed=3; grant button=true (ev_publish=true); orders tab=false
+✓ m 6-manager resources admin: resource rows=6; storage notice «فایل‌های تازه بیرون ریشهٔ وب و روی دیسک خصوصی سرور ذخیره می‌شوند (سقف هر فایل ۵۱۲ مگابایت · فضای آزاد دیسک: ۱۷.۵ گیگابایت). فایل‌های بزرگ‌تر»
+✓ m 6-manager orders admin: order rows=1; refund buttons=0 (finance=false); decide buttons=0
+✓ m 6-manager certificates admin: certificate rows=0; approve controls=0; mentions bot path=true
+✓ m 6-manager scheduler + outbox: scheduler state=ok; run button=true; last-run line «آخرین اجرا: ۱۴۰۵/۰۷/۳۰ ۱۳:۵۳ به وقت تهران · عامل: دستی از پنل · موفق · در موعد: ۰ · اعلان‌شده: ۰ · اعلان‌های ساخته‌شده: » (datetime=2026-10-22T10:23:54.201591Z); outbox rows=21, retry buttons=0 (only failed rows)
+✓ m manager permissions: manager permissions from server: ev_publish=true, rp_view=true, finance=false
+✓ m 7-owner archive/sessions admin: product status «نسخهٔ ضبط‌شدهٔ کارگاه نجوم رصدی در حال فروش ۱,۵۰۰,۰۰۰ ریال دسترسی ۹۰ روزه گواهی »; sessions listed=3; grant button=true (ev_publish=true); orders tab=false
+✓ m 7-owner resources admin: resource rows=6; storage notice «فایل‌های تازه بیرون ریشهٔ وب و روی دیسک خصوصی سرور ذخیره می‌شوند (سقف هر فایل ۵۱۲ مگابایت · فضای آزاد دیسک: ۱۷.۵ گیگابایت). فایل‌های بزرگ‌تر»
+✓ m 7-owner orders admin: order rows=1; refund buttons=0 (finance=true); decide buttons=0
+✓ m 7-owner certificates admin: certificate rows=0; approve controls=0; mentions bot path=true
+✓ m 7-owner scheduler + outbox: scheduler state=ok; run button=true; last-run line «آخرین اجرا: ۱۴۰۵/۰۷/۳۰ ۱۳:۵۳ به وقت تهران · عامل: دستی از پنل · موفق · در موعد: ۰ · اعلان‌شده: ۰ · اعلان‌های ساخته‌شده: » (datetime=2026-10-22T10:23:54.201591Z); outbox rows=21, retry buttons=0 (only failed rows)
+✓ m owner permissions: owner permissions from server include finance=true, ev_publish=true
+
+ARTIFACTS: 54 screenshots in browser

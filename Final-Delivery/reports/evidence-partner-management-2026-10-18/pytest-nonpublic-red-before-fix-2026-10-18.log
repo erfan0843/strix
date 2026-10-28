@@ -1,0 +1,39 @@
+F.                                                                       [100%]
+=================================== FAILURES ===================================
+__ test_stored_non_public_partners_stay_private_and_survive_panel_operations ___
+
+env = (<starlette.testclient.TestClient object at 0x7f593f697910>, Engine(sqlite+pysqlite:///%3Amemory%3A))
+
+    def test_stored_non_public_partners_stay_private_and_survive_panel_operations(env):
+        client, engine = env
+        headers = login(client)
+        public_rows = [
+            {"id": "p-1", "n": "نهاد یک (دادهٔ تست)", "type": "فرهنگی", "pub": True},
+            {"id": "p-2", "n": "نهاد دو (دادهٔ تست)", "type": "آموزشی", "pub": True},
+        ]
+        first = client.patch(
+            "/api/owner/site-content",
+            json={"content": {**OTHER_CONTENT, "partners": public_rows}, "expected_version": 0},
+            headers=headers,
+        )
+        assert first.status_code == 200, first.text
+        inject_non_public(engine)
+        assert set(NON_PUBLIC_IDS) <= {row["id"] for row in stored(engine)["content"]["partners"]}
+        others_before = {key: stored(engine)["content"][key] for key in OTHER_CONTENT}
+    
+        # read boundary: stored flagged rows are invisible to the public API, the owner view and SEO
+>       assert public_partner_ids(client) == ["p-1", "p-2"]
+E       AssertionError: assert ['p-1', 'p-2'...pending', ...] == ['p-1', 'p-2']
+E         
+E         Left contains 5 more items, first extra item: 'np-private'
+E         Use -v to get more diff
+
+tests/test_partner_retention.py:134: AssertionError
+=============================== warnings summary ===============================
+../../../../../venvs/nora/lib/python3.11/site-packages/fastapi/testclient.py:1
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_partner_retention.py::test_stored_non_public_partners_stay_private_and_survive_panel_operations
+1 failed, 1 passed, 1 warning in 0.98s

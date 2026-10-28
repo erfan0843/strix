@@ -41,6 +41,18 @@ SUPPORTED_PUBLIC_FIELD_TYPES = {
     "edu", "job", "uni", "marital", "terms", "location",
 }
 MAX_ANSWER_LENGTH = 4000
+# Per-type answer caps of the public path (also published through the capability contract).
+TEXT_ANSWER_LIMITS = {
+    "text": 1000, "area": 3000, "address": 1000, "location": 180,
+    "fullname": 120, "mobile": 20, "nid": 10, "email": 254,
+    "date": 32, "time": 16, "slot": 16, "datetime": 48,
+    "province": 160, "edu": 200, "job": 200, "uni": 200,
+}
+# Owner-configurable settings that the server really enforces (builder → readiness → answer validation).
+LENGTH_SETTING_TYPES = {"text", "area", "address", "location", "fullname"}
+INTEGER_SETTING_TYPES = {"number", "amount"}
+BOUNDS_SETTING_TYPES = {"number", "amount", "rating", "scale", "bars"}
+BOUNDS_RANGES = {"rating": (1, 5), "scale": (0, 10), "bars": (0, 10)}
 MAX_PUBLIC_OPTIONS = 100
 MAX_PUBLIC_CAPACITY = 100_000
 MAX_PUBLIC_COMPANIONS = 9
@@ -85,6 +97,37 @@ def _has_money_configuration(settings: dict[str, Any]) -> bool:
     if isinstance(coupon, dict) and str(coupon.get("code", "")).strip():
         return True
     return bool(settings.get("sync", {}).get("money")) if isinstance(settings.get("sync"), dict) else False
+
+
+def _purchase_form_issues(form: FormRecord, settings: dict[str, Any]) -> list[dict[str, str]]:
+    """Extra publish blockers for a purchase form (one account, one deterministic price)."""
+    issues: list[dict[str, str]] = []
+    if form.model != "registration" or not getattr(form, "recording_id", None):
+        issues.append({
+            "code": "purchase_form_invalid_link",
+            "message": "فرم خرید باید به یک محصول ضبط‌شده پیوند داشته باشد.",
+        })
+    if settings.get("guestsOn") is True:
+        issues.append({
+            "code": "companions_not_allowed_for_purchase",
+            "message": "فرم خرید برای یک حساب است؛ همراهان را خاموش کنید.",
+        })
+    if "ticketing" in settings:
+        issues.append({
+            "code": "ticketing_not_allowed_for_purchase",
+            "message": "فرم خرید بلیت صادر نمی‌کند؛ مدل‌های بلیت را بردارید.",
+        })
+    if _count_setting(settings.get("cap", 0)) or _count_setting(settings.get("wait", 0)):
+        issues.append({
+            "code": "capacity_not_allowed_for_purchase",
+            "message": "ظرفیت و صف انتظار برای فرم خرید معنا ندارد؛ آن‌ها را صفر بگذارید.",
+        })
+    if purchase_form_selection(settings) is None:
+        issues.append({
+            "code": "purchase_form_requires_fixed_price",
+            "message": "قیمت فرم خرید باید یکتا باشد: همهٔ مبلغ‌ها اجباری و بدون گروه انتخابی.",
+        })
+    return issues
 
 
 def public_payment_card(settings: dict[str, Any]) -> dict[str, str] | None:
@@ -172,10 +215,48 @@ def _assigned_ticket_type(
     return {"id": selected["id"], "name": selected["name"]}
 
 
+def form_purpose(form: FormRecord) -> str:
+    """``registration`` (every legacy form) or ``recording_access`` (purchase entry of a product)."""
+    return "recording_access" if getattr(form, "purpose", None) == "recording_access" else "registration"
+
+
+def purchase_form_selection(settings: dict[str, Any]) -> dict[str, Any] | None:
+    """The only valid price selection of a purchase form: every item, no optional groups.
+
+    Returns ``None`` when the financial settings are invalid or allow more than one
+    outcome (optional items / groups), i.e. when the list price is not deterministic.
+    An empty ``fin`` list is a free product and yields ``{"items": []}``.
+    """
+    try:
+        financial = normalize_financial_config(settings)
+    except PaymentConfigurationError:
+        return None
+    if financial["groups"]:
+        return None
+    if any(not item["req"] for item in financial["fin"]):
+        return None
+    return {"items": list(range(len(financial["fin"])))}
+
+
+def purchase_form_price(settings: dict[str, Any]) -> int | None:
+    """Server-calculated list price (IRR) of a purchase form; ``0`` = free; ``None`` = invalid."""
+    selection = purchase_form_selection(settings)
+    if selection is None:
+        return None
+    if not selection["items"]:
+        return 0
+    try:
+        return int(calculate_payment_amount(settings, selection, party_count=1)["amount"])
+    except PaymentConfigurationError:
+        return None
+
+
 def publication_issues(form: FormRecord, *, bale_ready: bool = False) -> list[dict[str, str]]:
     """Return invalid or unavailable settings that must be fixed before public release."""
     issues: list[dict[str, str]] = []
     settings = form.settings if isinstance(form.settings, dict) else {}
+    if form_purpose(form) == "recording_access":
+        issues.extend(_purchase_form_issues(form, settings))
     if "ticketing" in settings:
         try:
             _normalize_ticketing_setting(settings["ticketing"], form.model)
@@ -233,6 +314,11 @@ def publication_issues(form: FormRecord, *, bale_ready: bool = False) -> list[di
         issues.append({
             "code": "invalid_companion_setting",
             "message": "تنظیم همراهان معتبر نیست؛ آن را در فرم‌ساز بازبینی کنید.",
+        })
+    elif guests_on and form.model != "registration":
+        issues.append({
+            "code": "companions_require_registration",
+            "message": "ثبت همراه فقط برای فرم ثبت‌نام در سرور اجرا می‌شود؛ همراهان را خاموش کنید یا مدل را ثبت‌نام بگذارید.",
         })
     elif guests_on:
         companion_mode = settings.get("compFields")
@@ -317,7 +403,7 @@ def publication_issues(form: FormRecord, *, bale_ready: bool = False) -> list[di
                 "field_id": field.field_key,
                 "message": f"پیوست یا ورودی مالیِ «{field.label}» هنوز به سرور وصل نیست.",
             })
-        for flag in ("req", "required", "verify", "prof", "col", "scoreOn"):
+        for flag in ("req", "required", "verify", "prof", "col", "scoreOn", "integer"):
             if config.get(flag) is not None and not isinstance(config.get(flag), bool):
                 issues.append({
                     "code": "invalid_field_configuration",
@@ -349,6 +435,16 @@ def publication_issues(form: FormRecord, *, bale_ready: bool = False) -> list[di
                     "code": "invalid_numeric_range",
                     "field_id": field.field_key,
                     "message": f"بازهٔ عددی پرسش «{field.label}» معتبر نیست.",
+                })
+        if field_type in LENGTH_SETTING_TYPES:
+            try:
+                _length_settings(config, field_type)
+            except ValueError:
+                cap = TEXT_ANSWER_LIMITS.get(field_type, MAX_ANSWER_LENGTH)
+                issues.append({
+                    "code": "invalid_length_range",
+                    "field_id": field.field_key,
+                    "message": f"محدودیت طول پاسخ پرسش «{field.label}» معتبر نیست (عدد صحیح، حداقل ≤ حداکثر، حداکثر {cap} نویسه).",
                 })
         if str(config.get("media", "none") or "none").lower() not in {"", "none"}:
             issues.append({
@@ -397,6 +493,27 @@ def _text_value(value: Any, field: FormFieldRecord, *, max_length: int) -> str:
     if any(ord(char) == 0 or 0xD800 <= ord(char) <= 0xDFFF for char in value):
         raise ValueError(f"پاسخ «{field.label}» نویسهٔ پشتیبانی‌نشده دارد.")
     return value
+
+
+def _length_settings(config: dict[str, Any], field_type: str) -> tuple[int | None, int | None]:
+    """Owner-configured minLen/maxLen of a text-family field; raises ValueError when the pair is not usable."""
+    cap = TEXT_ANSWER_LIMITS.get(field_type, MAX_ANSWER_LENGTH)
+    out: list[int | None] = []
+    for key in ("minLen", "maxLen"):
+        raw = config.get(key)
+        if raw in (None, ""):
+            out.append(None)
+            continue
+        number = _localized_decimal(raw)
+        if number != number.to_integral_value() or number < 0 or number > cap:
+            raise ValueError("length_setting_out_of_range")
+        out.append(int(number))
+    minimum, maximum = out
+    if minimum is not None and maximum is not None and minimum > maximum:
+        raise ValueError("minimum_exceeds_maximum")
+    if maximum == 0:
+        raise ValueError("maximum_zero")
+    return minimum, maximum
 
 
 def _localized_decimal(value: Any) -> Decimal:
@@ -551,6 +668,11 @@ def _field_value(value: Any, field: FormFieldRecord, *, partial: bool = False) -
             if str(error).startswith(("حداقل مقدار", "حداکثر مقدار")):
                 raise
             raise ValueError("بازهٔ عددی این پرسش معتبر نیست.") from None
+        if field_type in {"rating", "scale", "bars"} and decimal != decimal.to_integral_value():
+            # Stars and sliders are discrete controls: 2.5 stars cannot be shown or exported truthfully.
+            raise ValueError(f"برای «{field.label}» فقط عدد صحیح پذیرفته می‌شود.")
+        if field_type in INTEGER_SETTING_TYPES and config.get("integer") is True and decimal != decimal.to_integral_value():
+            raise ValueError(f"برای «{field.label}» فقط عدد صحیح (بدون اعشار) پذیرفته می‌شود.")
         answer = str(value).strip()
         _check_answer_quality(answer, field, partial=partial)
         return answer
@@ -570,13 +692,17 @@ def _field_value(value: Any, field: FormFieldRecord, *, partial: bool = False) -
         _check_answer_quality(answer, field, partial=partial)
         return "پذیرفتم"
 
-    limits = {
-        "text": 1000, "area": 3000, "address": 1000, "location": 180,
-        "fullname": 120, "mobile": 20, "nid": 10, "email": 254,
-        "date": 32, "time": 16, "slot": 16, "datetime": 48,
-        "province": 160, "edu": 200, "job": 200, "uni": 200,
-    }
-    answer = _text_value(value, field, max_length=limits.get(field_type, MAX_ANSWER_LENGTH))
+    answer = _text_value(value, field, max_length=TEXT_ANSWER_LIMITS.get(field_type, MAX_ANSWER_LENGTH))
+    if field_type in LENGTH_SETTING_TYPES:
+        try:
+            minimum_length, maximum_length = _length_settings(config, field_type)
+        except ValueError:
+            minimum_length, maximum_length = None, None  # readiness blocks publishing such a form
+        length = len(answer)
+        if maximum_length is not None and length > maximum_length:
+            raise ValueError(f"پاسخ «{field.label}» حداکثر {maximum_length} نویسه است.")
+        if not partial and minimum_length is not None and length < minimum_length:
+            raise ValueError(f"پاسخ «{field.label}» باید دست‌کم {minimum_length} نویسه باشد.")
     if field_type in {"date", "time", "datetime", "slot"} and not _valid_condition_temporal(answer, field_type):
         raise ValueError("تاریخ یا زمان کامل و معتبر نیست.")
     if field_type == "mobile":
@@ -814,7 +940,14 @@ def public_form_data(
         "methods": public_payment_methods(settings),
         "fin": payment_config["fin"],
         "groups": payment_config["groups"],
-        "coupon": payment_config["coupon"],
+        # The discount code itself is a shared secret between organizer and participants;
+        # the public page only learns whether a coupon exists and validates typed codes server-side.
+        "coupon": {
+            "code": "",
+            "off": payment_config["coupon"]["off"],
+            "all": payment_config["coupon"]["all"],
+            "enabled": bool(payment_config["coupon"]["code"]) and payment_config["coupon"]["off"] > 0,
+        },
         "enabledPaymentMethods": payment_config["enabledPaymentMethods"],
         "receiptUploadRequired": payment_config["receiptUploadRequired"],
     }
@@ -846,7 +979,7 @@ def public_form_data(
     public_field_keys = {
         "req", "required", "help", "placeholder", "opts", "options", "min", "max",
         "minSelect", "maxSelect", "conditions", "conditionLogic", "condField", "condOp",
-        "condVal", "weight", "scoreOn", "scoreType", "col", "prof",
+        "condVal", "weight", "scoreOn", "scoreType", "col", "prof", "minLen", "maxLen", "integer",
     }
     fields = []
     for field in form.fields:
@@ -875,6 +1008,8 @@ def public_form_data(
         "name": form.title,
         "model": form.model,
         "need": form.need,
+        "purpose": form_purpose(form),
+        "recording_id": getattr(form, "recording_id", None) if form_purpose(form) == "recording_access" else None,
         "slug": form.slug or "",
         "fields": fields,
         "settings": public_settings,
@@ -899,6 +1034,7 @@ def response_snapshot(
         "name": form.title,
         "model": form.model,
         "need": form.need,
+        "purpose": form_purpose(form),
         "version": form.version,
         "receipt_review_required": settings.get("receiptReviewRequired") is True
         and not (isinstance(payment, dict) and payment.get("method") == "bale_wallet"),

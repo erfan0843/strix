@@ -10,40 +10,64 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import csv
 import hashlib
+import io
 import hmac
 import html
 import json
 import logging
 import os
 import re
+import secrets
 import sys
 import tempfile
+import unicodedata
 import uuid
 from contextlib import asynccontextmanager
-from dataclasses import dataclass, replace as dataclass_replace
+from dataclasses import asdict, dataclass, replace as dataclass_replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Generator, Literal, Mapping, Sequence, TypedDict, cast
+from typing import Any, Generator, Iterator, Literal, Mapping, Sequence, TypedDict, cast
 from urllib.parse import quote, unquote, urlsplit
 
+from starlette.requests import ClientDisconnect
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import create_engine, delete, func, select, text, update
+from sqlalchemy import and_, case, create_engine, delete, func, or_, select, text, update
 from sqlalchemy.engine import CursorResult, Engine
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload, sessionmaker
+from sqlalchemy.sql.elements import ColumnElement
 from starlette.middleware.gzip import GZipMiddleware
 
-from .accounts import get_or_create_bale_account, get_or_create_phone_account
-from .captcha import CaptchaError, issue_captcha, verify_captcha
+from .accounts import get_or_create_bale_account, get_or_create_phone_account, phone_account_exists
+from .captcha import CAPTCHA_TTL_SECONDS, CaptchaError, captcha_nonce, issue_captcha, verify_captcha
 from .bale_payments import BalePaymentAPIError, call_bale_payment_api, validated_invoice_url
-from .secret_box import SecretBoxError, decrypt_secret, encrypt_secret, encryption_configured, secret_hint
+from . import data_staging as data_staging_mod
+from . import audit as audit_mod
+from . import certificates as certificates_mod
+from . import notifications as notifications_mod
+from . import club_points as club_points_mod
+from . import public_media as public_media_mod
+from . import content_admin as content_admin_mod
+from . import event_interaction as interaction_mod
+from . import recordings as recordings_mod
+from . import event_reminders as event_reminders_mod
+from . import system_settings as system_settings_mod
+from . import scheduled_publish as scheduled_publish_mod
+from . import integrity as integrity_mod
+from . import upload_sessions as upload_mod
+from . import event_time
+from . import service_settings as service_settings_mod
+from .service_probe import probe_bale_bot
 from .config import UI_ROOT, Settings
+from . import storage as storage_mod
 from .financials import (
     PaymentConfigurationError,
     calculate_payment_amount,
+    normalize_financial_config,
     normalize_payment_methods,
 )
 from .form_capabilities import public_form_capabilities
@@ -52,14 +76,22 @@ from .models import (
     AccountRecord,
     AccountRoleRecord,
     AccountSessionRecord,
+    CertificateRecord,
+    AdminAuditEventRecord,
     AdminTaskRecord,
     Base,
     CooperationRequestRecord,
+    EventContentReportRecord,
+    EventQuestionRecord,
+    EventRecordingRecord,
+    EventResourceRecord,
+    EventReviewRecord,
     FormFieldRecord,
     FormPaymentRecord,
     FormPaymentTransactionRecord,
     FormReceiptUploadRecord,
     FormRecord,
+    FormRegistrationCancellationRecord,
     FormResponseDraftRecord,
     FormResponseRecord,
     LoginThrottleRecord,
@@ -69,9 +101,14 @@ from .models import (
     PlatformIdentityRecord,
     PhoneOTPChallengeRecord,
     PrivateFileRecord,
+    PublicMediaRecord,
     PublicWriteThrottleRecord,
-    PaymentSecretRecord,
+    RecordingAccessRecord,
+    RecordingOrderRecord,
+    RecordingSessionRecord,
     SiteContentRecord,
+    SystemMarkerRecord,
+    UploadSessionRecord,
     UserNotificationRecord,
 )
 from .otp import (
@@ -85,6 +122,8 @@ from .responses import (
     AnswerValidationError,
     public_form_data,
     publication_issues,
+    purchase_form_price,
+    purchase_form_selection,
     response_snapshot,
     validate_answers,
     validate_companions,
@@ -97,8 +136,9 @@ from .roles import (
     is_assignable_role,
     permissions_for_role,
 )
-from .schemas import PayloadError, normalize_form_payload
+from .schemas import DIGIT_TRANSLATION, PayloadError, normalize_form_payload
 from .security import (
+    BaleMiniAppIdentity,
     constant_time_equal,
     hash_password,
     new_token,
@@ -108,6 +148,7 @@ from .security import (
     verify_password,
 )
 from .seo import (
+    ORGANIZATION_NAME,
     SITE_NAME,
     absolute_asset_url,
     apply_page_metadata,
@@ -122,8 +163,11 @@ from .seo import (
 from .site_content import (
     CONTENT_KEYS,
     SiteContentError,
+    _public_record as is_public_content_row,
     public_site_content,
     resolve_public_delivery_file,
+    NON_PUBLIC_RETAINED_KEYS,
+    retain_non_public_rows,
     sanitize_site_content,
 )
 
@@ -210,32 +254,40 @@ class AccountIdentity:
     provider: str = "bale"
 
 
-_BALE_WALLET_KEY = re.compile(r"[0-9]{5,20}:[A-Za-z0-9_-]{20,128}\Z")
+def record_audit(
+    db: Session,
+    identity: "OwnerIdentity | AccountIdentity",
+    action: str,
+    *,
+    target_type: str = "",
+    target_id: str = "",
+    outcome: str = "ok",
+    details: Mapping[str, Any] | None = None,
+) -> None:
+    """Append an audit row for the acting owner/manager (committed with the caller)."""
+    if isinstance(identity, OwnerIdentity):
+        audit_mod.record_admin_event(
+            db, actor_kind=audit_mod.ACTOR_OWNER, actor_id=identity.owner_id, actor_role=ROLE_OWNER,
+            action=action, target_type=target_type, target_id=target_id, outcome=outcome, details=details,
+        )
+        return
+    audit_mod.record_admin_event(
+        db, actor_kind=audit_mod.ACTOR_ACCOUNT, actor_id=identity.account_id, actor_role=identity.role or "",
+        action=action, target_type=target_type, target_id=target_id, outcome=outcome, details=details,
+    )
 
 
-def _payment_settings_response(db: Session, cfg: Settings | None = None) -> dict[str, Any]:
-    record = db.get(PaymentSecretRecord, "bale_wallet")
-    env_configured = bool(cfg and cfg.form_payment_bot_token)
-    return {
-        "bale_wallet": {
-            "configured": record is not None or env_configured,
-            "hint": record.hint if record is not None else "",
-            "encryption_ready": encryption_configured(),
-            "source": "database" if record is not None else ("environment" if env_configured else "none"),
-        }
-    }
+def _runtime_settings(db: Session, cfg: Settings) -> Settings:
+    """Settings as the web process must use them right now.
 
+    ``app.state.settings`` is the raw environment snapshot. Every path that
+    depends on a credential or on a readiness flag derived from one (mini-app
+    auth, OTP, payment readiness, invoice creation, webhook path and secret)
+    reads through this overlay so a value saved in the encrypted store is the
+    operative value, not merely a stored one.
+    """
+    return service_settings_mod.effective_settings(db, cfg)
 
-def _payment_cfg(db: Session, cfg: Settings) -> Settings:
-    """Return settings whose Bale payment token comes from the owner's saved key when present."""
-    record = db.get(PaymentSecretRecord, "bale_wallet")
-    if record is None:
-        return cfg
-    try:
-        token = decrypt_secret(record.ciphertext)
-    except SecretBoxError:
-        return cfg
-    return dataclass_replace(cfg, form_payment_bot_token=token)
 
 
 def _utc_now() -> datetime:
@@ -296,6 +348,61 @@ def _revoke_manager_password_sessions(db: Session, account_id: str, now: datetim
     )
 
 
+# ── Owner decision 1405/08/01: account status (active/blocked) ──────────────────────────────
+# One rule, enforced where identity is resolved: a blocked account never gets a session (any
+# provider), an existing session stops resolving, and bot-side registration for a Bale id that
+# belongs to a blocked account is refused. Hiding buttons is not access control.
+ACCOUNT_STATUS_ACTIVE = "active"
+ACCOUNT_STATUS_BLOCKED = "blocked"
+ACCOUNT_STATUSES = (ACCOUNT_STATUS_ACTIVE, ACCOUNT_STATUS_BLOCKED)
+ACCOUNT_BLOCKED_DETAIL = {"code": "account_blocked"}
+_BLOCK_REASON_MIN = 3
+_BLOCK_REASON_MAX = 500
+_INTERNAL_NOTE_MAX = 2000
+
+
+def _account_is_blocked(db: Session, account_id: str | None) -> bool:
+    if not account_id:
+        return False
+    account = db.get(AccountRecord, account_id)
+    return account is not None and account.status == ACCOUNT_STATUS_BLOCKED
+
+
+def _bale_user_is_blocked(db: Session, bale_user_id: str | None) -> bool:
+    if not bale_user_id:
+        return False
+    identity = db.scalar(
+        select(PlatformIdentityRecord).where(
+            PlatformIdentityRecord.provider == "bale",
+            PlatformIdentityRecord.provider_user_id == str(bale_user_id),
+        )
+    )
+    return identity is not None and _account_is_blocked(db, identity.account_id)
+
+
+def _revoke_all_account_sessions(db: Session, account_id: str, now: datetime) -> int:
+    result = db.execute(
+        update(AccountSessionRecord)
+        .where(AccountSessionRecord.account_id == account_id, AccountSessionRecord.revoked_at.is_(None))
+        .values(revoked_at=now)
+        .execution_options(synchronize_session=False)
+    )
+    return int(cast(CursorResult[Any], result).rowcount or 0)
+
+
+def _account_status_view(account: AccountRecord) -> dict[str, Any]:
+    """Staff-facing status block (``us_view``); never part of a member/public payload."""
+    return {
+        "status": account.status or ACCOUNT_STATUS_ACTIVE,
+        "blocked_reason": account.blocked_reason or "",
+        "blocked_at": _as_utc(account.blocked_at).isoformat() if account.blocked_at else None,
+        "blocked_by": account.blocked_by or "",
+        "internal_note": account.internal_note or "",
+        "note_updated_at": _as_utc(account.note_updated_at).isoformat() if account.note_updated_at else None,
+        "note_updated_by": account.note_updated_by or "",
+    }
+
+
 def _new_engine(database_url: str) -> Engine:
     # psycopg 3 is the installed PostgreSQL driver; normalize the common URL form.
     if database_url.startswith("postgres://"):
@@ -317,6 +424,34 @@ def _json_response(status: int, error: str, message: str | None = None) -> JSONR
     if message:
         value["message"] = message
     return JSONResponse(value, status_code=status)
+
+
+CSP_REPORT_PATH = "/api/csp-report"
+CSP_REPORT_MAX_BYTES = 16 * 1024
+csp_logger = logging.getLogger("nora.csp")
+
+
+def _csp_report_summary(body: dict[str, Any]) -> dict[str, str]:
+    """Keep only what an operator needs to tune ``frame-src``; strip anything identifying."""
+    def origin_only(value: object) -> str:
+        text = str(value or "").strip()
+        if not text:
+            return ""
+        parsed = urlsplit(text)
+        if parsed.scheme and parsed.netloc:
+            return f"{parsed.scheme}://{parsed.netloc}"
+        return text.split("?", 1)[0][:80]  # keyword values such as ``inline`` / ``eval`` / ``data``
+    def path_only(value: object) -> str:
+        parsed = urlsplit(str(value or ""))
+        return (parsed.path or "/")[:160]
+    directive = str(body.get("effective-directive") or body.get("effectiveDirective")
+                    or body.get("violated-directive") or body.get("violatedDirective") or "")[:80]
+    return {
+        "directive": directive,
+        "blocked": origin_only(body.get("blocked-uri") or body.get("blockedURL") or body.get("blockedURI")),
+        "document": path_only(body.get("document-uri") or body.get("documentURL") or body.get("documentURI")),
+        "disposition": str(body.get("disposition") or "")[:16],
+    }
 
 
 async def _read_json_object(request: Request, max_bytes: int) -> dict[str, Any]:
@@ -410,6 +545,15 @@ def _field_dict(field: FormFieldRecord) -> dict[str, Any]:
     return {"id": field.field_key, "t": field.field_type, "l": field.label, **(field.config or {})}
 
 
+def _samesite(cfg: Settings) -> Literal["lax", "strict", "none"]:
+    value = str(getattr(cfg, "cookie_samesite", "strict") or "strict").lower()
+    if value == "lax":
+        return "lax"
+    if value == "none" and bool(cfg.cookie_secure):
+        return "none"
+    return "strict"
+
+
 class _CookieOptions(TypedDict):
     secure: bool
     samesite: Literal["lax", "strict", "none"]
@@ -437,6 +581,8 @@ def _form_dict(form: FormRecord | None) -> dict[str, Any]:
         "need": form.need,
         "slug": form.slug or "",
         "ev": form.event_id or "",
+        "purpose": form.purpose or "registration",
+        "recording_id": form.recording_id if form.purpose == "recording_access" else None,
         "fields": [_field_dict(field) for field in form.fields],
         "settings": form.settings or {},
         "status": form.status,
@@ -446,12 +592,23 @@ def _form_dict(form: FormRecord | None) -> dict[str, Any]:
     }
 
 
+def _snapshot_purpose(record: FormResponseRecord) -> str:
+    snapshot = record.form_snapshot if isinstance(record.form_snapshot, dict) else {}
+    return "recording_access" if snapshot.get("purpose") == "recording_access" else "registration"
+
+
+def _form_is_purchase(form: FormRecord) -> bool:
+    return form.purpose == "recording_access"
+
+
 def _form_ticket_eligible(record: FormResponseRecord) -> bool:
     snapshot = record.form_snapshot if isinstance(record.form_snapshot, dict) else {}
     return (
         record.status == "accepted"
         and snapshot.get("model") == "registration"
         and snapshot.get("need") == "reg"
+        # Purchase-form responses never become tickets/registrations.
+        and _snapshot_purpose(record) == "registration"
     )
 
 
@@ -528,6 +685,97 @@ def _form_ticket_name(record: FormResponseRecord) -> str:
             if value:
                 return value
     return ""
+
+
+def cancel_registration(
+    db: Session,
+    record: FormResponseRecord,
+    *,
+    reason: str,
+    source: str,
+    actor_kind: str,
+    actor_id: str,
+    actor_role: str = "",
+    payment_status_before: str | None = None,
+    receipt_file_refs: list[str] | None = None,
+) -> FormRegistrationCancellationRecord:
+    """The single way a live registration leaves ``form_responses``.
+
+    Writes an immutable snapshot (identity, answers, companions, payment reference, receipt bytes or
+    private-file refs, actor/reason/source) into ``form_registration_cancellations``, removes the
+    companions that this registration brought along (their child drafts cascade), wipes the person's
+    draft so they can register again, and deletes the live row. Callers keep their own rules for the
+    payment row, notifications and audit; they must not delete a response any other way.
+    """
+    form = db.get(FormRecord, record.form_id)
+    payment = db.scalar(select(FormPaymentRecord).where(FormPaymentRecord.response_id == record.id))
+    draft = db.get(FormResponseDraftRecord, record.draft_id)
+    children = list(db.scalars(
+        select(FormResponseRecord).where(FormResponseRecord.added_by_response_id == record.id)
+    ))
+    upload = record.receipt_upload
+    snapshot = FormRegistrationCancellationRecord(
+        id=str(uuid.uuid4()),
+        form_id=record.form_id,
+        event_id=(str(form.event_id) if form is not None and form.event_id else None),
+        response_id=record.id,
+        draft_id=record.draft_id,
+        account_id=draft.account_id if draft is not None else None,
+        bale_user_id=(draft.bot_bale_user_id if draft is not None and draft.bot_bale_user_id else None)
+        or record.ticket_claimed_by_bale_user_id,
+        display_name=_form_ticket_name(record),
+        status_before=record.status,
+        ticket_serial=record.ticket_serial,
+        form_fields=[
+            {"id": f["id"], "label": _ticket_text(f.get("label") or f["id"], 160) or f["id"], "type": str(f.get("type") or "")}
+            for f in _json_list_member(record.form_snapshot if isinstance(record.form_snapshot, dict) else {}, "fields")
+            if isinstance(f, dict) and isinstance(f.get("id"), str)
+        ][:200],
+        answers=dict(record.answers) if isinstance(record.answers, dict) else {},
+        companions=[
+            {
+                "response_id": child.id,
+                "name": _form_ticket_name(child),
+                "status": child.status,
+                "answers": dict(child.answers) if isinstance(child.answers, dict) else {},
+            }
+            for child in children
+        ],
+        payment_id=payment.id if payment is not None else None,
+        payment_method=payment.method if payment is not None else None,
+        payment_status_before=(payment_status_before if payment_status_before is not None
+                               else (payment.status if payment is not None else None)),
+        amount=int(payment.amount) if payment is not None else None,
+        currency=payment.currency if payment is not None else None,
+        receipt_file_name=upload.file_name if upload is not None else None,
+        receipt_content_type=upload.content_type if upload is not None else None,
+        receipt_content_size=upload.content_size if upload is not None else None,
+        receipt_content_hash=upload.content_hash if upload is not None else None,
+        receipt_content=bytes(upload.content) if upload is not None else None,
+        receipt_file_refs=[str(ref) for ref in (receipt_file_refs or [])][:5],
+        reason=str(reason or "")[:500],
+        source=source[:24],
+        actor_kind=actor_kind[:16],
+        actor_id=str(actor_id or "")[:80],
+        actor_role=str(actor_role or "")[:32],
+    )
+    db.add(snapshot)
+    # Companions came in with this registration: they leave with it (same as a re-submit replaces them).
+    for child in children:
+        child_draft = db.get(FormResponseDraftRecord, child.draft_id)
+        if child_draft is not None:
+            db.delete(child_draft)
+        else:
+            db.delete(child)
+    if payment is not None:
+        payment.response_id = None  # the database does SET NULL too; explicit for SQLite without the PRAGMA
+    if draft is not None:
+        draft.answers = {}
+        draft.companions = []
+        draft.bot_bale_user_id = None
+    db.delete(record)
+    db.flush()
+    return snapshot
 
 
 def _ticket_text(value: Any, maximum: int) -> str:
@@ -668,9 +916,16 @@ def _response_payment_approved(db: Session, record: FormResponseRecord) -> bool:
 
 
 def _create_public_form_receipt_task(
-    db: Session, record: FormResponseRecord, bale_user_id: str
+    db: Session, record: FormResponseRecord, bale_user_id: str, *,
+    account: AccountRecord | None = None, purchase: bool = False,
 ) -> AdminTaskRecord | None:
-    """Move a browser-uploaded receipt into the shared manager inbox at Bale claim time."""
+    """Move a browser-uploaded receipt into the shared manager inbox.
+
+    Registration forms reach this at Bale ticket-claim time; purchase forms (phase
+    9.1) reach it right after the upload with the buyer's own account. ``bale_user_id``
+    may be empty for a web-only buyer: the task row then carries ``""`` exactly like
+    ``user_notifications`` does for accounts without a Bale identity.
+    """
     snapshot = record.form_snapshot if isinstance(record.form_snapshot, dict) else {}
     if snapshot.get("receipt_review_required") is not True:
         return None
@@ -683,10 +938,11 @@ def _create_public_form_receipt_task(
     if upload is None:
         return None
 
-    try:
-        account = get_or_create_bale_account(db, bale_user_id)
-    except ValueError:
-        raise HTTPException(422, "invalid_bale_user_id") from None
+    if account is None:
+        try:
+            account = get_or_create_bale_account(db, bale_user_id)
+        except ValueError:
+            raise HTTPException(422, "invalid_bale_user_id") from None
     db.flush()
 
     response_key = record.id.replace("-", "").lower()
@@ -702,6 +958,15 @@ def _create_public_form_receipt_task(
         "file_refs": [upload.id],
         "submitted_at": _as_utc(upload.created_at).isoformat(),
     }
+    if purchase:
+        form_row = db.get(FormRecord, record.form_id)
+        recording_row = db.get(EventRecordingRecord, form_row.recording_id or "") if form_row is not None else None
+        task_payload.update({
+            "purchase_source": "recording_access",
+            "recording_id": recording_row.id if recording_row is not None else (form_row.recording_id if form_row else ""),
+            "product_title": _ticket_text((recording_row.title if recording_row is not None else "") or snapshot.get("name") or "محتوای ضبط‌شده", 160),
+            "event_id": recording_row.event_id if recording_row is not None else "",
+        })
     payment_record = db.scalar(
         select(FormPaymentRecord).where(FormPaymentRecord.response_id == record.id)
     )
@@ -919,6 +1184,66 @@ def _capacity_is_full(form: FormRecord, accepted: int, waitlisted: int) -> bool:
     return wait <= 0 or waitlisted >= wait
 
 
+def _event_registration_block(db: Session, form: FormRecord, now: datetime | None = None) -> dict[str, Any] | None:
+    """Return the registration status when the event linked to ``form`` does not accept
+    new registrations right now (window, manual close, cancellation, ended), else ``None``.
+
+    Capacity is checked by the callers as before; this gate only adds the event-level
+    rules so a direct API call cannot bypass what the public pages show.
+    """
+    if _form_is_purchase(form):
+        # Buying the recording of a held event is gated by the product (see
+        # ``_purchase_form_block``), never by the event's registration window.
+        return None
+    site = db.get(SiteContentRecord, "public")
+    if site is None:
+        return None
+    current = now or _utc_now()
+    for event in public_site_content(site.content or {}).get("events", []):
+        if not isinstance(event, dict):
+            continue
+        linked = bool(form.event_id and str(event.get("id") or "") == str(form.event_id))
+        if not linked:
+            linked = any(
+                isinstance(item, dict) and str(item.get("id") or "") == form.id
+                for item in _json_list_member(event, "forms")
+            )
+        if not linked:
+            continue
+        registration = event_time.registration_state(event, now=current, has_form=True)
+        if event_time.is_registration_blocked(registration["state"]):
+            return {"event_id": str(event.get("id") or ""), **registration}
+        return None
+    return None
+
+
+def _purchase_form_block(db: Session, form: FormRecord) -> dict[str, Any] | None:
+    """Why a purchase form cannot take responses right now (``None`` = on sale)."""
+    if not _form_is_purchase(form):
+        return None
+    recording = db.get(EventRecordingRecord, form.recording_id or "")
+    if recording is None:
+        return {"code": "recording_not_found", "status": ""}
+    if recording.status != "published":
+        return {"code": "recording_not_on_sale", "status": recording.status, "recording_id": recording.id}
+    return None
+
+
+def _raise_if_event_registration_blocked(db: Session, form: FormRecord) -> None:
+    purchase_block = _purchase_form_block(db, form)
+    if purchase_block is not None:
+        raise HTTPException(409, detail=purchase_block)
+    blocked = _event_registration_block(db, form)
+    if blocked is not None:
+        raise HTTPException(409, detail={
+            "code": "registration_closed",
+            "state": blocked["state"],
+            "event_id": blocked["event_id"],
+            "opens_at": blocked["opensAt"],
+            "closes_at": blocked["closesAt"],
+        })
+
+
 def _response_party_statuses(
     form: FormRecord, accepted: int, waitlisted: int, count: int
 ) -> list[str]:
@@ -985,6 +1310,13 @@ def create_app(
         sessionmaker(bind=owned_engine, autoflush=False, expire_on_commit=False) if owned_engine else None
     )
     app.state.settings = settings
+    # Phase 9.4: private storage outside the web root (None = not configured → inline ≤ 8 MiB only).
+    app.state.private_storage = (
+        storage_mod.LocalPrivateStorage(
+            settings.private_storage_dir, max_bytes=settings.private_storage_max_bytes, forbidden_parents=(UI_ROOT,),
+        )
+        if settings.private_storage_dir else None
+    )
     if create_schema and owned_engine:
         Base.metadata.create_all(owned_engine)
 
@@ -1030,6 +1362,13 @@ def create_app(
                 + f'<span aria-current="page">{html.escape(str(item.get("t") or ""))}</span></nav>'
                 + f'<h1>{safe_title}</h1><p>{safe_description}</p></article>'
             )
+        if page_name == "partner":
+            return (
+                '<article class="seo-server-fallback">'
+                + _seo_breadcrumb("نهادهای همکار", "/#partners")
+                + f'<span aria-current="page">{html.escape(str(item.get("n") or ""))}</span></nav>'
+                + f'<h1>{safe_title}</h1><p>{safe_description}</p></article>'
+            )
         return (
             '<article class="seo-server-fallback">'
             + _seo_breadcrumb("پروفایل‌ها", "/#teachers")
@@ -1042,6 +1381,7 @@ def create_app(
             "event": ("این رویداد در دسترس نیست", "/events.html", "بازگشت به رویدادها"),
             "post": ("این مطلب در دسترس نیست", "/#articles", "بازگشت به مطالب"),
             "person": ("این پروفایل در دسترس نیست", "/#teachers", "بازگشت به پروفایل‌ها"),
+            "partner": ("این نهاد همکار در دسترس نیست", "/#partners", "بازگشت به نهادهای همکار"),
         }
         heading, href, label = config[page_name]
         return (
@@ -1088,10 +1428,10 @@ def create_app(
         body_fragment: str | None = None
         data: dict[str, Any] | None = None
 
-        if page_name in {"event", "post", "person"}:
+        if page_name in {"event", "post", "person", "partner"}:
             item_id = (request.query_params.get("id") or "").strip()
             preview = page_name == "post" and request.query_params.get("d") == "1"
-            key = {"event": "events", "post": "articles", "person": "people"}[page_name]
+            key = {"event": "events", "post": "articles", "person": "people", "partner": "partners"}[page_name]
             if item_id and not preview:
                 rows = _seo_public_snapshot().get(key, [])
                 if isinstance(rows, list):
@@ -1104,6 +1444,7 @@ def create_app(
                     "event": data.get("posterUp") or data.get("poster"),
                     "post": data.get("cov"),
                     "person": data.get("photo"),
+                    "partner": data.get("logo"),
                 }[page_name]
                 image = absolute_asset_url(base_url, image_value)
                 if (
@@ -1127,6 +1468,7 @@ def create_app(
                     "event": "رویداد پیدا نشد | نورا",
                     "post": "مطلب پیدا نشد | نورا",
                     "person": "پروفایل پیدا نشد | نورا",
+                    "partner": "نهاد همکار پیدا نشد | نورا",
                 }[page_name]
                 description = default_page_description(page_name)
                 robots = "noindex,nofollow,noarchive"
@@ -1152,6 +1494,7 @@ def create_app(
                 page_type=schema_type,
                 item=data,
                 local_business=cfg.seo_local_business,
+                profile_entity="Organization" if page_name == "partner" else "Person",
             )
         html_text = apply_page_metadata(
             html_text,
@@ -1171,6 +1514,8 @@ def create_app(
     frame_ancestors = os.getenv("NORA_FRAME_ANCESTORS", "").strip()
     if any(ch in frame_ancestors for ch in ";\r\n"):
         frame_ancestors = ""
+    csp_frame_src = settings.csp_frame_src
+    csp_report_only = settings.csp_report_only
 
     @app.middleware("http")
     async def security_headers(request: Request, call_next):
@@ -1182,9 +1527,25 @@ def create_app(
             response.headers["Content-Security-Policy"] = f"frame-ancestors {frame_ancestors}"
         else:
             response.headers["X-Frame-Options"] = "SAMEORIGIN"
+        if csp_frame_src and "text/html" in response.headers.get("content-type", ""):
+            # فاز ۹.۴ §۵: allowlist صریح قاب‌های ویدیو (یوتیوب/آپارات) فقط وقتی NORA_CSP_FRAME_SRC تنظیم
+            # شده؛ پیش‌فرض Report-Only تا staging با مرورگر واقعی بی‌خطا شود، سپس NORA_CSP_REPORT_ONLY=0.
+            # پاسخ‌های فایل (CSP «sandbox») HTML نیستند و دست نمی‌خورند.
+            # فاز ۹.۶ §۸: نقض‌ها به /api/csp-report می‌روند (فقط لاگ ساخت‌یافتهٔ بدون PII) تا staging بتواند
+            # مبدأهای واقعاً لازم را پیش از enforce جمع کند.
+            policy = f"frame-src {csp_frame_src}; report-uri {CSP_REPORT_PATH}"
+            if csp_report_only:
+                response.headers["Content-Security-Policy-Report-Only"] = policy
+            elif "Content-Security-Policy" in response.headers:
+                response.headers["Content-Security-Policy"] += f"; {policy}"
+            else:
+                response.headers["Content-Security-Policy"] = policy
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
         path = request.url.path.lower()
-        if path.startswith("/api/"):
+        if path.startswith("/api/public/media/") and response.status_code in {200, 304}:
+            # تصویر عمومی با شناسهٔ ثابت و محتوای تغییرناپذیر؛ هدر کش را خود مسیر تعیین می‌کند.
+            response.headers["X-Robots-Tag"] = "noindex, nofollow"
+        elif path.startswith("/api/"):
             response.headers["Cache-Control"] = "no-store"
             response.headers["X-Robots-Tag"] = "noindex, nofollow"
         elif path in {"/account.html", "/login.html", "/admin.html", "/builder.html", "/create.html", "/form.html"}:
@@ -1247,6 +1608,11 @@ def create_app(
         )
         if not record or record.revoked_at is not None or _as_utc(record.expires_at) <= _utc_now():
             return None
+        if _account_is_blocked(db, record.account_id):
+            # Blocked after the session was opened: the cookie no longer resolves to an identity
+            # (optional-identity routes see an anonymous visitor; ``require_account`` says why).
+            request.state.account_blocked = True
+            return None
         role_record = db.get(AccountRoleRecord, record.account_id)
         role = role_record.role if role_record is not None else None
         return AccountIdentity(
@@ -1256,7 +1622,20 @@ def create_app(
     def require_account(request: Request, db: Session = Depends(get_db)) -> AccountIdentity:
         identity = account_identity_from_request(request, db)
         if identity is None:
+            if getattr(request.state, "account_blocked", False):
+                raise HTTPException(403, ACCOUNT_BLOCKED_DETAIL)
             raise HTTPException(401, "authentication_required")
+        return identity
+
+    def public_write_identity(request: Request, db: Session) -> AccountIdentity | None:
+        """Optional identity for public *write* routes (form drafts/responses).
+
+        An anonymous visitor is fine; a cookie that belongs to a blocked account is not silently
+        downgraded to anonymous (that would let a blocked member register as a guest).
+        """
+        identity = account_identity_from_request(request, db)
+        if identity is None and getattr(request.state, "account_blocked", False):
+            raise HTTPException(403, ACCOUNT_BLOCKED_DETAIL)
         return identity
 
     def bind_public_draft_account(
@@ -1392,6 +1771,61 @@ def create_app(
         role = assigned.role if assigned is not None else None
         return account_id, role if role in ROLE_KEYS else None
 
+    def verified_bale_ids_for_account(db: Session, account_id: str) -> list[str]:
+        """Bale IDs the server itself linked to this account (never client-supplied)."""
+        return list(db.scalars(
+            select(PlatformIdentityRecord.provider_user_id).where(
+                PlatformIdentityRecord.provider == "bale",
+                PlatformIdentityRecord.account_id == account_id,
+            )
+        ))
+
+    def account_form_record_scope(db: Session, account_id: str) -> ColumnElement[bool]:
+        """Form-response drafts a signed-in account may read.
+
+        Its own drafts, plus drafts created from the Bale side by a Bale identity that
+        the server has verified for this same account. A draft that already names
+        another account is never included, even when it carries this account's Bale ID,
+        so linking can widen the view to one's own records but never to someone else's.
+        """
+        own_drafts = FormResponseDraftRecord.account_id == account_id
+        bale_ids = verified_bale_ids_for_account(db, account_id)
+        if not bale_ids:
+            return own_drafts
+        return or_(
+            own_drafts,
+            and_(
+                FormResponseDraftRecord.bot_bale_user_id.in_(bale_ids),
+                FormResponseDraftRecord.account_id.is_(None),
+            ),
+        )
+
+    def bot_form_record_scope(db: Session, bale_user_id: str) -> ColumnElement[bool]:
+        """Form-response drafts the bot may read on behalf of one Bale user.
+
+        A non-empty `account_id` is the record's explicit owner and wins over any
+        Bale tag left on the row: a draft that names another account is never
+        returned for this Bale identity, even when it still carries this Bale ID.
+        The Bale path therefore only ever reaches *legacy* drafts (no owner yet)
+        that carry this Bale ID; a verified link additionally opens the linked
+        account's own drafts. An unlinked Bale user gets the legacy drafts only:
+        there is no verified account behind the ID, so no owned row may be read
+        through it, whichever account the owner happens to be.
+        """
+        own_untagged = and_(
+            FormResponseDraftRecord.bot_bale_user_id == bale_user_id,
+            FormResponseDraftRecord.account_id.is_(None),
+        )
+        linked_account_id = db.scalar(
+            select(PlatformIdentityRecord.account_id).where(
+                PlatformIdentityRecord.provider == "bale",
+                PlatformIdentityRecord.provider_user_id == bale_user_id,
+            )
+        )
+        if linked_account_id is None:
+            return own_untagged
+        return or_(own_untagged, FormResponseDraftRecord.account_id == linked_account_id)
+
     def admin_task_view(task: AdminTaskRecord | None) -> dict[str, Any]:
         if task is None:
             raise HTTPException(404, "admin_task_not_found")
@@ -1429,12 +1863,45 @@ def create_app(
                 "content_type": item.content_type,
                 "content_size": item.content_size,
             })
+        # وضعیت تحویل اعلان، جدا از وضعیت تصمیم: از همان صف اعلان سرور خوانده می‌شود،
+        # نه از ثبت تصمیم. نبود ردیف اعلان برای کار تصمیم‌گرفته‌شده «نامشخص» گزارش می‌شود.
+        decided_ids = [task.id for task in tasks if task.status != "pending"]
+        notifications = db.scalars(
+            select(UserNotificationRecord)
+            .where(UserNotificationRecord.source_task_id.in_(decided_ids))
+            .order_by(UserNotificationRecord.created_at, UserNotificationRecord.id)
+        ).all() if decided_ids else []
+        notification_by_task: dict[str, UserNotificationRecord] = {}
+        for outbox in notifications:
+            if outbox.source_task_id and outbox.account_id == task_accounts.get(outbox.source_task_id):
+                notification_by_task.setdefault(outbox.source_task_id, outbox)
         views = []
         for task in tasks:
             view = admin_task_view(task)
             view["files"] = files_by_task.get(task.id, [])
+            if task.status != "pending":
+                view["notification"] = task_notification_view(notification_by_task.get(task.id))
             views.append(view)
         return views
+
+    def task_notification_view(item: UserNotificationRecord | None) -> dict[str, Any]:
+        """Delivery state of the user's notification for one decided task.
+
+        ``unknown``: no outbox row (older tasks or none queued); ``queued``: waiting
+        for the bot; ``retrying``: at least one failed attempt, still pending;
+        ``delivered`` / ``failed``: provider acknowledgement recorded by the bot.
+        """
+        if item is None:
+            return {"status": "unknown", "attempts": 0, "delivered_at": None, "last_error": None}
+        status = item.delivery_status
+        if status == "pending":
+            status = "retrying" if item.delivery_attempts > 0 else "queued"
+        return {
+            "status": status,
+            "attempts": item.delivery_attempts,
+            "delivered_at": _as_utc(item.delivered_at).isoformat() if item.delivered_at else None,
+            "last_error": item.last_delivery_error,
+        }
 
     def user_notification_view(item: UserNotificationRecord) -> dict[str, Any]:
         return {
@@ -1445,6 +1912,12 @@ def create_app(
             "body": item.body,
             "file_refs": item.file_refs,
             "delivery_status": item.delivery_status,
+            # Derived outbox state: queued ≠ delivered; retrying = pending after ≥1 failed attempt.
+            "delivery_state": interaction_mod.delivery_state(item.delivery_status, item.delivery_attempts),
+            "delivery_attempts": item.delivery_attempts,
+            "last_delivery_error": item.last_delivery_error or None,
+            # Relative in-app page (event/account); never a file URL. NULL for rows older than 9.4.
+            "link": item.link or None,
             "created_at": _as_utc(item.created_at).isoformat(),
             "delivered_at": _as_utc(item.delivered_at).isoformat() if item.delivered_at else None,
             "read": item.read_at is not None,
@@ -1591,11 +2064,17 @@ def create_app(
         if task.status != "pending":
             raise HTTPException(409, "workflow_already_reviewed")
         task_payload = task.payload if isinstance(task.payload, dict) else {}
+        is_purchase_receipt = (
+            task.kind == "receipt_review"
+            and task_payload.get("purchase_source") == "recording_access"
+        )
         is_public_form_receipt = (
             task.kind == "receipt_review"
             and task_payload.get("registration_source") == "public_form"
+            and not is_purchase_receipt
         )
         linked_response = None
+        payment_status_before_decision: str | None = None
         if is_public_form_receipt:
             form_id = task_payload.get("form_id")
             response_id = task_payload.get("form_response_id")
@@ -1616,6 +2095,26 @@ def create_app(
                 .with_for_update()
             )
             if linked_response is None:
+                raise HTTPException(409, "linked_public_form_response_unavailable")
+        purchase_form: FormRecord | None = None
+        if is_purchase_receipt:
+            # Purchase receipts are tied to the buyer's web account, never to a Bale ticket claim.
+            linked_response = db.scalar(
+                select(FormResponseRecord)
+                .join(FormResponseDraftRecord, FormResponseDraftRecord.id == FormResponseRecord.draft_id)
+                .where(
+                    FormResponseRecord.id == task_payload.get("form_response_id"),
+                    FormResponseRecord.form_id == task_payload.get("form_id"),
+                    FormResponseRecord.status == "accepted",
+                    FormResponseRecord.receipt_review_task_id == task.id,
+                    FormResponseDraftRecord.account_id == task.account_id,
+                )
+                .with_for_update()
+            )
+            if linked_response is None:
+                raise HTTPException(409, "linked_public_form_response_unavailable")
+            purchase_form = db.get(FormRecord, linked_response.form_id)
+            if purchase_form is None or not _form_is_purchase(purchase_form):
                 raise HTTPException(409, "linked_public_form_response_unavailable")
         now = _utc_now()
         result = db.execute(
@@ -1639,25 +2138,63 @@ def create_app(
             db.rollback()
             raise HTTPException(409, "workflow_version_conflict")
         db.flush()
-        if is_public_form_receipt and linked_response is not None:
+        if (is_public_form_receipt or is_purchase_receipt) and linked_response is not None:
             payment_record = db.scalar(
                 select(FormPaymentRecord)
                 .where(FormPaymentRecord.response_id == linked_response.id)
                 .with_for_update()
             )
             if payment_record is not None and payment_record.method == "card_transfer":
+                payment_status_before_decision = payment_record.status
                 payment_record.status = "paid_manual" if decision == "approved" else "rejected"
                 payment_record.updated_at = now
-        if is_public_form_receipt and decision == "rejected" and linked_response is not None:
-            draft = linked_response.draft
-            if draft is not None:
-                draft.answers = {}
-                draft.companions = []
-                draft.bot_bale_user_id = None
-            db.delete(linked_response)
-            db.flush()
+        # Reviewer identity as recorded on the task: the owner id (web or bot owner) or a staff account id.
+        actor_kind = audit_mod.ACTOR_OWNER if reviewer_id == settings.owner_id else audit_mod.ACTOR_ACCOUNT
+        purchase_actor = (actor_kind, reviewer_id)
+        if is_purchase_receipt and linked_response is not None and purchase_form is not None:
+            payment_record = db.scalar(
+                select(FormPaymentRecord).where(FormPaymentRecord.response_id == linked_response.id)
+            )
+            if decision == "approved":
+                if payment_record is None or payment_record.status != "paid_manual":
+                    raise HTTPException(409, "linked_public_form_response_unavailable")
+                order, _access = _finalize_purchase(
+                    db, form=purchase_form, response=linked_response, payment=payment_record,
+                    account_id=task.account_id, now=now, actor=purchase_actor, reason=reason or "receipt_approved",
+                )
+            else:
+                order = _reject_purchase(db, response=linked_response, reason=reason or "receipt_rejected", now=now, actor=purchase_actor)
+            audit_mod.record_admin_event(
+                db, actor_kind=actor_kind, actor_id=reviewer_id, actor_role="",
+                action="recording.order.approve" if decision == "approved" else "recording.order.reject",
+                target_type="recording_order", target_id=order.id if order is not None else "",
+                details={
+                    "task_id": task.id, "form_id": purchase_form.id, "recording_id": purchase_form.recording_id,
+                    "account_id": task.account_id, "amount": int(payment_record.amount) if payment_record else None,
+                    "status_after": order.status if order is not None else "", "reason": reason, "via": "inbox",
+                },
+            )
+        if (is_public_form_receipt or is_purchase_receipt) and decision == "rejected" and linked_response is not None:
+            cancelled = cancel_registration(
+                db, linked_response, reason=reason, source="inbox", actor_kind=actor_kind, actor_id=reviewer_id,
+                actor_role=ROLE_OWNER if actor_kind == audit_mod.ACTOR_OWNER else "",
+                payment_status_before=payment_status_before_decision,
+                receipt_file_refs=[str(ref) for ref in task_payload.get("file_refs", []) if ref],
+            )
+            audit_mod.record_admin_event(
+                db, actor_kind=actor_kind, actor_id=reviewer_id, actor_role="",
+                action="registration.cancel", target_type="form_response", target_id=cancelled.response_id,
+                details={"cancellation_id": cancelled.id, "form_id": cancelled.form_id, "event_id": cancelled.event_id or "",
+                         "source": "inbox", "task_id": task.id, "companions": len(cancelled.companions), "reason": reason[:160]},
+            )
         target_kind = task.kind.removesuffix("_review") + ("_approved" if decision == "approved" else "_rejected")
         approved = decision == "approved"
+        if is_purchase_receipt and approved:
+            # The access grant already queued «دسترسی فعال شد»; a second message would be noise.
+            updated_task = db.get(AdminTaskRecord, task.id)
+            if updated_task is None:
+                raise HTTPException(404, "admin_task_not_found")
+            return updated_task
         if task.kind == "profile_review":
             title = "پروفایل تأیید شد" if approved else "پروفایل نیاز به اصلاح دارد"
             body = "پروفایل شما ثبت شد." if approved else ("پروفایل شما تأیید نشد." + (" دلیل: " + reason if reason else ""))
@@ -1668,26 +2205,58 @@ def create_app(
                 if approved else
                 "ثبت‌نام قبلی لغو شد. اگر هنوز می‌خوای شرکت کنی، فرم رو دوباره پر کن."
             )
+        elif is_purchase_receipt:
+            product_title = str(task_payload.get("product_title") or "محتوای ضبط‌شده")
+            title = "نتیجهٔ بررسی خرید محتوای ضبط‌شده"
+            body = (
+                f"رسید خرید «{product_title}» تأیید نشد." + (f"\nدلیل: {reason}" if reason else "")
+                + "\nدر صورت نیاز می‌توانید از صفحهٔ همان رویداد دوباره فرم خرید را پر کنید."
+            )
         else:
             title = "فیش پرداخت تأیید شد" if approved else "فیش پرداخت تأیید نشد"
             body = "رسید پرداخت شما تأیید شد." if approved else ("رسید پرداخت تأیید نشد." + (" دلیل: " + reason if reason else ""))
-        notification = UserNotificationRecord(
-            id=str(uuid.uuid4()),
-            account_id=task.account_id,
-            bale_user_id=task.bale_user_id,
+        notifications_mod.queue(
+            db, account_id=task.account_id, kind=target_kind, title=title, body=body,
+            key=notifications_mod.dedupe_key("admin_task", task.id, target_kind),
+            bale_ids=[task.bale_user_id] if task.bale_user_id else [],
+            link=notifications_mod.account_link("registrations") if is_public_form_receipt
+            else notifications_mod.account_link("orders") if is_purchase_receipt else None,
+            file_refs=[] if (is_public_form_receipt or is_purchase_receipt) else list(task_payload.get("file_refs", [])),
             source_task_id=task.id,
-            kind=target_kind,
-            title=title,
-            body=body,
-            file_refs=[] if is_public_form_receipt else list(task_payload.get("file_refs", [])),
-            delivery_status="pending",
         )
-        db.add(notification)
-        db.flush()
         updated_task = db.get(AdminTaskRecord, task.id)
         if updated_task is None:
             raise HTTPException(404, "admin_task_not_found")
         return updated_task
+
+
+    @app.post(CSP_REPORT_PATH, status_code=204)
+    async def csp_report(request: Request) -> Response:
+        """Report sink for the frame-src policy (phase 9.6 §8): one PII-free WARNING line per violation.
+
+        Accepts the browser formats ``application/csp-report`` (``{"csp-report": {...}}``) and
+        ``application/reports+json`` (list of ``{"type": "csp-violation", "body": {...}}``). Nothing is
+        stored; ``document-uri`` is reduced to its path and ``blocked-uri`` to its origin, so no query
+        string, token or member identifier ever reaches the log. Operators read the journal.
+        """
+        raw = await request.body()
+        if len(raw) > CSP_REPORT_MAX_BYTES:
+            raise HTTPException(413, "request_too_large")
+        try:
+            payload = json.loads(raw.decode("utf-8")) if raw else None
+        except (UnicodeDecodeError, ValueError):
+            raise HTTPException(400, "invalid_csp_report") from None
+        bodies: list[dict[str, Any]] = []
+        if isinstance(payload, dict) and isinstance(payload.get("csp-report"), dict):
+            bodies.append(payload["csp-report"])
+        elif isinstance(payload, list):
+            bodies.extend(item["body"] for item in payload[:20]
+                          if isinstance(item, dict) and item.get("type") == "csp-violation" and isinstance(item.get("body"), dict))
+        else:
+            raise HTTPException(400, "invalid_csp_report")
+        for body in bodies:
+            csp_logger.warning("csp_violation %s", json.dumps(_csp_report_summary(body), ensure_ascii=False, sort_keys=True))
+        return Response(status_code=204)
 
     @app.get("/api/health")
     def health(request: Request):
@@ -1727,6 +2296,7 @@ def create_app(
                 db.execute(text("SELECT 1 FROM admin_tasks LIMIT 1"))
                 db.execute(text("SELECT 1 FROM user_notifications LIMIT 1"))
                 db.execute(text("SELECT 1 FROM private_files LIMIT 1"))
+                payments_ready = _runtime_settings(db, request.app.state.settings).form_bale_payments_ready
         except SQLAlchemyError:
             return JSONResponse(
                 {
@@ -1751,22 +2321,31 @@ def create_app(
             "workflowEnabled": True,
             "notificationQueueEnabled": True,
             "privateFileStorageEnabled": True,
-            "formBalePaymentsReady": request.app.state.settings.form_bale_payments_ready,
+            "formBalePaymentsReady": payments_ready,
         }
 
     @app.get("/api/public/forms/capabilities")
     def form_capabilities(request: Request):
         """Read-only, secret-free feature contract for the web form builder."""
         cfg: Settings = request.app.state.settings
+        factory = request.app.state.session_factory
+        bale_wallet_ready = False
+        if factory is not None:
+            try:
+                with factory() as db:
+                    bale_wallet_ready = _runtime_settings(db, cfg).form_bale_payments_ready
+            except SQLAlchemyError:
+                bale_wallet_ready = False
         return public_form_capabilities(
-            api_configured=request.app.state.session_factory is not None,
-            bale_wallet_ready=cfg.form_bale_payments_ready,
+            api_configured=factory is not None,
+            bale_wallet_ready=bale_wallet_ready,
         )
 
     def _site_content_response(
         db: Session, content: dict[str, Any], version: int, updated_at: datetime | None, *, owner_view: bool = False
     ):
         public = public_site_content(content)
+        now = _utc_now()
         if owner_view:
             try:
                 public["banners"] = sanitize_site_content(
@@ -1774,7 +2353,7 @@ def create_app(
                 ).get("banners", [])
             except SiteContentError:
                 public["banners"] = []
-        cfg: Settings = app.state.settings
+        cfg: Settings = _runtime_settings(db, app.state.settings)
         published_forms: Sequence[FormRecord] = db.scalars(
             select(FormRecord)
             .options(selectinload(FormRecord.fields))
@@ -1794,12 +2373,45 @@ def create_app(
                 settings_value = form.settings if isinstance(form.settings, dict) else {}
                 if form.id not in by_id or form.need != "reg" or settings_value.get("eventVisible") is False:
                     continue
+                if _form_is_purchase(form):
+                    continue
                 if form.event_id and str(form.event_id) != str(event.get("id")):
                     continue
                 if str(form.event_id or "") == str(event.get("id")) or form.id in declared:
                     related.append({"id": form.id, "need": form.need, "n": form.title})
             event["forms"] = related
             event.pop("regForm", None)
+            # Registration state is computed once here (server clock, linked published form,
+            # that form's real capacity) and re-used by the home/list/detail pages and banners.
+            primary = by_id.get(related[0]["id"]) if related else None
+            form_full = False
+            if primary is not None:
+                accepted, waitlisted = _response_counts(db, primary.id)
+                form_full = _capacity_is_full(
+                    primary, accepted + _active_bale_payment_holds(db, primary.id), waitlisted
+                )
+                # Single source of truth (event-file integration): the capacity the server enforces and the
+                # price it charges live in the registration form's settings. The stored event row keeps its
+                # declared values untouched; the public projection shows what really applies.
+                primary_settings = primary.settings if isinstance(primary.settings, dict) else {}
+                price_view = _event_file_price(primary_settings)
+                event["cap"] = _count_setting(primary_settings.get("cap", 0))
+                if price_view.get("valid"):
+                    event["price"] = int(price_view.get("base") or 0)
+                event["pricing"] = {
+                    "source": "form", "form_id": primary.id, "base": int(price_view.get("base") or 0),
+                    "has_optional": bool(price_view.get("has_optional")), "paid": bool(price_view.get("paid")),
+                    "valid": bool(price_view.get("valid")),
+                }
+            event["registration"] = event_time.registration_state(
+                event, now=now, has_form=primary is not None, form_full=form_full
+            )
+        cards = _recording_cards(db, [str(event.get("id")) for event in public["events"] if event.get("id")])
+        for event in public["events"]:
+            card = cards.get(str(event.get("id")))
+            if card is not None:
+                event["recording"] = card
+        public["banners"] = _public_banner_rows(public["banners"], public["events"], now, owner_view=owner_view)
         for person in public["people"]:
             form_id = str(person.get("form") or "")
             if form_id and form_id not in public_form_ids:
@@ -1817,7 +2429,85 @@ def create_app(
             "version": version,
             "updated_at": _as_utc(updated_at).isoformat() if updated_at else None,
             "delivery_bot_url": delivery_bot_url,
+            # Reference clock for every countdown; browsers only measure the offset to it.
+            "server_time": event_time.to_iso(now),
         }
+
+    def _public_banner_rows(
+        banners: list[dict[str, Any]], events: list[dict[str, Any]], now: datetime, *, owner_view: bool
+    ) -> list[dict[str, Any]]:
+        """Resolve event-linked banners and apply the publish window on the server clock.
+
+        Owner view keeps every row (the editor needs drafts and expired rows) but still
+        attaches the resolved event so the panel preview matches the public page.
+        """
+        by_event = {str(event.get("id")): event for event in events if isinstance(event, dict)}
+        rows: list[dict[str, Any]] = []
+        for banner in banners:
+            if not isinstance(banner, dict):
+                continue
+            row = dict(banner)
+            event = by_event.get(str(row.get("eventId") or "")) if row.get("eventId") else None
+            if row.get("eventId") and event is None and not owner_view:
+                # Linked event is unpublished/missing: never show a banner that points at it.
+                continue
+            countdown = str(row.get("countdown") or "")
+            resolved, target, expired = "", "", False
+            if event is not None:
+                registration = event.get("registration") or {}
+                state = str(registration.get("state") or "")
+                row["event"] = {
+                    "id": event.get("id"), "t": event.get("t"), "when": event.get("when"),
+                    "startsAt": event.get("startsAt") or "", "regClosesAt": event.get("regClosesAt") or "",
+                    "state": state, "lifecycle": registration.get("lifecycle") or "scheduled",
+                }
+                recording_card = event.get("recording") if isinstance(event.get("recording"), dict) else None
+                if recording_card is not None and recording_card.get("sellable"):
+                    # The banner of a recorded product leads to its sales section; a countdown
+                    # (registration/start) would be a lie for a held event.
+                    row["event"]["recording"] = {"sellable": True, "price": recording_card.get("price", 0)}
+                    row["href"] = f"event.html?id={event.get('id')}#recording"
+                    countdown = ""
+                if not row.get("href"):
+                    row["href"] = f"event.html?id={event.get('id')}"
+                if countdown == "reg_close":
+                    if state == "open":
+                        resolved, target = "reg_close", str(registration.get("countdownTo") or "")
+                    elif state == "not_started":
+                        resolved, target = "reg_open", str(registration.get("opensAt") or "")
+                    else:
+                        resolved, expired = "reg_close", state in {"closed", "full", "ended", "cancelled"}
+                elif countdown == "event_start":
+                    resolved = "event_start"
+                    starts = event_time.parse_utc(event.get("startsAt"))
+                    if registration.get("lifecycle") == "cancelled":
+                        expired = True
+                    elif starts is not None:
+                        target, expired = (event_time.to_iso(starts), False) if starts > now else ("", True)
+                    else:
+                        resolved = ""
+            if countdown == "campaign_end":
+                ends_at = event_time.parse_utc(row.get("campaignEndsAt"))
+                if ends_at is not None:
+                    resolved = "campaign_end"
+                    target, expired = (event_time.to_iso(ends_at), False) if ends_at > now else ("", True)
+            # Only a real server-validated target (or a finished deadline) survives; the
+            # client never computes its own deadline from banner text.
+            row["countdown"] = resolved
+            row["countdownTo"] = target if resolved and not expired else ""
+            row["countdownEnded"] = bool(resolved) and expired
+            if not owner_view:
+                starts = event_time.parse_utc(row.get("startsAt"))
+                ends = event_time.parse_utc(row.get("endsAt"))
+                if (starts and starts > now) or (ends and ends <= now):
+                    continue
+                if row["countdownEnded"] and row.get("afterEnd", "hide") == "hide":
+                    continue
+                if row["countdownEnded"] and event is not None:
+                    # After the deadline the primary action may only lead to the detail page.
+                    row["href"] = f"event.html?id={event.get('id')}"
+            rows.append(row)
+        return rows
 
     @app.get("/api/public/site-content")
     def get_public_site_content(db: Session = Depends(get_db)):
@@ -1835,6 +2525,28 @@ def create_app(
         if record is None:
             return _site_content_response(db, {key: [] for key in CONTENT_KEYS}, 0, None, owner_view=True)
         return _site_content_response(db, record.content or {}, record.version, record.updated_at, owner_view=True)
+
+    def _rejected_content_rows(raw_content: Any, accepted: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
+        """Rows of the raw payload that the sanitiser did not keep, per category, with the reason."""
+        rejected: dict[str, list[dict[str, Any]]] = {}
+        if not isinstance(raw_content, dict):
+            return rejected
+        for key in CONTENT_KEYS:
+            if key not in accepted or not isinstance(raw_content.get(key), list):
+                continue
+            kept_ids = {str(row.get("id")) for row in accepted[key] if isinstance(row, dict) and row.get("id")}
+            missing: list[dict[str, Any]] = []
+            for index, row in enumerate(raw_content[key]):
+                row_id = str(row.get("id") or "")[:100] if isinstance(row, dict) else ""
+                if row_id and row_id in kept_ids:
+                    continue
+                reason = "invalid_row" if not isinstance(row, dict) else (
+                    "non_public" if not is_public_content_row(row) else "missing_required_fields"
+                )
+                missing.append({"index": index, "id": row_id, "reason": reason})
+            if missing:
+                rejected[key] = missing[:100]
+        return rejected
 
     @app.patch("/api/owner/site-content")
     async def update_owner_site_content(
@@ -1854,6 +2566,10 @@ def create_app(
             raise HTTPException(422, {"code": str(error)}) from None
         if not incoming:
             raise HTTPException(422, "empty_site_content_update")
+        # H1 (additive diagnostic): the allow-list sanitiser silently skips rows it cannot publish
+        # (missing id/name, hidden/draft flags). Report them back so an editor never mistakes a
+        # dropped row for a saved one; nothing about what is stored changes.
+        rejected_rows = _rejected_content_rows(payload.get("content"), incoming)
         record = db.get(SiteContentRecord, "public")
         current_version = record.version if record else 0
         if expected_version != current_version:
@@ -1867,6 +2583,29 @@ def create_app(
         current["banner_settings"] = public_site_content(record.content or {}).get("banner_settings") if record else {
             "enabled": True, "auto_rotate": False, "interval_seconds": 7, "show_controls": True
         }
+        for key in NON_PUBLIC_RETAINED_KEYS:
+            if key in incoming:
+                incoming[key] = retain_non_public_rows(current.get(key), incoming[key])
+        # H1: a whole-category replace of people/partners must not drop a row that an event or
+        # article of the same document still links to (mirror of the B1 ``unknown_reference`` rule).
+        for category in ("people", "partners"):
+            if category not in incoming:
+                continue
+            in_use, used_by = content_admin_mod.removed_references_in_use(
+                category, current.get(category), incoming[category], current
+            )
+            if in_use:
+                raise HTTPException(422, {
+                    "code": "reference_in_use", "field": category, "ids": in_use, "used_by": used_by,
+                })
+        # Owner decision 1405/08/01 (history tab): people/partners are edited as a whole category,
+        # so one extra audit row per changed person makes that person's history filterable by id
+        # (target ``content.people``/``content.partners``), the same way event/article rows are.
+        row_audits: list[tuple[str, str, str, str]] = []
+        for category in ("people", "partners"):
+            if category in incoming:
+                for action, row_id, title in content_admin_mod.row_changes(current.get(category), incoming[category]):
+                    row_audits.append((category, action, row_id, title))
         current.update(incoming)
         if record is None:
             record = SiteContentRecord(id="public", content=current, version=1)
@@ -1875,56 +2614,5599 @@ def create_app(
             record.content = current
             record.version = current_version + 1
             record.updated_at = _utc_now()
+        record_audit(
+            db, _identity, "site_content.update", target_type="site_content", target_id="public",
+            details={"keys": ",".join(sorted(str(key) for key in incoming))[:160], "version": current_version + 1},
+        )
+        for category, action, row_id, title in row_audits[:200]:
+            record_audit(
+                db, _identity, action, target_type=f"content.{category}", target_id=row_id,
+                details={"kind": category, "title": title, "version": current_version + 1},
+            )
         db.commit()
         db.refresh(record)
-        return _site_content_response(db, record.content or {}, record.version, record.updated_at, owner_view=True)
+        result = _site_content_response(db, record.content or {}, record.version, record.updated_at, owner_view=True)
+        result["rejected_rows"] = rejected_rows
+        return result
 
-    @app.get("/api/owner/payment-settings")
-    def get_owner_payment_settings(
-        request: Request,
-        _identity: OwnerIdentity = Depends(require_owner),
-        db: Session = Depends(get_db),
-    ):
-        return _payment_settings_response(db, request.app.state.settings)
+    # ── مدیریت رکوردی رویداد و مطلب روی همان سند site_content ──
+    # منبع حقیقت همان سند است؛ این مسیرها فقط چرخهٔ «پیش‌نویس/منتشر/متوقف/بایگانی»
+    # را روی ردیف‌ها می‌افزایند. ویرایش/ساخت با ev_create و تغییر وضعیت با ev_publish.
+    _CONTENT_KIND = r"^(events|articles)$"
+    _CONTENT_EDIT_PERMS = ("ev_create",)
+    _CONTENT_PUBLISH_PERMS = ("ev_publish",)
 
-    @app.put("/api/owner/payment-settings/bale-wallet")
-    async def set_owner_bale_wallet_key(
-        request: Request,
-        _identity: OwnerIdentity = Depends(require_owner_write),
-        db: Session = Depends(get_db),
-    ):
-        payload = await _read_json_object(request, 4 * 1024)
-        if set(payload) != {"api_key"} or not isinstance(payload.get("api_key"), str):
-            raise HTTPException(400, "invalid_payment_settings_request")
-        value = payload["api_key"].strip()
-        if not _BALE_WALLET_KEY.fullmatch(value):
-            raise HTTPException(422, "invalid_bale_wallet_key_format")
-        if not encryption_configured():
-            raise HTTPException(503, "settings_encryption_not_configured")
-        try:
-            ciphertext = encrypt_secret(value)
-        except SecretBoxError as error:
-            raise HTTPException(503, error.code) from None
-        record = db.get(PaymentSecretRecord, "bale_wallet")
+    def _content_rows(record: SiteContentRecord | None, kind: str) -> list[Any]:
+        return list(((record.content if record else None) or {}).get(kind) or [])
+
+    def _content_kind(kind: str) -> str:
+        if kind not in content_admin_mod.KINDS:
+            raise HTTPException(404, "content_kind_not_found")
+        return kind
+
+    def _content_error(error: content_admin_mod.ContentAdminError) -> HTTPException:
+        return HTTPException(422, {"code": error.code, "field": error.field})
+
+    def _content_has_form(db: Session, kind: str, row: dict[str, Any]) -> bool | None:
+        """Same link rule as the public snapshot: declared on the row or a published
+        registration form with ``event_id`` = this event (so panel state == public state)."""
+        if kind != "events":
+            return None
+        if row.get("forms"):
+            return True
+        event_id = str(row.get("id") or "")
+        if not event_id:
+            return False
+        return db.scalar(
+            select(FormRecord.id)
+            .where(
+                FormRecord.event_id == event_id, FormRecord.status == "published", FormRecord.need == "reg",
+                FormRecord.purpose == "registration",
+            )
+            .limit(1)
+        ) is not None
+
+    def _content_registration_summary(db: Session, kind: str, item: dict[str, Any]) -> dict[str, Any] | None:
+        """Panel audit 1405/08/01 (A6): capacity/registered for an event card, from the primary linked
+        published registration form (same rule as the public snapshot) and real ``form_responses``
+        counts. Aggregates only (no registrant data). ``None`` when no published form is linked."""
+        if kind != "events":
+            return None
+        event_id = str(item.get("id") or "")
+        if not event_id:
+            return None
+        declared = [str(form.get("id") or "") for form in (item.get("forms") or []) if isinstance(form, dict)]
+        candidates = db.scalars(
+            select(FormRecord)
+            .where(FormRecord.status == "published", FormRecord.need == "reg", FormRecord.purpose == "registration")
+            .where(or_(FormRecord.event_id == event_id, FormRecord.id.in_(declared)) if declared else FormRecord.event_id == event_id)
+        ).all()
+        primary = None
+        for form in candidates:
+            if _form_is_purchase(form) or (form.event_id and str(form.event_id) != event_id):
+                continue
+            if primary is None or (form.id in declared and primary.id not in declared):
+                primary = form
+        if primary is None:
+            return None
+        settings_value = primary.settings if isinstance(primary.settings, dict) else {}
+        accepted, waitlisted = _response_counts(db, primary.id)
+        cap = _count_setting(settings_value.get("cap", 0))
+        wait = _count_setting(settings_value.get("wait", 0))
+        return {
+            "form_id": primary.id,
+            "form_name": primary.title,
+            "accepted": accepted,
+            "waitlisted": waitlisted,
+            "cap": cap,
+            "wait": wait,
+            "full": _capacity_is_full(primary, accepted, waitlisted),
+            "source": "form_responses",
+        }
+
+    def _content_record_response(
+        record: SiteContentRecord, kind: str, row: dict[str, Any], *, saved: bool = False, db: Session | None = None
+    ) -> dict[str, Any]:
+        out = {
+            "kind": kind,
+            "record": content_admin_mod.detail(kind, row, has_form=_content_has_form(db, kind, row) if db is not None else None),
+            "version": record.version,
+            "updated_at": _as_utc(record.updated_at).isoformat() if record.updated_at else None,
+            "saved": saved,
+        }
+        if kind == "events" and db is not None:
+            # B19: configured reminder slots, when they fire and what the outbox holds (read model; sending is the timer's job).
+            out["reminders"] = event_reminders_mod.preview(db, row, _utc_now(), is_purchase=_form_is_purchase)
+        return out
+
+    async def _content_write_payload(request: Request, db: Session, *, need_record: bool) -> tuple[dict[str, Any], SiteContentRecord]:
+        payload = await _read_json_object(request, 4 * 1024 * 1024)
+        allowed = {"record", "expected_version", "status"} if need_record else {"status", "expected_version"}
+        if not set(payload) <= allowed or "expected_version" not in payload or (need_record and "record" not in payload):
+            raise HTTPException(400, "invalid_content_request")
+        expected_version = payload.get("expected_version")
+        if isinstance(expected_version, bool) or not isinstance(expected_version, int) or expected_version < 0:
+            raise HTTPException(422, "invalid_site_content_version")
+        record = db.get(SiteContentRecord, "public")
+        current_version = record.version if record else 0
+        if expected_version != current_version:
+            raise HTTPException(409, {"code": "site_content_version_conflict", "current_version": current_version})
         if record is None:
-            db.add(PaymentSecretRecord(id="bale_wallet", ciphertext=ciphertext, hint=secret_hint(value)))
-        else:
-            record.ciphertext = ciphertext
-            record.hint = secret_hint(value)
-        db.commit()
-        return _payment_settings_response(db, request.app.state.settings)
+            record = SiteContentRecord(id="public", content={key: [] for key in CONTENT_KEYS}, version=0)
+            db.add(record)
+        return payload, record
 
-    @app.delete("/api/owner/payment-settings/bale-wallet")
-    def clear_owner_bale_wallet_key(
-        request: Request,
-        _identity: OwnerIdentity = Depends(require_owner_write),
+    def _content_store(record: SiteContentRecord, kind: str, rows: list[Any]) -> None:
+        current: dict[str, Any] = {key: list((record.content or {}).get(key, [])) for key in CONTENT_KEYS}
+        if isinstance((record.content or {}).get("banner_settings"), dict):
+            current["banner_settings"] = dict((record.content or {})["banner_settings"])
+        current[kind] = rows
+        record.content = current
+        record.version = (record.version or 0) + 1
+        record.updated_at = _utc_now()
+
+    @app.get("/api/admin/content/{kind}")
+    def list_admin_content(
+        kind: str,
+        response: Response,
+        q: str = Query(default="", max_length=80),
+        status: str = Query(default="", pattern=r"^(|draft|published|paused|archived)$"),
+        sort: str = Query(default="updated", pattern=r"^(updated|created|title|date)$"),
+        order: str = Query(default="desc", pattern=r"^(asc|desc)$"),
+        limit: int = Query(default=20, ge=1, le=100),
+        offset: int = Query(default=0, ge=0, le=100_000),
+        when: str = Query(default="", pattern=r"^(|today|upcoming|past)$"),
+        mode: str = Query(default="", max_length=80),
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_CONTENT_EDIT_PERMS, *_CONTENT_PUBLISH_PERMS)),
         db: Session = Depends(get_db),
     ):
-        record = db.get(PaymentSecretRecord, "bale_wallet")
-        if record is not None:
-            db.delete(record)
+        response.headers["Cache-Control"] = "private, no-store"
+        kind = _content_kind(kind)
+        record = db.get(SiteContentRecord, "public")
+        try:
+            result = content_admin_mod.list_records(
+                kind, _content_rows(record, kind), q=q, status=status, sort=sort, order=order, limit=limit, offset=offset,
+                when=when, mode=mode,
+            )
+        except content_admin_mod.ContentAdminError as error:
+            raise _content_error(error) from None
+        if kind == "events":
+            for item in result["items"]:
+                item["registration"] = _content_registration_summary(db, kind, item)
+        role = ROLE_OWNER if isinstance(identity, OwnerIdentity) else identity.role
+        result.update({
+            "kind": kind,
+            "version": record.version if record else 0,
+            "source": "site_content",
+            "can_edit": has_permission(role, "ev_create"),
+            "can_publish": has_permission(role, "ev_publish"),
+            "q": q,
+            "status": status,
+            "sort": sort,
+            "order": order,
+        })
+        return result
+
+    @app.get("/api/admin/content/{kind}/{record_id}")
+    def get_admin_content_record(
+        kind: str,
+        record_id: str,
+        response: Response,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_CONTENT_EDIT_PERMS, *_CONTENT_PUBLISH_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        kind = _content_kind(kind)
+        record = db.get(SiteContentRecord, "public")
+        found = content_admin_mod.find_row(_content_rows(record, kind), record_id)
+        if record is None or found is None:
+            raise HTTPException(404, "content_record_not_found")
+        return _content_record_response(record, kind, found[1], db=db)
+
+    @app.post("/api/admin/content/{kind}")
+    async def create_admin_content_record(
+        kind: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_CONTENT_EDIT_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        kind = _content_kind(kind)
+        payload, record = await _content_write_payload(request, db, need_record=True)
+        status = payload.get("status", "draft")
+        if status not in {"draft", "published"}:
+            raise HTTPException(422, {"code": "invalid_status", "field": "status"})
+        role = ROLE_OWNER if isinstance(identity, OwnerIdentity) else identity.role
+        if status == "published" and not has_permission(role, "ev_publish"):
+            raise HTTPException(403, "permission_denied")
+        rows = _content_rows(record, kind)
+        try:
+            content_admin_mod.ensure_capacity(kind, rows)
+            record_id = content_admin_mod.new_record_id(kind)
+            while content_admin_mod.find_row(rows, record_id):
+                record_id = content_admin_mod.new_record_id(kind)
+            row = content_admin_mod.build_record(
+                kind, payload.get("record"), existing=None, record_id=record_id, status=status,
+                references=content_admin_mod.reference_ids(record.content),
+            )
+        except content_admin_mod.ContentAdminError as error:
+            raise _content_error(error) from None
+        rows.append(row)
+        _content_store(record, kind, rows)
+        record_audit(
+            db, identity, "content.create", target_type=f"content.{kind}", target_id=record_id,
+            details={"kind": kind, "title": str(row.get("t") or "")[:120], "status": status, "version": record.version},
+        )
+        db.commit()
+        db.refresh(record)
+        return _content_record_response(record, kind, row, saved=True, db=db)
+
+    @app.put("/api/admin/content/{kind}/{record_id}")
+    async def update_admin_content_record(
+        kind: str,
+        record_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_CONTENT_EDIT_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        kind = _content_kind(kind)
+        payload, record = await _content_write_payload(request, db, need_record=True)
+        if "status" in payload:
+            raise HTTPException(400, "invalid_content_request")
+        rows = _content_rows(record, kind)
+        found = content_admin_mod.find_row(rows, record_id)
+        if found is None:
+            raise HTTPException(404, "content_record_not_found")
+        index, existing = found
+        current_status = content_admin_mod.status_of(existing)
+        try:
+            row = content_admin_mod.build_record(
+                kind, payload.get("record"), existing=existing, record_id=record_id, status=current_status,
+                references=content_admin_mod.reference_ids(record.content),
+            )
+        except content_admin_mod.ContentAdminError as error:
+            raise _content_error(error) from None
+        rows[index] = row
+        _content_store(record, kind, rows)
+        record_audit(
+            db, identity, "content.update", target_type=f"content.{kind}", target_id=record_id,
+            details={"kind": kind, "title": str(row.get("t") or "")[:120], "status": current_status, "version": record.version},
+        )
+        db.commit()
+        db.refresh(record)
+        return _content_record_response(record, kind, row, saved=True, db=db)
+
+    @app.post("/api/admin/content/{kind}/{record_id}/status")
+    async def set_admin_content_status(
+        kind: str,
+        record_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_CONTENT_PUBLISH_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        kind = _content_kind(kind)
+        payload, record = await _content_write_payload(request, db, need_record=False)
+        status = payload.get("status")
+        if not isinstance(status, str) or status not in content_admin_mod.STATUSES:
+            raise HTTPException(422, {"code": "invalid_status", "field": "status"})
+        rows = _content_rows(record, kind)
+        found = content_admin_mod.find_row(rows, record_id)
+        if found is None:
+            raise HTTPException(404, "content_record_not_found")
+        index, existing = found
+        previous = content_admin_mod.status_of(existing)
+        try:
+            row = content_admin_mod.apply_status(kind, existing, status)
+        except content_admin_mod.ContentAdminError as error:
+            raise _content_error(error) from None
+        rows[index] = row
+        _content_store(record, kind, rows)
+        record_audit(
+            db, identity, "content.status", target_type=f"content.{kind}", target_id=record_id,
+            details={"kind": kind, "title": str(row.get("t") or "")[:120], "from": previous, "status": status, "version": record.version},
+        )
+        db.commit()
+        db.refresh(record)
+        return _content_record_response(record, kind, row, saved=True, db=db)
+
+    # ── فهرست کاربران برای مدیران دارای us_view (جدا از «حساب‌ها و نقش‌ها») ──
+    # فقط دادهٔ غیرمحرمانه: نام نمایشی پروفایل، نوع ورود، نقش، شمارش سوابق.
+    # شمارهٔ تلفن (که فقط digest آن ذخیره است)، hash و توکن هرگز برنمی‌گردند.
+    def _user_identity_summary(identities: Sequence[PlatformIdentityRecord]) -> dict[str, Any]:
+        providers = sorted({item.provider for item in identities if item.provider in {"bale", "phone"}})
+        bale_ids = [item.provider_user_id for item in identities if item.provider == "bale"]
+        return {
+            "providers": providers,
+            "bale_user_id": bale_ids[0] if bale_ids else None,
+            "linked": len(providers) > 1,
+        }
+
+    def _admin_user_row(
+        db: Session, account: AccountRecord, *, role: str | None, profile: AccountProfileRecord | None,
+        identities: Sequence[PlatformIdentityRecord], viewer_role: str | None,
+    ) -> dict[str, Any]:
+        fields = (profile.fields if profile is not None else {}) or {}
+        registrations = int(db.scalar(
+            select(func.count(FormResponseRecord.id))
+            .join(FormResponseDraftRecord, FormResponseDraftRecord.id == FormResponseRecord.draft_id)
+            .join(FormRecord, FormRecord.id == FormResponseRecord.form_id)
+            .where(
+                account_form_record_scope(db, account.id),
+                FormResponseRecord.added_by_response_id.is_(None),
+                FormRecord.model == "registration",
+                FormRecord.purpose == "registration",
+            )
+        ) or 0)
+        pending_reviews = int(db.scalar(
+            select(func.count(AdminTaskRecord.id)).where(
+                AdminTaskRecord.account_id == account.id, AdminTaskRecord.status == "pending"
+            )
+        ) or 0)
+        row: dict[str, Any] = {
+            "account_id": account.id,
+            "display_name": str(fields.get("fullName") or "")[:120],
+            "city": str(fields.get("city") or "")[:80],
+            "province": str(fields.get("province") or "")[:80],
+            "role": role,
+            **_account_status_view(account),
+            "created_at": _as_utc(account.created_at).isoformat(),
+            "profile_updated_at": _as_utc(profile.updated_at).isoformat() if profile is not None else None,
+            "registrations": registrations,
+            "pending_reviews": pending_reviews,
+        }
+        row.update(_user_identity_summary(identities))
+        if viewer_role == ROLE_OWNER:
+            row["email"] = str(fields.get("email") or "")[:160]
+        return row
+
+    @app.get("/api/admin/users")
+    def list_admin_users(
+        response: Response,
+        q: str = Query(default="", max_length=80),
+        provider: str = Query(default="", pattern=r"^(|bale|phone|linked)$"),
+        role_filter: str = Query(default="", alias="role", pattern=r"^(|assigned|none)$"),
+        status: str = Query(default="", pattern=r"^(|active|blocked)$"),
+        limit: int = Query(default=20, ge=1, le=100),
+        offset: int = Query(default=0, ge=0, le=1_000_000),
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("us_view")),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        viewer_role = ROLE_OWNER if isinstance(identity, OwnerIdentity) else identity.role
+        query = (
+            select(AccountRecord, AccountRoleRecord, AccountProfileRecord)
+            .outerjoin(AccountRoleRecord, AccountRoleRecord.account_id == AccountRecord.id)
+            .outerjoin(AccountProfileRecord, AccountProfileRecord.account_id == AccountRecord.id)
+            .where(AccountRecord.id.in_(
+                select(PlatformIdentityRecord.account_id).where(PlatformIdentityRecord.provider.in_(("bale", "phone")))
+            ))
+        )
+        if status:
+            # Owner decision 1405/08/01: «مسدودها» is a server-side filter, never a client-side guess.
+            query = query.where(AccountRecord.status == status)
+        blocked_total = int(db.scalar(
+            select(func.count(AccountRecord.id)).where(
+                AccountRecord.status == ACCOUNT_STATUS_BLOCKED,
+                AccountRecord.id.in_(
+                    select(PlatformIdentityRecord.account_id).where(PlatformIdentityRecord.provider.in_(("bale", "phone")))
+                ),
+            )
+        ) or 0)
+        if role_filter == "assigned":
+            query = query.where(AccountRoleRecord.role.is_not(None))
+        elif role_filter == "none":
+            query = query.where(AccountRoleRecord.role.is_(None))
+        candidates = db.execute(query.order_by(AccountRecord.created_at.desc(), AccountRecord.id).limit(5000)).all()
+        account_ids = [account.id for account, _role, _profile in candidates]
+        identities_by_account: dict[str, list[PlatformIdentityRecord]] = {}
+        if account_ids:
+            for item in db.scalars(
+                select(PlatformIdentityRecord).where(PlatformIdentityRecord.account_id.in_(account_ids))
+            ).all():
+                identities_by_account.setdefault(item.account_id, []).append(item)
+        needle = unicodedata.normalize("NFKC", q or "").strip().lower()
+        selected = []
+        for account, role, profile in candidates:
+            identities = identities_by_account.get(account.id, [])
+            summary = _user_identity_summary(identities)
+            if provider == "linked" and not summary["linked"]:
+                continue
+            if provider in {"bale", "phone"} and provider not in summary["providers"]:
+                continue
+            if needle:
+                name = str(((profile.fields if profile is not None else {}) or {}).get("fullName") or "")
+                haystack = " ".join(part for part in (
+                    unicodedata.normalize("NFKC", name).lower(),
+                    (summary["bale_user_id"] or "").lower(),
+                    account.id.lower(),
+                ) if part)
+                if needle not in haystack:
+                    continue
+            selected.append((account, role, profile, identities))
+        page = selected[offset: offset + limit]
+        return {
+            "source": "shared_server_database",
+            "items": [
+                _admin_user_row(
+                    db, account, role=role.role if role is not None else None, profile=profile,
+                    identities=identities, viewer_role=viewer_role,
+                )
+                for account, role, profile, identities in page
+            ],
+            "total": len(selected),
+            "limit": limit,
+            "offset": offset,
+            "has_more": offset + limit < len(selected),
+            "q": q,
+            "provider": provider,
+            "role": role_filter,
+            "status": status,
+            "blocked_total": blocked_total,
+            "can_open_roles": viewer_role == ROLE_OWNER,
+            "can_block": viewer_role == ROLE_OWNER,
+            "can_note": has_permission(viewer_role, "us_notes"),
+        }
+
+    @app.get("/api/admin/users/{account_id}")
+    def get_admin_user(
+        account_id: str,
+        request: Request,
+        response: Response,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("us_view")),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        cfg: Settings = request.app.state.settings
+        viewer_role = ROLE_OWNER if isinstance(identity, OwnerIdentity) else identity.role
+        if not re.fullmatch(r"[0-9a-fA-F-]{36}", account_id or ""):
+            raise HTTPException(404, "user_not_found")
+        account = db.get(AccountRecord, account_id)
+        identities = list(db.scalars(
+            select(PlatformIdentityRecord).where(PlatformIdentityRecord.account_id == account_id)
+        ).all()) if account is not None else []
+        if account is None or not any(item.provider in {"bale", "phone"} for item in identities):
+            raise HTTPException(404, "user_not_found")
+        role = db.get(AccountRoleRecord, account_id)
+        profile = db.get(AccountProfileRecord, account_id)
+        row = _admin_user_row(
+            db, account, role=role.role if role is not None else None, profile=profile,
+            identities=identities, viewer_role=viewer_role,
+        )
+        registrations = db.execute(
+            select(FormResponseRecord, FormPaymentRecord)
+            .join(FormResponseDraftRecord, FormResponseDraftRecord.id == FormResponseRecord.draft_id)
+            .join(FormRecord, FormRecord.id == FormResponseRecord.form_id)
+            .outerjoin(FormPaymentRecord, FormPaymentRecord.response_id == FormResponseRecord.id)
+            .where(
+                account_form_record_scope(db, account_id),
+                FormResponseRecord.added_by_response_id.is_(None),
+                FormRecord.model == "registration",
+                FormRecord.purpose == "registration",
+            )
+            .order_by(FormResponseRecord.created_at.desc(), FormResponseRecord.id.desc())
+            .limit(50)
+        ).all()
+        registration_rows = []
+        for record, payment in registrations:
+            snapshot = record.form_snapshot if isinstance(record.form_snapshot, dict) else {}
+            event = _json_dict_member(snapshot, "event")
+            form_name = _ticket_text(snapshot.get("name") or "فرم ثبت‌نام", 160) or "فرم ثبت‌نام"
+            registration_rows.append({
+                "id": record.id,
+                "form_id": record.form_id,
+                "form_name": form_name,
+                "event_title": _ticket_text(event.get("title") or form_name, 160) or form_name,
+                "event_date": _ticket_text(event.get("date") or "", 120),
+                "status": record.status,
+                "payment_status": payment.status if payment is not None else None,
+                "receipt_uploaded": record.receipt_review_task_id is not None or record.receipt_upload is not None,
+                "ticket_checked_in": record.ticket_checked_in_at is not None,
+                "created_at": _as_utc(record.created_at).isoformat(),
+            })
+        tasks = db.scalars(
+            select(AdminTaskRecord)
+            .where(AdminTaskRecord.account_id == account_id)
+            .order_by(AdminTaskRecord.created_at.desc())
+            .limit(50)
+        ).all()
+        row["reviews"] = [
+            {
+                "id": task.id,
+                "kind": task.kind,
+                "status": task.status,
+                "created_at": _as_utc(task.created_at).isoformat(),
+                "reviewed_at": _as_utc(task.reviewed_at).isoformat() if task.reviewed_at else None,
+            }
+            for task in tasks
+        ]
+        row["registration_items"] = registration_rows
+        row["notifications"] = int(db.scalar(
+            select(func.count(UserNotificationRecord.id)).where(UserNotificationRecord.account_id == account_id)
+        ) or 0)
+        row["last_session_at"] = (
+            lambda value: _as_utc(value).isoformat() if value else None
+        )(db.scalar(
+            select(func.max(AccountSessionRecord.created_at)).where(AccountSessionRecord.account_id == account_id)
+        ))
+        if viewer_role == ROLE_OWNER:
+            credential = db.get(ManagerCredentialRecord, account_id)
+            row["manager_username"] = credential.username_key if credential is not None else None
+        row["source"] = "shared_server_database"
+        # Capabilities the panel may *show*; the server re-checks them on every write.
+        is_owner_account = bool(cfg.owner_bale_user_id) and any(
+            item.provider == "bale" and item.provider_user_id == cfg.owner_bale_user_id for item in identities
+        )
+        row["can_block"] = viewer_role == ROLE_OWNER and not is_owner_account
+        row["can_note"] = has_permission(viewer_role, "us_notes")
+        return row
+
+    # ── U4 / U5: پروندهٔ یک حساب — ثبت‌نام‌های صفحه‌بندی‌شده، جزئیات یک پاسخ و اعلان‌های همان حساب ──
+    # همان scope سروری پروندهٔ کاربر (``account_form_record_scope``) و همان جدول اعلان‌ها؛ شناسهٔ
+    # مسیر فقط «کدام حساب» را می‌گوید و مجوز از نشست (``us_view``) می‌آید. پاسخ حساب دیگر → 404.
+    _ADMIN_REGISTRATION_SCOPE_FILTERS = (
+        FormResponseRecord.added_by_response_id.is_(None),
+        FormRecord.model == "registration",
+        FormRecord.purpose == "registration",
+    )
+    # Answers the panel never receives in clear text (same policy as the user directory and the
+    # attendance list: no phone digits, no national id). Everything else is the member's own answer.
+    _ADMIN_ANSWER_MASKED_TYPES = {"mobile": "mobile", "nid": "national_id"}
+    # Notification kinds that are written for *many* accounts at once (fan-out) versus one account's
+    # own decision/transaction. No «global»/«system» broadcast table exists; this is the whole set.
+    _NOTIFICATION_AUDIENCE_KINDS = {notifications_mod.KIND_CONTENT_PUBLISHED, event_reminders_mod.KIND}
+
+    def _admin_target_account(db: Session, account_id: str) -> AccountRecord:
+        if not re.fullmatch(r"[0-9a-fA-F-]{36}", account_id or ""):
+            raise HTTPException(404, "user_not_found")
+        account = db.get(AccountRecord, account_id)
+        has_login = account is not None and db.scalar(
+            select(PlatformIdentityRecord.id).where(
+                PlatformIdentityRecord.account_id == account_id,
+                PlatformIdentityRecord.provider.in_(("bale", "phone")),
+            ).limit(1)
+        ) is not None
+        if account is None or not has_login:
+            raise HTTPException(404, "user_not_found")
+        return account
+
+    def _admin_registration_summary(
+        record: FormResponseRecord, payment: FormPaymentRecord | None, form_event_id: str | None
+    ) -> dict[str, Any]:
+        snapshot = record.form_snapshot if isinstance(record.form_snapshot, dict) else {}
+        event = _json_dict_member(snapshot, "event")
+        form_name = _ticket_text(snapshot.get("name") or "فرم ثبت‌نام", 160) or "فرم ثبت‌نام"
+        return {
+            "id": record.id,
+            "form_id": record.form_id,
+            "form_name": form_name,
+            "event_id": str(form_event_id or "")[:120],
+            "event_title": _ticket_text(event.get("title") or form_name, 160) or form_name,
+            "event_date": _ticket_text(event.get("date") or "", 120),
+            "status": record.status,
+            "payment_status": payment.status if payment is not None else None,
+            "receipt_uploaded": record.receipt_review_task_id is not None or record.receipt_upload is not None,
+            "ticket_checked_in": record.ticket_checked_in_at is not None,
+            "ticket_type": _form_response_ticket_type(record),
+            "created_at": _as_utc(record.created_at).isoformat(),
+        }
+
+    @app.get("/api/admin/users/{account_id}/registrations")
+    def list_admin_user_registrations(
+        account_id: str,
+        response: Response,
+        limit: int = Query(default=20, ge=1, le=100),
+        offset: int = Query(default=0, ge=0, le=1_000_000),
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("us_view")),
+        db: Session = Depends(get_db),
+    ):
+        """U4 (list): the same rows as ``registration_items`` on the account file, paginated.
+
+        Primary registrations only (companion rows hang off their primary); forms with
+        ``model/purpose = registration``. Scope = the target account's own drafts plus legacy Bale
+        drafts the server has verified for it — never a row that names another account.
+        """
+        response.headers["Cache-Control"] = "private, no-store"
+        _admin_target_account(db, account_id)
+        filters = (account_form_record_scope(db, account_id), *_ADMIN_REGISTRATION_SCOPE_FILTERS)
+        total = int(db.scalar(
+            select(func.count(FormResponseRecord.id))
+            .join(FormResponseDraftRecord, FormResponseDraftRecord.id == FormResponseRecord.draft_id)
+            .join(FormRecord, FormRecord.id == FormResponseRecord.form_id)
+            .where(*filters)
+        ) or 0)
+        rows = db.execute(
+            select(FormResponseRecord, FormPaymentRecord, FormRecord.event_id)
+            .join(FormResponseDraftRecord, FormResponseDraftRecord.id == FormResponseRecord.draft_id)
+            .join(FormRecord, FormRecord.id == FormResponseRecord.form_id)
+            .outerjoin(FormPaymentRecord, FormPaymentRecord.response_id == FormResponseRecord.id)
+            .where(*filters)
+            .order_by(FormResponseRecord.created_at.desc(), FormResponseRecord.id.desc())
+            .limit(limit + 1)
+            .offset(offset)
+        ).all()
+        return {
+            "source": "shared_server_database",
+            "account_id": account_id,
+            "items": [
+                _admin_registration_summary(record, payment, form_event_id)
+                for record, payment, form_event_id in rows[:limit]
+            ],
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "has_more": len(rows) > limit,
+        }
+
+    @app.get("/api/admin/users/{account_id}/registrations/{response_id}")
+    def get_admin_user_registration(
+        account_id: str,
+        response_id: str,
+        response: Response,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("us_view")),
+        db: Session = Depends(get_db),
+    ):
+        """U4 (detail): one registration of *this* account with its labelled answers.
+
+        The response is looked up **inside** the account's scope, so a response id that belongs to
+        someone else is indistinguishable from a missing one (404). Answers are allow-listed by the
+        field list frozen in ``form_snapshot`` (unknown keys are dropped); phone and national-id
+        answers are masked; amounts/transaction ids appear only for a session that holds ``finance``.
+        """
+        response.headers["Cache-Control"] = "private, no-store"
+        _admin_target_account(db, account_id)
+        if not re.fullmatch(r"[0-9a-fA-F-]{36}", response_id or ""):
+            raise HTTPException(404, "registration_not_found")
+        row = db.execute(
+            select(FormResponseRecord, FormPaymentRecord, FormRecord.event_id)
+            .join(FormResponseDraftRecord, FormResponseDraftRecord.id == FormResponseRecord.draft_id)
+            .join(FormRecord, FormRecord.id == FormResponseRecord.form_id)
+            .outerjoin(FormPaymentRecord, FormPaymentRecord.response_id == FormResponseRecord.id)
+            .where(
+                FormResponseRecord.id == response_id,
+                account_form_record_scope(db, account_id),
+                *_ADMIN_REGISTRATION_SCOPE_FILTERS,
+            )
+        ).first()
+        if row is None:
+            raise HTTPException(404, "registration_not_found")
+        record, payment, form_event_id = row
+        return _registration_detail_payload(db, identity, record, payment, form_event_id, account_id=account_id)
+
+    def _labelled_answers(fields: list[Any], answers_raw: Mapping[str, Any]) -> list[dict[str, Any]]:
+        """Answers in field order with labels; mobile/national id are masked for every staff viewer (U4)."""
+        answers: list[dict[str, Any]] = []
+        for field in fields:
+            if not isinstance(field, dict) or not isinstance(field.get("id"), str):
+                continue
+            field_id = field["id"]
+            field_type = str(field.get("type") or "")
+            value = answers_raw.get(field_id)
+            if value is None or value == "" or value == []:
+                continue
+            masked = _ADMIN_ANSWER_MASKED_TYPES.get(field_type)
+            if masked:
+                text = str(value)
+                answers.append({
+                    "field_id": field_id, "label": _ticket_text(field.get("label") or field_id, 160) or field_id,
+                    "type": field_type, "value": None, "masked": masked,
+                    "hint": text[-4:] if masked == "mobile" and len(text) >= 4 else "",
+                })
+                continue
+            if isinstance(value, (list, tuple)):
+                cleaned: Any = [_ticket_text(item, 4000) for item in value if isinstance(item, (str, int, float))][:100]
+            elif isinstance(value, dict):
+                cleaned = {str(k)[:80]: _ticket_text(v, 4000) for k, v in list(value.items())[:50] if isinstance(v, (str, int, float))}
+            elif isinstance(value, bool):
+                cleaned = value
+            else:
+                cleaned = _ticket_text(value, 4000)
+            answers.append({
+                "field_id": field_id, "label": _ticket_text(field.get("label") or field_id, 160) or field_id,
+                "type": field_type, "value": cleaned, "masked": None,
+            })
+        return answers
+
+    def _registration_detail_payload(
+        db: Session, identity: OwnerIdentity | AccountIdentity, record: FormResponseRecord,
+        payment: FormPaymentRecord | None, form_event_id: str | None, *, account_id: str | None,
+    ) -> dict[str, Any]:
+        """One registration with labelled answers, companions, payment (finance-masked), receipt and
+        attendance. Shared by the account file (U4) and the event file so both read the same rules."""
+        viewer_role = ROLE_OWNER if isinstance(identity, OwnerIdentity) else identity.role
+        with_finance = has_permission(viewer_role, "finance")
+        snapshot = record.form_snapshot if isinstance(record.form_snapshot, dict) else {}
+        answers_raw = record.answers if isinstance(record.answers, dict) else {}
+        answers = _labelled_answers(_json_list_member(snapshot, "fields"), answers_raw)
+        companions = db.scalars(
+            select(FormResponseRecord)
+            .where(FormResponseRecord.added_by_response_id == record.id)
+            .order_by(FormResponseRecord.companion_index, FormResponseRecord.id)
+            .limit(20)
+        ).all()
+        receipt_task = db.get(AdminTaskRecord, record.receipt_review_task_id) if record.receipt_review_task_id else None
+        payment_view: dict[str, Any] | None = None
+        if payment is not None:
+            payment_view = {"status": payment.status, "method": payment.method}
+            if with_finance:
+                payment_view.update({
+                    "amount": int(payment.amount), "currency": payment.currency,
+                    "transaction_id": payment.transaction_id or None,
+                })
+        detail = _admin_registration_summary(record, payment, form_event_id)
+        detail.update({
+            "source": "shared_server_database",
+            "account_id": account_id,
+            "response_id": record.id,
+            "form": {"id": record.form_id, "name": detail["form_name"], "version": record.form_version},
+            "event": {"id": detail["event_id"], "title": detail["event_title"], "date": detail["event_date"]} if detail["event_id"] or snapshot.get("event") else None,
+            "registrant_name": _form_ticket_name(record),
+            "answers": answers,
+            "companions": [
+                {
+                    "id": companion.id,
+                    "name": _form_ticket_name(companion),
+                    "status": companion.status,
+                    "ticket_checked_in": companion.ticket_checked_in_at is not None,
+                }
+                for companion in companions
+            ],
+            "payment": payment_view,
+            "finance_visible": with_finance,
+            "receipt": {
+                "uploaded": detail["receipt_uploaded"],
+                "task_id": receipt_task.id if receipt_task is not None else None,
+                "task_status": receipt_task.status if receipt_task is not None else None,
+                "web_file": record.receipt_upload is not None,
+            },
+            "attendance": {
+                "checked_in": record.ticket_checked_in_at is not None,
+                "checked_in_at": _as_utc(record.ticket_checked_in_at).isoformat() if record.ticket_checked_in_at else None,
+                "checked_in_by": _attendance_actor(record),
+            },
+            "payment_state": _registration_payment_state(db, record, payment),
+            "payment_approved": _response_payment_approved(db, record),
+            "ticket": {
+                "serial": record.ticket_serial,
+                "eligible": _form_ticket_eligible(record),
+                "type": _form_response_ticket_type(record),
+                "claimed_at": _as_utc(record.ticket_claimed_at).isoformat() if record.ticket_claimed_at else None,
+            },
+            "updated_at": _as_utc(record.updated_at).isoformat(),
+        })
+        return detail
+
+    def _registration_payment_state(db: Session, record: FormResponseRecord, payment: FormPaymentRecord | None) -> str:
+        """Coarse payment class for lists/filters: ``free`` (nothing to pay), ``paid`` (confirmed by the
+        provider or a reviewed receipt), ``pending`` (waiting for payment/receipt/review), ``failed``
+        (rejected/cancelled/expired). Never derived from the registration status."""
+        if payment is None:
+            snapshot = record.form_snapshot if isinstance(record.form_snapshot, dict) else {}
+            if snapshot.get("receipt_review_required") is not True:
+                return "free"
+            task = db.get(AdminTaskRecord, record.receipt_review_task_id) if record.receipt_review_task_id else None
+            if task is not None and task.kind == "receipt_review":
+                return {"approved": "paid", "rejected": "failed"}.get(task.status, "pending")
+            return "pending"
+        if payment.status in {"paid", "paid_manual"}:
+            return "paid"
+        if payment.status in {"rejected", "cancelled", "expired"}:
+            return "failed"
+        return "pending"
+
+    # ── پروندهٔ رویداد (مأموریت ۱۴۰۵/۰۸/۰۱): نماهای خواندنی حول یک رویداد ──
+    # هیچ جدول تازه‌ای نیست؛ همه از forms / form_responses / form_payments / admin_tasks / form_receipt_uploads
+    # خوانده می‌شود. شناسهٔ رویداد و فرم سمت سرور سنجیده می‌شود و فرمِ رویداد دیگر ۴۰۴ می‌گیرد.
+    _EVENT_FILE_READ_PERMS = ("ev_create", "ev_publish", "fm_create", "fm_responses", "attendance", "finance", "certificate")
+    _EVENT_FILE_ID = re.compile(r"^[A-Za-z0-9_.:-]{1,120}$")
+    _EVENT_FILE_FORM_TYPE = {"reg": "registration", "survey": "survey", "exam": "exam", "other": "other"}
+    _EVENT_FILE_PAYMENT_CLASS = {
+        "paid": "paid", "paid_manual": "paid",
+        "rejected": "failed", "cancelled": "failed", "expired": "failed",
+    }
+
+    def _event_file_row(db: Session, event_id: str) -> dict[str, Any]:
+        if not _EVENT_FILE_ID.fullmatch(event_id or ""):
+            raise HTTPException(404, "event_not_found")
+        record = db.get(SiteContentRecord, "public")
+        found = content_admin_mod.find_row(_content_rows(record, "events"), event_id)
+        if found is None:
+            raise HTTPException(404, "event_not_found")
+        return found[1]
+
+    def _event_file_forms(db: Session, owner_id: str, event_id: str) -> list[FormRecord]:
+        return list(db.scalars(
+            select(FormRecord)
+            .where(FormRecord.owner_id == owner_id, FormRecord.event_id == event_id)
+            .order_by(FormRecord.updated_at.desc(), FormRecord.id)
+            .limit(100)
+        ).all())
+
+    def _event_file_registration_forms(forms: list[FormRecord]) -> list[FormRecord]:
+        return [f for f in forms if f.model == "registration" and f.purpose == "registration"]
+
+    def _event_file_form(db: Session, owner_id: str, event_id: str, form_id: str) -> FormRecord:
+        form = db.scalar(select(FormRecord).where(FormRecord.id == form_id, FormRecord.owner_id == owner_id))
+        if form is None or str(form.event_id or "") != event_id:
+            raise HTTPException(404, "form_not_found")
+        return form
+
+    def _event_file_price(settings_value: Mapping[str, Any]) -> dict[str, Any]:
+        """Base price as the public form computes it: required items after their own discount; optional
+        items make it «از … ریال». Invalid finance settings are reported, never guessed."""
+        try:
+            financial = normalize_financial_config(dict(settings_value))
+        except PaymentConfigurationError as error:
+            return {"valid": False, "code": error.code, "base": 0, "has_optional": False, "paid": False}
+        items = financial["fin"]
+        base = sum((item["p"] * (100 - item["off"]) + 50) // 100 for item in items if item["req"])
+        optional = [item for item in items if not item["req"]]
+        return {
+            "valid": True, "base": int(base), "has_optional": bool(optional), "paid": bool(items),
+            "items": [{"label": item["l"], "amount": (item["p"] * (100 - item["off"]) + 50) // 100, "required": item["req"]} for item in items][:20],
+            "coupon": bool(financial["coupon"]["code"] and financial["coupon"]["off"]),
+        }
+
+    def _event_file_reg_settings(form: FormRecord | None) -> dict[str, Any] | None:
+        if form is None:
+            return None
+        settings_value = form.settings if isinstance(form.settings, dict) else {}
+        try:
+            methods = normalize_payment_methods(settings_value)
+        except PaymentConfigurationError:
+            methods = []
+        return {
+            "form_id": form.id, "form_name": form.title, "form_status": form.status, "form_version": form.version,
+            "cap": _count_setting(settings_value.get("cap", 0)),
+            "wait": _count_setting(settings_value.get("wait", 0)),
+            "price": _event_file_price(settings_value),
+            "methods": methods,
+            "receipt_review_required": settings_value.get("receiptReviewRequired") is True,
+            "source": "form_settings",
+        }
+
+    def _event_file_primary_form(db: Session, row: dict[str, Any], forms: list[FormRecord]) -> FormRecord | None:
+        """Same rule as the public snapshot / event cards: a published registration form of this event;
+        a form declared on the event row wins. Falls back to the newest draft/paused registration form
+        so the event file can still show «تنظیم‌شده در فرم ثبت‌نام» before publishing."""
+        summary = _content_registration_summary(db, "events", row)
+        if summary is not None:
+            for form in forms:
+                if form.id == summary["form_id"]:
+                    return form
+            found = db.get(FormRecord, summary["form_id"])
+            if found is not None:
+                return found
+        candidates = _event_file_registration_forms(forms)
+        return candidates[0] if candidates else None
+
+    def _event_file_response_rows(db: Session, form_ids: list[str]) -> list[tuple[FormResponseRecord, FormPaymentRecord | None]]:
+        if not form_ids:
+            return []
+        return list(db.execute(
+            select(FormResponseRecord, FormPaymentRecord)
+            .outerjoin(FormPaymentRecord, FormPaymentRecord.response_id == FormResponseRecord.id)
+            .where(FormResponseRecord.form_id.in_(form_ids))
+            .order_by(FormResponseRecord.created_at.desc(), FormResponseRecord.id.desc())
+            .limit(5000)
+        ).all())
+
+    def _event_file_counts(db: Session, forms: list[FormRecord], primary: FormRecord | None) -> dict[str, Any]:
+        reg_forms = _event_file_registration_forms(forms)
+        rows = _event_file_response_rows(db, [f.id for f in reg_forms])
+        counts: dict[str, Any] = {"total": 0, "accepted": 0, "waitlisted": 0, "paid": 0, "pending_payment": 0, "failed_payment": 0,
+                                  "free": 0, "checked_in": 0, "companions": 0}
+        for record, payment in rows:
+            counts["total"] += 1
+            counts[record.status if record.status in ("accepted", "waitlisted") else "accepted"] += 1
+            if record.added_by_response_id is not None:
+                counts["companions"] += 1
+            if record.ticket_checked_in_at is not None:
+                counts["checked_in"] += 1
+            state = _registration_payment_state(db, record, payment)
+            counts[{"paid": "paid", "pending": "pending_payment", "failed": "failed_payment"}.get(state, "free")] += 1
+        cap = wait = 0
+        holds = 0
+        if primary is not None:
+            settings_value = primary.settings if isinstance(primary.settings, dict) else {}
+            cap = _count_setting(settings_value.get("cap", 0))
+            wait = _count_setting(settings_value.get("wait", 0))
+            holds = _active_bale_payment_holds(db, primary.id)
+            accepted_primary, waitlisted_primary = _response_counts(db, primary.id)
+            counts["primary_accepted"] = accepted_primary
+            counts["primary_waitlisted"] = waitlisted_primary
+            counts["full"] = _capacity_is_full(primary, accepted_primary + holds, waitlisted_primary)
+            counts["remaining"] = max(0, cap - accepted_primary - holds) if cap > 0 else None
+        else:
+            counts["full"] = False
+            counts["remaining"] = None
+        counts["cap"] = cap
+        counts["wait"] = wait
+        counts["bale_holds"] = holds
+        counts["source"] = "form_responses"
+        return counts
+
+    def _event_file_form_card(form: FormRecord, response_count: int) -> dict[str, Any]:
+        return {
+            "id": form.id, "name": form.title, "model": form.model, "need": form.need,
+            "type": "purchase" if _form_is_purchase(form) else _EVENT_FILE_FORM_TYPE.get(form.need, "other"),
+            "purpose": form.purpose, "status": form.status, "version": form.version,
+            "response_count": int(response_count), "updated_at": _as_utc(form.updated_at).isoformat(),
+            "uses_payment": _form_uses_payment(form),
+        }
+
+    @app.get("/api/admin/events/{event_id}/overview")
+    def event_file_overview(
+        event_id: str,
+        response: Response,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_EVENT_FILE_READ_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """Head of the event file: the event row, every form linked to it (any type), the registration
+        settings read from the primary registration form (capacity / price / methods — the only values
+        the server enforces) and server-side counters. Aggregates only; no registrant data."""
+        response.headers["Cache-Control"] = "private, no-store"
+        row = _event_file_row(db, event_id)
+        forms = _event_file_forms(db, identity.owner_id, event_id)
+        counts_by_form: dict[str, int] = {}
+        if forms:
+            counts_by_form = {
+                form_id: int(count) for form_id, count in db.execute(
+                    select(FormResponseRecord.form_id, func.count(FormResponseRecord.id))
+                    .where(FormResponseRecord.form_id.in_([f.id for f in forms]))
+                    .group_by(FormResponseRecord.form_id)
+                ).all()
+            }
+        primary = _event_file_primary_form(db, row, forms)
+        role = ROLE_OWNER if isinstance(identity, OwnerIdentity) else identity.role
+        summary = content_admin_mod.summary("events", row)
+        summary["d"] = str(row.get("d") or "")[:2000]
+        summary["poster"] = str(row.get("poster") or row.get("posterUp") or "")[:1_500_000]
+        summary["joinUrl"] = str(row.get("joinUrl") or "")[:500]
+        summary["public_path"] = f"event.html?id={row.get('id')}" if summary["status"] == "published" else ""
+        summary["registration"] = event_time.registration_state(
+            row, now=_utc_now(), has_form=primary is not None and primary.status == "published",
+            form_full=bool(_event_file_counts(db, forms, primary).get("full")) if primary is not None else False,
+        )
+        return {
+            "source": "shared_server_database",
+            "event": summary,
+            "forms": [_event_file_form_card(form, counts_by_form.get(form.id, 0)) for form in forms],
+            "registration_settings": _event_file_reg_settings(primary),
+            "declared": {"cap": summary.get("cap"), "price": summary.get("price")},
+            "counts": _event_file_counts(db, forms, primary),
+            "can": {
+                "edit_event": has_permission(role, "ev_create"),
+                "publish_event": has_permission(role, "ev_publish"),
+                "forms": has_permission(role, "fm_create"),
+                "responses": has_permission(role, "fm_responses"),
+                "attendance": has_permission(role, "attendance"),
+                "finance": has_permission(role, "finance"),
+                "receipts": has_permission(role, "receipt_approve"),
+                "certificates": has_permission(role, "certificate"),
+                "export": has_permission(role, "fm_export"),
+            },
+        }
+
+    def _event_file_registration_row(db: Session, record: FormResponseRecord, payment: FormPaymentRecord | None, *, with_finance: bool) -> dict[str, Any]:
+        mobile = str(record.registrant_mobile or "")
+        state = _registration_payment_state(db, record, payment)
+        receipt_task = db.get(AdminTaskRecord, record.receipt_review_task_id) if record.receipt_review_task_id else None
+        row: dict[str, Any] = {
+            "response_id": record.id, "form_id": record.form_id,
+            "name": _form_ticket_name(record),
+            "display_id": _form_tracking_code(record),
+            "mobile_hint": mobile[-4:] if len(mobile) >= 4 else "",
+            "companion": record.added_by_response_id is not None,
+            "added_by_name": _ticket_text(record.added_by_name or "", 120) if record.added_by_response_id else "",
+            "status": record.status,
+            "payment_state": state,
+            "payment_status": payment.status if payment is not None else None,
+            "payment_method": payment.method if payment is not None else ("card_transfer" if state != "free" else None),
+            "receipt_uploaded": record.receipt_review_task_id is not None or record.receipt_upload is not None,
+            "receipt_task_status": receipt_task.status if receipt_task is not None else None,
+            "ticket_serial": record.ticket_serial,
+            "ticket_type": _form_response_ticket_type(record),
+            "checked_in": record.ticket_checked_in_at is not None,
+            "checked_in_at": _as_utc(record.ticket_checked_in_at).isoformat() if record.ticket_checked_in_at else None,
+            "created_at": _as_utc(record.created_at).isoformat(),
+        }
+        if with_finance and payment is not None:
+            row["amount"] = int(payment.amount)
+            row["currency"] = payment.currency
+        return row
+
+    @app.get("/api/admin/events/{event_id}/registrations")
+    def event_file_registrations(
+        event_id: str,
+        response: Response,
+        q: str = Query(default="", max_length=80),
+        status: str = Query(default="", pattern=r"^(|accepted|waitlisted)$"),
+        payment: str = Query(default="", pattern=r"^(|free|paid|pending|failed|unpaid)$"),
+        attendance: str = Query(default="", pattern=r"^(|checked_in|pending)$"),
+        form_id: str = Query(default="", max_length=36),
+        sort: str = Query(default="newest", pattern=r"^(newest|oldest|name)$"),
+        limit: int = Query(default=50, ge=1, le=200),
+        offset: int = Query(default=0, ge=0, le=100_000),
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("fm_responses", "attendance")),
+        db: Session = Depends(get_db),
+    ):
+        """Registrants of one event across its registration forms with a server-side summary.
+        Filters combine; counts come from the same rows the list shows. Amounts only with ``finance``.
+        ``sort``: newest (default, unchanged behaviour) / oldest / name — applied after the filters, before paging."""
+        response.headers["Cache-Control"] = "private, no-store"
+        row = _event_file_row(db, event_id)
+        forms = _event_file_forms(db, identity.owner_id, event_id)
+        reg_forms = _event_file_registration_forms(forms)
+        if form_id:
+            reg_forms = [f for f in reg_forms if f.id == form_id]
+            if not reg_forms:
+                raise HTTPException(404, "form_not_found")
+        role = ROLE_OWNER if isinstance(identity, OwnerIdentity) else identity.role
+        with_finance = has_permission(role, "finance")
+        rows = _event_file_response_rows(db, [f.id for f in reg_forms])
+        items = [_event_file_registration_row(db, record, pay, with_finance=with_finance) for record, pay in rows]
+        needle = unicodedata.normalize("NFKC", q or "").strip().lower()
+        if needle:
+            digits = re.sub(r"\D", "", needle.translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹", "0123456789")))
+            by_id = {record.id: record for record, _ in rows}
+            items = [
+                item for item in items
+                if needle in unicodedata.normalize("NFKC", item["name"]).lower()
+                or needle in item["display_id"].lower()
+                or (item["ticket_serial"] and needle in item["ticket_serial"].lower())
+                or (len(digits) >= 4 and str(by_id[item["response_id"]].registrant_mobile or "").endswith(digits))
+            ]
+        if status:
+            items = [item for item in items if item["status"] == status]
+        if payment:
+            if payment == "unpaid":
+                items = [item for item in items if item["payment_state"] in ("pending", "failed")]
+            else:
+                items = [item for item in items if item["payment_state"] == payment]
+        if attendance:
+            items = [item for item in items if item["checked_in"] == (attendance == "checked_in")]
+        if sort == "oldest":
+            items = list(reversed(items))
+        elif sort == "name":
+            items.sort(key=lambda item: unicodedata.normalize("NFKC", str(item.get("name") or "")).casefold())
+        page = items[offset: offset + limit]
+        primary = _event_file_primary_form(db, row, forms)
+        return {
+            "source": "shared_server_database",
+            "event_id": event_id,
+            "forms": [{"id": f.id, "name": f.title, "status": f.status} for f in reg_forms],
+            "summary": _event_file_counts(db, forms, primary),
+            "items": page,
+            "total": len(items),
+            "limit": limit,
+            "offset": offset,
+            "has_more": offset + limit < len(items),
+            "finance_visible": with_finance,
+            "filters": {"q": q, "status": status, "payment": payment, "attendance": attendance, "form_id": form_id, "sort": sort},
+        }
+
+    def _event_file_registration(db: Session, owner_id: str, event_id: str, response_id: str) -> tuple[FormResponseRecord, FormPaymentRecord | None, FormRecord]:
+        if not _BOT_FORM_RESPONSE_ID.fullmatch(response_id or ""):
+            raise HTTPException(404, "registration_not_found")
+        _event_file_row(db, event_id)
+        found = db.execute(
+            select(FormResponseRecord, FormPaymentRecord, FormRecord)
+            .join(FormRecord, FormRecord.id == FormResponseRecord.form_id)
+            .outerjoin(FormPaymentRecord, FormPaymentRecord.response_id == FormResponseRecord.id)
+            .where(
+                FormResponseRecord.id == response_id,
+                FormRecord.owner_id == owner_id,
+                FormRecord.event_id == event_id,
+                FormRecord.model == "registration",
+                FormRecord.purpose == "registration",
+            )
+        ).first()
+        if found is None:
+            raise HTTPException(404, "registration_not_found")
+        record, payment, form = found
+        return record, payment, form
+
+    @app.get("/api/admin/events/{event_id}/registrations/{response_id}")
+    def event_file_registration_detail(
+        event_id: str,
+        response_id: str,
+        response: Response,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("fm_responses", "attendance")),
+        db: Session = Depends(get_db),
+    ):
+        """Person file inside the event: same payload as the account file (U4), looked up inside the
+        event's own forms so an id from another event is indistinguishable from a missing one."""
+        response.headers["Cache-Control"] = "private, no-store"
+        record, payment, form = _event_file_registration(db, identity.owner_id, event_id, response_id)
+        draft = db.get(FormResponseDraftRecord, record.draft_id)
+        detail = _registration_detail_payload(
+            db, identity, record, payment, form.event_id, account_id=draft.account_id if draft is not None else None,
+        )
+        detail["display_id"] = _form_tracking_code(record)
+        detail["mobile_hint"] = str(record.registrant_mobile or "")[-4:] if len(str(record.registrant_mobile or "")) >= 4 else ""
+        detail["event_id"] = event_id
+        role = ROLE_OWNER if isinstance(identity, OwnerIdentity) else identity.role
+        detail["can"] = {
+            "receipt_file": (has_permission(role, "receipt_approve") or has_permission(role, "finance")) and record.receipt_upload is not None,
+            "payment_decision": has_permission(role, "receipt_approve") and payment is not None and payment.method == "card_transfer"
+            and payment.status in {"awaiting_receipt", "receipt_submitted"},
+            "attendance": has_permission(role, "attendance"),
+            "ticket_image": _form_ticket_eligible(record) and _response_payment_approved(db, record),
+        }
+        task_id = detail.get("receipt", {}).get("task_id")
+        if task_id:
+            task = db.get(AdminTaskRecord, task_id)
+            detail["receipt"]["task_version"] = task.version if task is not None else None
+            detail["receipt"]["task_files"] = list((task.payload or {}).get("file_refs") or [])[:5] if task is not None else []
+        audit_rows = db.scalars(
+            select(AdminAuditEventRecord)
+            .where(AdminAuditEventRecord.target_id == record.id)
+            .order_by(AdminAuditEventRecord.created_at.desc())
+            .limit(20)
+        ).all()
+        detail["audit"] = [
+            {"action": item.action, "actor_role": item.actor_role, "outcome": item.outcome,
+             "created_at": _as_utc(item.created_at).isoformat(),
+             "reason": str((item.details or {}).get("reason") or "")[:160] if isinstance(item.details, dict) else ""}
+            for item in audit_rows
+        ]
+        return detail
+
+    @app.get("/api/admin/events/{event_id}/registrations/{response_id}/receipt")
+    def event_file_registration_receipt(
+        event_id: str,
+        response_id: str,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("receipt_approve", "finance")),
+        db: Session = Depends(get_db),
+    ):
+        """The receipt uploaded through the public form for this registration (stored in the database,
+        served inline, never cached). Receipts that came through Bale are served by the inbox file route."""
+        record, _payment, _form = _event_file_registration(db, identity.owner_id, event_id, response_id)
+        upload = record.receipt_upload
+        if upload is None:
+            raise HTTPException(404, "receipt_not_found")
+        filename = re.sub(r"[^A-Za-z0-9._-]", "_", upload.file_name)[:80] or "receipt"
+        return Response(
+            content=upload.content,
+            media_type=upload.content_type,
+            headers={
+                "Content-Disposition": f'inline; filename="{filename}"',
+                "Cache-Control": "private, no-store",
+                "X-Content-Type-Options": "nosniff",
+                "Content-Security-Policy": "default-src 'none'; sandbox",
+            },
+        )
+
+    @app.get("/api/admin/events/{event_id}/registrations/{response_id}/ticket-image")
+    def event_file_registration_ticket_image(
+        event_id: str,
+        response_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("attendance", "fm_responses")),
+        db: Session = Depends(get_db),
+    ):
+        """The same ticket the registrant sees (same renderer, same gates: accepted + payment confirmed);
+        read-only for staff, no new ticket model."""
+        cfg: Settings = request.app.state.settings
+        record, _payment, _form = _event_file_registration(db, identity.owner_id, event_id, response_id)
+        if not _form_ticket_eligible(record):
+            raise HTTPException(409, detail={"code": "ticket_not_eligible"})
+        if not _response_payment_approved(db, record):
+            raise HTTPException(409, detail={"code": "ticket_payment_not_confirmed"})
+        serial = _ensure_form_ticket(record)
+        db.commit()
+        ticket = _form_ticket_payload(record)
+        bot_username = str(cfg.bale_bot_username or "").strip().lstrip("@")
+        qr_data = (
+            f"https://ble.ir/{bot_username}?start=ftv_{record.id}"
+            if re.fullmatch(r"[A-Za-z0-9_]{3,64}", bot_username) else record.id
+        )
+        image_data = {
+            "event_title": ticket["event_title"], "name": ticket["participant_name"], "serial": serial, "qr_data": qr_data,
+            "event_date": ticket["event_date"], "event_time": ticket["event_time"], "organization": ORGANIZATION_NAME,
+        }
+        ticket_type = ticket.get("ticket_type")
+        if isinstance(ticket_type, dict) and isinstance(ticket_type.get("name"), str):
+            image_data["ticket_type_name"] = ticket_type["name"]
+        try:
+            content = _render_public_form_ticket_image(image_data)
+        except Exception:
+            logging.getLogger(__name__).exception("Unable to render a staff ticket image")
+            raise HTTPException(503, detail={"code": "ticket_image_unavailable"}) from None
+        return Response(
+            content=content, media_type="image/jpeg",
+            headers={"Cache-Control": "private, no-store", "Content-Disposition": 'inline; filename="nora-ticket.jpg"',
+                     "X-Content-Type-Options": "nosniff"},
+        )
+
+    @app.post("/api/admin/events/{event_id}/registrations/{response_id}/payment-decision")
+    async def event_file_payment_decision(
+        event_id: str,
+        response_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write("receipt_approve")),
+        db: Session = Depends(get_db),
+    ):
+        """Approve or reject a card-transfer receipt from the event file. When the receipt already has an
+        inbox task, the very same ``apply_admin_task_decision`` runs (one rule, one notification); a
+        web-only receipt (no task yet) is decided on ``form_payments`` with the identical outcome:
+        approved → ``paid_manual``; rejected → ``rejected`` and the registration is cancelled (as the inbox
+        does). Reason is mandatory; the audit row keeps old/new status, actor and reason. Repeating the
+        same decision is a no-op (``changed: false``)."""
+        payload = await _read_json_object(request, 2048)
+        if set(payload) - {"decision", "reason", "expected_status"}:
+            raise HTTPException(400, "invalid_payment_decision")
+        decision = payload.get("decision")
+        reason = payload.get("reason")
+        expected_status = payload.get("expected_status")
+        if decision not in {"approved", "rejected"} or not isinstance(reason, str) or len(reason) > 500:
+            raise HTTPException(422, detail={"code": "invalid_payment_decision"})
+        reason = reason.strip()
+        if len(reason) < 2:
+            raise HTTPException(422, detail={"code": "reason_required", "field": "reason"})
+        if expected_status is not None and not isinstance(expected_status, str):
+            raise HTTPException(422, detail={"code": "invalid_payment_decision"})
+        record, payment, _form = _event_file_registration(db, identity.owner_id, event_id, response_id)
+        target = "paid_manual" if decision == "approved" else "rejected"
+        task = db.get(AdminTaskRecord, record.receipt_review_task_id) if record.receipt_review_task_id else None
+        if task is not None and task.kind == "receipt_review":
+            if task.status == decision:
+                return {"changed": False, "payment_status": payment.status if payment is not None else None, "via": "task"}
+            if task.status != "pending":
+                raise HTTPException(409, detail={"code": "receipt_already_decided", "task_status": task.status})
+            reviewer_id = identity.owner_id if isinstance(identity, OwnerIdentity) else identity.account_id
+            reviewer_bale_id = None
+            if isinstance(identity, AccountIdentity):
+                reviewer_bale_id = db.scalar(
+                    select(PlatformIdentityRecord.provider_user_id).where(
+                        PlatformIdentityRecord.account_id == identity.account_id,
+                        PlatformIdentityRecord.provider == "bale",
+                    )
+                )
+            apply_admin_task_decision(db, task, decision, reason, reviewer_id, reviewer_bale_id)
+            record_audit(
+                db, identity, "workflow.decide", target_type="admin_task", target_id=task.id,
+                details={"kind": task.kind, "decision": decision, "has_reason": True, "event_id": event_id, "response_id": record.id},
+            )
             db.commit()
-        return _payment_settings_response(db, request.app.state.settings)
+            refreshed = db.scalar(select(FormPaymentRecord).where(FormPaymentRecord.id == payment.id)) if payment is not None else None
+            return {"changed": True, "payment_status": refreshed.status if refreshed is not None else None, "via": "task"}
+        if payment is None or payment.method != "card_transfer":
+            raise HTTPException(409, detail={"code": "manual_decision_not_applicable"})
+        if payment.status == target:
+            return {"changed": False, "payment_status": payment.status, "via": "payment"}
+        if expected_status is not None and expected_status != payment.status:
+            raise HTTPException(409, detail={"code": "payment_status_changed", "payment_status": payment.status})
+        if payment.status not in {"awaiting_receipt", "receipt_submitted"}:
+            raise HTTPException(409, detail={"code": "payment_not_reviewable", "payment_status": payment.status})
+        if decision == "approved" and record.receipt_upload is None:
+            raise HTTPException(409, detail={"code": "receipt_missing"})
+        previous = payment.status
+        now = _utc_now()
+        locked = db.scalar(select(FormPaymentRecord).where(FormPaymentRecord.id == payment.id, FormPaymentRecord.status == previous).with_for_update())
+        if locked is None:
+            raise HTTPException(409, detail={"code": "payment_status_changed"})
+        locked.status = target
+        locked.updated_at = now
+        draft = db.get(FormResponseDraftRecord, record.draft_id)
+        account_id = draft.account_id if draft is not None else None
+        cancelled_id = ""
+        if decision == "rejected":
+            # Same outcome as the inbox: the registration is cancelled and the seat is released; the
+            # payment row stays (response_id → NULL) as the financial trace and the snapshot keeps
+            # identity, answers, companions and the receipt file for audit.
+            actor_kind = audit_mod.ACTOR_OWNER if isinstance(identity, OwnerIdentity) else audit_mod.ACTOR_ACCOUNT
+            actor_id = identity.owner_id if isinstance(identity, OwnerIdentity) else identity.account_id
+            cancelled = cancel_registration(
+                db, record, reason=reason, source="event_file", actor_kind=actor_kind, actor_id=actor_id,
+                actor_role=ROLE_OWNER if isinstance(identity, OwnerIdentity) else (identity.role or ""),
+                payment_status_before=previous,
+            )
+            cancelled_id = cancelled.id
+            record_audit(
+                db, identity, "registration.cancel", target_type="form_response", target_id=response_id,
+                details={"cancellation_id": cancelled.id, "form_id": cancelled.form_id, "event_id": event_id,
+                         "source": "event_file", "companions": len(cancelled.companions), "reason": reason[:160]},
+            )
+        record_audit(
+            db, identity, "payment.manual_decision", target_type="form_response", target_id=response_id,
+            details={"event_id": event_id, "form_id": locked.form_id, "payment_id": locked.id, "decision": decision,
+                     "previous_status": previous, "new_status": target, "amount": int(locked.amount), "reason": reason[:160],
+                     "registration_cancelled": decision == "rejected", "cancellation_id": cancelled_id},
+        )
+        if account_id:
+            notifications_mod.queue(
+                db, account_id=account_id,
+                kind="receipt_approved" if decision == "approved" else "receipt_rejected",
+                title="ثبت‌نامت نهایی شد" if decision == "approved" else "ثبت‌نامت لغو شد",
+                body="رسید پرداختت تأیید شد و ثبت‌نامت نهایی است." if decision == "approved"
+                else "رسید پرداخت تأیید نشد و ثبت‌نام قبلی لغو شد. دلیل: " + reason,
+                key=notifications_mod.dedupe_key("payment_decision", locked.id, target),
+                bale_ids=[], link=notifications_mod.account_link("registrations"), file_refs=[],
+            )
+        db.commit()
+        return {"changed": True, "payment_status": target, "via": "payment", "registration_cancelled": decision == "rejected"}
+
+    @app.get("/api/admin/events/{event_id}/payments")
+    def event_file_payments(
+        event_id: str,
+        response: Response,
+        q: str = Query(default="", max_length=80),
+        state: str = Query(default="", pattern=r"^(|paid|pending|failed)$"),
+        limit: int = Query(default=50, ge=1, le=200),
+        offset: int = Query(default=0, ge=0, le=100_000),
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("finance")),
+        db: Session = Depends(get_db),
+    ):
+        """Every payment row of this event's registration forms, traceable to a person. Statuses are the
+        stored ``form_payments.status`` values; totals are sums of confirmed rows only."""
+        response.headers["Cache-Control"] = "private, no-store"
+        _event_file_row(db, event_id)
+        forms = _event_file_forms(db, identity.owner_id, event_id)
+        reg_forms = _event_file_registration_forms(forms)
+        form_ids = [f.id for f in reg_forms]
+        rows: list[tuple[FormPaymentRecord, FormResponseRecord | None]] = []
+        if form_ids:
+            rows = list(db.execute(
+                select(FormPaymentRecord, FormResponseRecord)
+                .outerjoin(FormResponseRecord, FormResponseRecord.id == FormPaymentRecord.response_id)
+                .where(FormPaymentRecord.form_id.in_(form_ids))
+                .order_by(FormPaymentRecord.created_at.desc(), FormPaymentRecord.id.desc())
+                .limit(5000)
+            ).all())
+        detached_ids = [pay.id for pay, record in rows if record is None]
+        cancelled_by_payment: dict[str, FormRegistrationCancellationRecord] = {}
+        if detached_ids:
+            for found in db.scalars(
+                select(FormRegistrationCancellationRecord)
+                .where(FormRegistrationCancellationRecord.payment_id.in_(detached_ids))
+                .order_by(FormRegistrationCancellationRecord.created_at.asc())
+            ):
+                if found.payment_id:
+                    cancelled_by_payment[found.payment_id] = found
+        items: list[dict[str, Any]] = []
+        totals = {"paid_amount": 0, "paid": 0, "pending": 0, "failed": 0}
+        for pay, record in rows:
+            cls = _EVENT_FILE_PAYMENT_CLASS.get(pay.status, "pending")
+            totals[cls] += 1
+            if cls == "paid":
+                totals["paid_amount"] += int(pay.amount)
+            task = db.get(AdminTaskRecord, record.receipt_review_task_id) if record is not None and record.receipt_review_task_id else None
+            snap: FormRegistrationCancellationRecord | None = cancelled_by_payment.get(pay.id) if record is None else None
+            items.append({
+                "payment_id": pay.id, "form_id": pay.form_id, "response_id": pay.response_id,
+                "name": _form_ticket_name(record) if record is not None else (snap.display_name if snap is not None else ""),
+                "display_id": _form_tracking_code(record) if record is not None else "",
+                "registration_status": record.status if record is not None else ("cancelled" if snap is not None else None),
+                "cancellation": ({"id": snap.id, "at": _as_utc(snap.created_at).isoformat(), "source": snap.source,
+                                  "reason": snap.reason} if snap is not None else None),
+                "method": pay.method, "status": pay.status, "state": cls,
+                "amount": int(pay.amount), "currency": pay.currency, "party_count": int(pay.party_count or 1),
+                "transaction_id": pay.transaction_id, "provider_charge_id": pay.provider_charge_id,
+                "receipt": {
+                    "uploaded": record is not None and (record.receipt_upload is not None or record.receipt_review_task_id is not None),
+                    "web_file": record is not None and record.receipt_upload is not None,
+                    "task_id": task.id if task is not None else None,
+                    "task_status": task.status if task is not None else None,
+                },
+                "created_at": _as_utc(pay.created_at).isoformat(), "updated_at": _as_utc(pay.updated_at).isoformat(),
+                "expires_at": _as_utc(pay.expires_at).isoformat() if pay.expires_at else None,
+            })
+        needle = unicodedata.normalize("NFKC", q or "").strip().lower()
+        if needle:
+            items = [i for i in items if needle in unicodedata.normalize("NFKC", i["name"]).lower()
+                     or needle in i["display_id"].lower() or (i["transaction_id"] and needle in i["transaction_id"].lower())]
+        if state:
+            items = [i for i in items if i["state"] == state]
+        page = items[offset: offset + limit]
+        return {
+            "source": "form_payments", "event_id": event_id,
+            "forms": [{"id": f.id, "name": f.title, "status": f.status} for f in reg_forms],
+            "totals": totals, "items": page, "total": len(items), "limit": limit, "offset": offset,
+            "has_more": offset + limit < len(items), "filters": {"q": q, "state": state},
+        }
+
+    def _event_file_cancellation_row(
+        snap: FormRegistrationCancellationRecord, *, with_finance: bool, with_answers: bool
+    ) -> dict[str, Any]:
+        row: dict[str, Any] = {
+            "id": snap.id, "form_id": snap.form_id, "response_id": snap.response_id,
+            "name": snap.display_name, "status_before": snap.status_before, "ticket_serial": snap.ticket_serial,
+            "companions": [{"name": c.get("name", ""), "status": c.get("status", "")} for c in snap.companions
+                           if isinstance(c, dict)],
+            "payment": ({"payment_id": snap.payment_id, "method": snap.payment_method,
+                         "status_before": snap.payment_status_before} if snap.payment_id else None),
+            "receipt": {"stored": snap.receipt_content is not None or bool(snap.receipt_file_refs),
+                        "web_file": snap.receipt_content is not None,
+                        "file_refs": list(snap.receipt_file_refs or [])},
+            "reason": snap.reason, "source": snap.source,
+            "actor": {"kind": snap.actor_kind, "role": snap.actor_role},
+            "created_at": _as_utc(snap.created_at).isoformat(),
+            "finance_visible": with_finance,
+        }
+        if with_finance and snap.payment_id:
+            row["payment"]["amount"] = snap.amount
+            row["payment"]["currency"] = snap.currency
+        if with_answers:
+            fields = list(snap.form_fields) if isinstance(snap.form_fields, list) else []
+            row["answers"] = _labelled_answers(fields, snap.answers if isinstance(snap.answers, dict) else {})
+            companions_out: list[dict[str, Any]] = []
+            for c in snap.companions:
+                if not isinstance(c, dict):
+                    continue
+                raw_answers = c.get("answers")
+                companions_out.append({
+                    "name": c.get("name", ""), "status": c.get("status", ""),
+                    "answers": _labelled_answers(fields, raw_answers if isinstance(raw_answers, dict) else {}),
+                })
+            row["companions"] = companions_out
+        return row
+
+    @app.get("/api/admin/events/{event_id}/cancellations")
+    def event_file_cancellations(
+        event_id: str,
+        response: Response,
+        q: str = Query(default="", max_length=80),
+        limit: int = Query(default=50, ge=1, le=200),
+        offset: int = Query(default=0, ge=0, le=100_000),
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("fm_responses", "receipt_approve", "finance")),
+        db: Session = Depends(get_db),
+    ):
+        """Registrations of this event that were cancelled (receipt rejected or deleted by the owner), read
+        from the immutable snapshots. Amounts only with ``finance``; answers only with ``fm_responses``;
+        every read is audited because it exposes personal data of people who are no longer registered."""
+        response.headers["Cache-Control"] = "private, no-store"
+        _event_file_row(db, event_id)
+        forms = _event_file_forms(db, identity.owner_id, event_id)
+        form_ids = [f.id for f in forms]
+        role = ROLE_OWNER if isinstance(identity, OwnerIdentity) else identity.role
+        with_finance = has_permission(role, "finance")
+        with_answers = has_permission(role, "fm_responses")
+        rows: list[FormRegistrationCancellationRecord] = []
+        if form_ids:
+            rows = list(db.scalars(
+                select(FormRegistrationCancellationRecord)
+                .where(FormRegistrationCancellationRecord.form_id.in_(form_ids))
+                .order_by(FormRegistrationCancellationRecord.created_at.desc(), FormRegistrationCancellationRecord.id.desc())
+                .limit(5000)
+            ))
+        items = [_event_file_cancellation_row(snap, with_finance=with_finance, with_answers=with_answers) for snap in rows]
+        needle = unicodedata.normalize("NFKC", q or "").strip().lower()
+        if needle:
+            items = [i for i in items if needle in unicodedata.normalize("NFKC", i["name"]).lower()
+                     or needle in (i["ticket_serial"] or "").lower()]
+        page = items[offset: offset + limit]
+        record_audit(
+            db, identity, "registration.cancellations.view", target_type="event", target_id=event_id,
+            details={"total": len(items), "offset": offset, "limit": limit, "with_answers": with_answers,
+                     "with_finance": with_finance},
+        )
+        db.commit()
+        return {
+            "source": "form_registration_cancellations", "event_id": event_id,
+            "items": page, "total": len(items), "limit": limit, "offset": offset,
+            "has_more": offset + limit < len(items), "filters": {"q": q}, "finance_visible": with_finance,
+        }
+
+    @app.get("/api/admin/events/{event_id}/cancellations/{cancellation_id}/receipt")
+    def event_file_cancellation_receipt(
+        event_id: str,
+        cancellation_id: str,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("receipt_approve", "finance")),
+        db: Session = Depends(get_db),
+    ):
+        """The web receipt kept with a cancelled registration (same gate and headers as the live receipt).
+        Receipts that came through Bale stay in the inbox private files (``receipt.file_refs``)."""
+        _event_file_row(db, event_id)
+        form_ids = {f.id for f in _event_file_forms(db, identity.owner_id, event_id)}
+        snap = db.get(FormRegistrationCancellationRecord, cancellation_id)
+        if snap is None or snap.form_id not in form_ids:
+            raise HTTPException(404, "cancellation_not_found")
+        if snap.receipt_content is None:
+            raise HTTPException(404, "receipt_not_found")
+        record_audit(
+            db, identity, "registration.cancellation.receipt_view", target_type="form_response",
+            target_id=snap.response_id, details={"cancellation_id": snap.id, "event_id": event_id},
+        )
+        db.commit()
+        filename = re.sub(r"[^A-Za-z0-9._-]", "_", snap.receipt_file_name or "receipt")[:80] or "receipt"
+        return Response(
+            content=snap.receipt_content,
+            media_type=snap.receipt_content_type or "application/octet-stream",
+            headers={
+                "Content-Disposition": f'inline; filename="{filename}"',
+                "Cache-Control": "private, no-store",
+                "X-Content-Type-Options": "nosniff",
+                "Content-Security-Policy": "default-src 'none'; sandbox",
+            },
+        )
+
+    @app.get("/api/admin/events/{event_id}/forms/{form_id}/summary")
+    def event_file_form_summary(
+        event_id: str,
+        form_id: str,
+        response: Response,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("fm_responses")),
+        db: Session = Depends(get_db),
+    ):
+        """Aggregate results of a survey/exam/other form linked to this event, computed from the stored
+        answers: per-option counts for choice fields, mean/min/max for numeric ones, response total.
+        No scoring: the server form model has no answer key, so none is invented."""
+        response.headers["Cache-Control"] = "private, no-store"
+        _event_file_row(db, event_id)
+        form = _event_file_form(db, identity.owner_id, event_id, form_id)
+        records = db.scalars(
+            select(FormResponseRecord).where(FormResponseRecord.form_id == form.id)
+            .order_by(FormResponseRecord.created_at.desc()).limit(5000)
+        ).all()
+        fields = sorted(form.fields, key=lambda item: (item.position, item.row_id))
+        choice_types = {"choice", "dropdown", "select", "multi", "imgchoice", "gender", "marital", "yesno", "rating", "scale", "bars"}
+        numeric_types = {"number", "amount", "price"}
+        out_fields: list[dict[str, Any]] = []
+        for field in fields:
+            config = field.config if isinstance(field.config, dict) else {}
+            kind = "text"
+            if field.field_type in choice_types:
+                kind = "choice"
+            elif field.field_type in numeric_types:
+                kind = "numeric"
+            answered = 0
+            counts: dict[str, int] = {}
+            numbers: list[float] = []
+            for record in records:
+                answers = record.answers if isinstance(record.answers, dict) else {}
+                value = answers.get(field.field_key)
+                if value is None or value == "" or value == []:
+                    continue
+                answered += 1
+                values = value if isinstance(value, list) else [value]
+                for item in values[:20]:
+                    if isinstance(item, bool):
+                        key = "بله" if item else "خیر"
+                    elif isinstance(item, (int, float)):
+                        numbers.append(float(item))
+                        key = str(item)
+                    elif isinstance(item, str):
+                        key = item.strip()[:120]
+                        try:
+                            numbers.append(float(item.translate(DIGIT_TRANSLATION)))
+                        except ValueError:
+                            pass
+                    else:
+                        continue
+                    if kind == "choice":
+                        counts[key] = counts.get(key, 0) + 1
+            entry: dict[str, Any] = {
+                "field_id": field.field_key, "label": field.label, "type": field.field_type, "kind": kind,
+                "answered": answered,
+            }
+            raw_options = config.get("opts") if isinstance(config.get("opts"), list) else config.get("options")
+            options: list[Any] = list(raw_options) if isinstance(raw_options, list) else []
+            if not options and field.field_type in ("yesno", "gender", "marital"):
+                options = {"yesno": ["بله", "خیر"], "gender": ["زن", "مرد"], "marital": ["مجرد", "متأهل"]}[field.field_type]
+            if kind == "choice":
+                labels = [str(o.get("l") if isinstance(o, dict) else o)[:120] for o in options][:50]
+                ordered = [{"label": label, "count": counts.pop(label, 0)} for label in labels]
+                ordered += [{"label": label, "count": count} for label, count in sorted(counts.items(), key=lambda kv: -kv[1])[:50]]
+                entry["options"] = ordered
+            if numbers and (kind == "numeric" or field.field_type in ("rating", "scale", "bars")):
+                entry["mean"] = round(sum(numbers) / len(numbers), 2)
+                entry["min"] = min(numbers)
+                entry["max"] = max(numbers)
+            out_fields.append(entry)
+        return {
+            "source": "form_responses", "event_id": event_id,
+            "form": _event_file_form_card(form, len(records)),
+            "responses": len(records), "fields": out_fields,
+            "scoring": None,  # کلید پاسخ/نمره در مدل سرور وجود ندارد؛ ادعایی هم نمی‌شود
+        }
+
+    @app.get("/api/admin/users/{account_id}/notifications")
+    def list_admin_user_notifications(
+        account_id: str,
+        response: Response,
+        limit: int = Query(default=20, ge=1, le=100),
+        offset: int = Query(default=0, ge=0, le=1_000_000),
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("us_view")),
+        db: Session = Depends(get_db),
+    ):
+        """U5: read-only outbox rows **of this account only** (``user_notifications.account_id``).
+
+        Not the global queue: the filter is the path account, enforced here. Every row in that table
+        is addressed to one account; ``scope`` tells the panel whether the text was written for this
+        account alone (``account``) or fanned out to an audience (``audience``). ``delivery_state``
+        keeps queued ≠ retrying ≠ delivered ≠ failed, and ``no_bale_identity`` stays a distinct,
+        non-network failure. No retry/send action lives on this path.
+        """
+        response.headers["Cache-Control"] = "private, no-store"
+        _admin_target_account(db, account_id)
+        total = int(db.scalar(
+            select(func.count(UserNotificationRecord.id)).where(UserNotificationRecord.account_id == account_id)
+        ) or 0)
+        rows = db.scalars(
+            select(UserNotificationRecord)
+            .where(UserNotificationRecord.account_id == account_id)
+            .order_by(UserNotificationRecord.created_at.desc(), UserNotificationRecord.id)
+            .offset(offset)
+            .limit(limit + 1)
+        ).all()
+        items = []
+        for row in rows[:limit]:
+            view = user_notification_view(row)
+            view.pop("bale_user_id", None)
+            view.pop("file_refs", None)
+            view["scope"] = "audience" if row.kind in _NOTIFICATION_AUDIENCE_KINDS else "account"
+            view["has_bale_identity"] = bool(row.bale_user_id)
+            view["source_task_id"] = row.source_task_id
+            items.append(view)
+        return {
+            "source": "shared_server_database",
+            "account_id": account_id,
+            "items": items,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "has_more": len(rows) > limit,
+        }
+
+    # ── حضور و غیاب: همان ستون‌های check-in بلیت که ربات می‌نویسد ──
+    # منبع مشترک: form_responses.ticket_checked_in_*؛ پنل فقط همان رکورد را می‌خواند
+    # و با مجوز attendance و ثبت دلیل/ممیزی، حضور را ثبت یا اصلاح می‌کند.
+    def _attendance_actor(record: FormResponseRecord) -> dict[str, Any] | None:
+        if record.ticket_checked_in_at is None:
+            return None
+        if record.ticket_checked_in_by_account_id:
+            return {"kind": "web", "id": record.ticket_checked_in_by_account_id}
+        if record.ticket_checked_in_by_bale_user_id:
+            return {"kind": "bot", "id": record.ticket_checked_in_by_bale_user_id}
+        return {"kind": "unknown", "id": ""}
+
+    def _attendance_person(db: Session, record: FormResponseRecord) -> dict[str, Any]:
+        mobile = str(record.registrant_mobile or "")
+        return {
+            "response_id": record.id,
+            "form_id": record.form_id,
+            "name": _form_ticket_name(record),
+            "companion": record.added_by_response_id is not None,
+            "added_by_name": _ticket_text(record.added_by_name or "", 120) if record.added_by_response_id else "",
+            "status": record.status,
+            "serial": record.ticket_serial,
+            "mobile_hint": (mobile[-4:] if len(mobile) >= 4 else ""),
+            "payment_approved": _response_payment_approved(db, record),
+            "ticket_eligible": _form_ticket_eligible(record),
+            "checked_in": record.ticket_checked_in_at is not None,
+            "checked_in_at": _as_utc(record.ticket_checked_in_at).isoformat() if record.ticket_checked_in_at else None,
+            "checked_in_by": _attendance_actor(record),
+            "ticket_type": _form_response_ticket_type(record),
+            "created_at": _as_utc(record.created_at).isoformat(),
+        }
+
+    @app.get("/api/admin/attendance/forms")
+    def list_attendance_forms(
+        response: Response,
+        q: str = Query(default="", max_length=80),
+        limit: int = Query(default=20, ge=1, le=100),
+        offset: int = Query(default=0, ge=0, le=100_000),
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("attendance")),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        forms = db.scalars(
+            select(FormRecord)
+            .where(
+                FormRecord.owner_id == identity.owner_id, FormRecord.model == "registration",
+                FormRecord.purpose == "registration",
+            )
+            .order_by(FormRecord.updated_at.desc(), FormRecord.id)
+        ).all()
+        needle = unicodedata.normalize("NFKC", q or "").strip().lower()
+        if needle:
+            forms = [
+                form for form in forms
+                if needle in unicodedata.normalize("NFKC", f"{form.title} {form.event_id or ''}").lower()
+            ]
+        page = forms[offset: offset + limit]
+        items = []
+        for form in page:
+            totals = db.execute(
+                select(
+                    func.count(FormResponseRecord.id),
+                    func.sum(case((FormResponseRecord.ticket_checked_in_at.is_not(None), 1), else_=0)),
+                    func.sum(case((FormResponseRecord.status == "accepted", 1), else_=0)),
+                ).where(FormResponseRecord.form_id == form.id)
+            ).one()
+            settings_value = form.settings if isinstance(form.settings, dict) else {}
+            event = _json_dict_member(settings_value, "event")
+            items.append({
+                "form_id": form.id,
+                "title": form.title,
+                "status": form.status,
+                "event_id": form.event_id,
+                "event_title": _ticket_text(event.get("title") or "", 160),
+                "event_date": _ticket_text(event.get("date") or "", 120),
+                "event_time": _ticket_text(event.get("time") or "", 120),
+                "people": int(totals[0] or 0),
+                "accepted": int(totals[2] or 0),
+                "checked_in": int(totals[1] or 0),
+                "updated_at": _as_utc(form.updated_at).isoformat(),
+            })
+        return {
+            "source": "shared_server_database",
+            "items": items,
+            "total": len(forms),
+            "limit": limit,
+            "offset": offset,
+            "has_more": offset + limit < len(forms),
+            "q": q,
+        }
+
+    @app.get("/api/admin/attendance/forms/{form_id}/people")
+    def list_attendance_people(
+        form_id: str,
+        response: Response,
+        q: str = Query(default="", max_length=80),
+        state: str = Query(default="", pattern=r"^(|checked_in|pending)$"),
+        limit: int = Query(default=50, ge=1, le=200),
+        offset: int = Query(default=0, ge=0, le=100_000),
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("attendance")),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        form = get_owned_form(db, identity.owner_id, form_id)
+        query = select(FormResponseRecord).where(FormResponseRecord.form_id == form.id)
+        if state == "checked_in":
+            query = query.where(FormResponseRecord.ticket_checked_in_at.is_not(None))
+        elif state == "pending":
+            query = query.where(FormResponseRecord.ticket_checked_in_at.is_(None))
+        records = db.scalars(
+            query.order_by(FormResponseRecord.created_at.asc(), FormResponseRecord.id).limit(5000)
+        ).all()
+        needle = unicodedata.normalize("NFKC", q or "").strip().lower()
+        if needle:
+            digits = re.sub(r"\D", "", needle.translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹", "0123456789")))
+            records = [
+                record for record in records
+                if needle in unicodedata.normalize("NFKC", _form_ticket_name(record)).lower()
+                or (record.ticket_serial and needle in record.ticket_serial.lower())
+                or (len(digits) >= 4 and str(record.registrant_mobile or "").endswith(digits))
+            ]
+        page = records[offset: offset + limit]
+        return {
+            "source": "shared_server_database",
+            "form": {"form_id": form.id, "title": form.title, "status": form.status, "event_id": form.event_id},
+            "items": [_attendance_person(db, record) for record in page],
+            "total": len(records),
+            "limit": limit,
+            "offset": offset,
+            "has_more": offset + limit < len(records),
+            "q": q,
+            "state": state,
+        }
+
+    async def _attendance_target(
+        request: Request, db: Session, identity: OwnerIdentity | AccountIdentity, response_id: str, *, require_reason: bool
+    ) -> tuple[FormResponseRecord, str]:
+        if not _BOT_FORM_RESPONSE_ID.fullmatch(response_id or ""):
+            raise HTTPException(404, "ticket_not_found")
+        payload = await _read_json_object(request, 4096)
+        if not set(payload) <= {"reason"}:
+            raise HTTPException(400, "invalid_attendance_payload")
+        reason = payload.get("reason", "")
+        if not isinstance(reason, str) or len(reason) > 300:
+            raise HTTPException(422, {"code": "invalid_reason", "field": "reason"})
+        reason = reason.strip()
+        if require_reason and len(reason) < 3:
+            raise HTTPException(422, {"code": "reason_required", "field": "reason"})
+        record = db.scalar(
+            select(FormResponseRecord)
+            .join(FormRecord, FormRecord.id == FormResponseRecord.form_id)
+            .where(FormResponseRecord.id == response_id, FormRecord.owner_id == identity.owner_id)
+            .options(selectinload(FormResponseRecord.draft))
+            .with_for_update()
+        )
+        if record is None:
+            raise HTTPException(404, "ticket_not_found")
+        return record, reason
+
+    @app.post("/api/admin/attendance/responses/{response_id}/check-in")
+    async def admin_check_in(
+        response_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write("attendance")),
+        db: Session = Depends(get_db),
+    ):
+        record, reason = await _attendance_target(request, db, identity, response_id, require_reason=False)
+        if record.ticket_checked_in_at is not None:
+            raise HTTPException(409, {"code": "already_checked_in", "checked_in_at": _as_utc(record.ticket_checked_in_at).isoformat()})
+        if not _response_payment_approved(db, record):
+            raise HTTPException(409, {"code": "ticket_payment_not_confirmed"})
+        _ensure_form_ticket(record)
+        record.ticket_checked_in_at = _utc_now()
+        record.ticket_checked_in_by_account_id = (
+            identity.owner_id if isinstance(identity, OwnerIdentity) else identity.account_id
+        )[:36]
+        record.ticket_checked_in_by_bale_user_id = None
+        record_audit(
+            db, identity, "attendance.check_in", target_type="form_response", target_id=record.id,
+            details={"form_id": record.form_id, "reason": reason[:160], "source": "web"},
+        )
+        db.commit()
+        db.refresh(record)
+        return {"saved": True, "person": _attendance_person(db, record)}
+
+    @app.post("/api/admin/attendance/responses/{response_id}/undo-check-in")
+    async def admin_undo_check_in(
+        response_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write("attendance")),
+        db: Session = Depends(get_db),
+    ):
+        record, reason = await _attendance_target(request, db, identity, response_id, require_reason=True)
+        if record.ticket_checked_in_at is None:
+            raise HTTPException(409, {"code": "not_checked_in"})
+        previous = _attendance_actor(record) or {}
+        previous_at = _as_utc(record.ticket_checked_in_at).isoformat()
+        record.ticket_checked_in_at = None
+        record.ticket_checked_in_by_account_id = None
+        record.ticket_checked_in_by_bale_user_id = None
+        record_audit(
+            db, identity, "attendance.undo_check_in", target_type="form_response", target_id=record.id,
+            details={
+                "form_id": record.form_id, "reason": reason[:160], "previous_at": previous_at,
+                "previous_by": f"{previous.get('kind', '')}:{previous.get('id', '')}"[:80],
+            },
+        )
+        db.commit()
+        db.refresh(record)
+        return {"saved": True, "person": _attendance_person(db, record)}
+
+    # ── گواهی‌ها: آینهٔ تأییدشدهٔ گواهی‌های صادرشده توسط ربات (فقط‌خواندنی برای پنل) ──
+    # مالک هر ردیف سمت سرور از شناسهٔ بله حل می‌شود؛ ردیف بدون هویت سرور ذخیره نمی‌شود.
+    # در این فاز هیچ عملیات تغییردهنده‌ای (ابطال/ویرایش) از پنل وجود ندارد؛ ربات تنها نویسنده است.
+
+    def _certificate_error(error: certificates_mod.CertificateError) -> HTTPException:
+        return HTTPException(error.status_code, error.code)
+
+    @app.get("/api/admin/certificates")
+    def list_admin_certificates(
+        response: Response,
+        q: str = Query(default="", max_length=80),
+        status: str = Query(default="", pattern=r"^(|issued|revoked|expired)$"),
+        kind: str = Query(default="", pattern=r"^(|event|batch|form|manual|center|recording)$"),
+        event_ref: str = Query(default="", max_length=40, pattern=r"^[A-Za-z0-9_.:-]*$"),
+        limit: int = Query(default=20, ge=1, le=100),
+        offset: int = Query(default=0, ge=0, le=1_000_000),
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("certificate")),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        result = certificates_mod.list_records(
+            db, q=q, status=status, kind=kind, event_ref=event_ref, limit=limit, offset=offset,
+            today_jalali=certificates_mod.today_jalali(),
+        )
+        result["events"] = certificates_mod.event_options(db)
+        result["can_revoke"] = False
+        return result
+
+    def _admin_certificate(db: Session, certificate_id: str) -> CertificateRecord:
+        if not re.fullmatch(r"[0-9a-fA-F-]{36}", certificate_id or ""):
+            raise HTTPException(404, "certificate_not_found")
+        record = db.get(CertificateRecord, certificate_id)
+        if record is None:
+            raise HTTPException(404, "certificate_not_found")
+        return record
+
+    @app.get("/api/admin/certificates/{certificate_id}")
+    def get_admin_certificate(
+        certificate_id: str,
+        response: Response,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("certificate")),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        record = _admin_certificate(db, certificate_id)
+        return {
+            "source": certificates_mod.SOURCE,
+            "certificate": certificates_mod.detail(db, record, today_jalali=certificates_mod.today_jalali()),
+            "can_revoke": False,
+        }
+
+    # ── امتیاز باشگاه: آینهٔ فقط‌خواندنی دفترکل ربات (هیچ مسیر نوشتن امتیازی در پنل وجود ندارد) ──
+    # ربات تنها نویسنده است؛ مالک هر ردیف سمت سرور از شناسهٔ بله حل می‌شود.
+
+    @app.get("/api/admin/club/points")
+    def list_admin_club_points(
+        response: Response,
+        q: str = Query(default="", max_length=80),
+        entry_type: str = Query(default="", pattern=r"^(|opening_balance|award|spend|refund|reversal|manual_adjust)$"),
+        account_id: str = Query(default="", max_length=36, pattern=r"^[0-9a-fA-F-]*$"),
+        bale_user_id: str = Query(default="", max_length=20, pattern=r"^[0-9]*$"),
+        limit: int = Query(default=20, ge=1, le=100),
+        offset: int = Query(default=0, ge=0, le=1_000_000),
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("cl_member")),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        return club_points_mod.list_entries(
+            db, account_id=account_id, bale_user_id=bale_user_id, entry_type=entry_type,
+            q=q, limit=limit, offset=offset,
+        )
+
+    @app.get("/api/admin/club/points/members")
+    def list_admin_club_points_members(
+        response: Response,
+        q: str = Query(default="", max_length=80),
+        limit: int = Query(default=20, ge=1, le=100),
+        offset: int = Query(default=0, ge=0, le=1_000_000),
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("cl_member")),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        return club_points_mod.list_members(db, q=q, limit=limit, offset=offset)
+
+    @app.get("/api/admin/club/points/members/{account_id}")
+    def get_admin_club_points_member(
+        account_id: str,
+        response: Response,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("cl_member")),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        if not re.fullmatch(r"[0-9a-fA-F-]{36}", account_id or ""):
+            raise HTTPException(404, "member_not_found")
+        summary = club_points_mod.member_summary(db, account_id)
+        if summary is None:
+            raise HTTPException(404, "member_not_found")
+        summary["history"] = club_points_mod.list_entries(db, account_id=account_id, limit=100)["items"]
+        return summary
+
+    @app.get("/api/admin/certificates/{certificate_id}/file")
+    def admin_certificate_file(
+        certificate_id: str,
+        slot: str = Query(default="pdf", pattern=r"^(pdf|png)$"),
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("certificate")),
+        db: Session = Depends(get_db),
+    ):
+        record = _admin_certificate(db, certificate_id)
+        file_id = record.file_id if slot == "pdf" else record.preview_file_id
+        item = db.get(PrivateFileRecord, file_id) if file_id else None
+        if item is None or item.account_id != record.account_id:
+            raise HTTPException(404, "certificate_file_not_found")
+        disposition = "inline" if item.content_type.startswith("image/") else "attachment"
+        stem = re.sub(r"[^A-Za-z0-9._-]", "_", record.serial or record.full_code or record.id)[:60] or "certificate"
+        extension = "png" if item.content_type.startswith("image/") else "pdf"
+        return Response(
+            content=item.content,
+            media_type=item.content_type,
+            headers={
+                "Content-Disposition": f'{disposition}; filename="{stem}.{extension}"',
+                "Cache-Control": "private, no-store",
+                "X-Content-Type-Options": "nosniff",
+                "Content-Security-Policy": "default-src 'none'; sandbox",
+            },
+        )
+
+    # ── داده‌ها و مهاجرت: بارگذاری نسخهٔ پشتیبان برای ممیزی (بدون تغییر داده) ──
+    # فایل فقط در staging خصوصی (بیرون UI_ROOT) ذخیره می‌شود، فقط‌خواندنی
+    # بررسی می‌شود و هیچ عملیات نوشتنی روی آن یا روی پایگاه عملیاتی اجرا نمی‌شود.
+
+    data_logger = logging.getLogger("nora.data_staging")
+
+    def _data_store(cfg: Settings) -> data_staging_mod.StagingStore:
+        return data_staging_mod.StagingStore(
+            cfg.data_staging_dir,
+            data_staging_mod.UploadLimits(
+                max_bytes=cfg.data_upload_max_bytes,
+                retention_hours=cfg.data_staging_retention_hours,
+            ),
+        )
+
+    def _audit_script(cfg: Settings) -> Path:
+        configured = cfg.legacy_audit_script.strip()
+        return Path(configured) if configured else data_staging_mod.default_audit_script()
+
+    def _owner_upload_actor(identity: OwnerIdentity | AccountIdentity) -> str:
+        return str(getattr(identity, "owner_id", "") or getattr(identity, "account_id", "") or "unknown")
+
+    def _enforce_owner_upload_limit(
+        request: Request, db: Session, cfg: Settings, identity: OwnerIdentity | AccountIdentity,
+        limit: int = 10,
+        scope: str = "data-upload",
+    ) -> None:
+        """At most ``limit`` uploads per hour per actor; stored, not in-memory only."""
+        key_hash = throttle_digest(
+            cfg.owner_password_hash or cfg.owner_id or "nora", scope + "\0" + _owner_upload_actor(identity)
+        )
+        now = _utc_now()
+        db.execute(
+            delete(PublicWriteThrottleRecord).where(
+                PublicWriteThrottleRecord.window_started_at < now - timedelta(days=1)
+            )
+        )
+        record = db.scalar(
+            select(PublicWriteThrottleRecord).where(PublicWriteThrottleRecord.key_hash == key_hash)
+        )
+        if record is None or _as_utc(record.window_started_at) < now - timedelta(hours=1):
+            if record is None:
+                db.add(PublicWriteThrottleRecord(key_hash=key_hash, attempts=1, window_started_at=now))
+            else:
+                record.attempts = 1
+                record.window_started_at = now
+            db.commit()
+            return
+        if record.attempts >= limit:
+            db.commit()
+            retry = max(1, int(3600 - (now - _as_utc(record.window_started_at)).total_seconds()))
+            raise HTTPException(429, "upload_rate_limited", headers={"Retry-After": str(retry)})
+        record.attempts += 1
+        db.commit()
+
+    # ── تصاویر عمومی پنل (پوستر رویداد / جلد مطلب) ──
+    # بایت‌ها در همان پایگاه مشترک (مثل private_files) می‌مانند؛ نوع واقعی از
+    # محتوای فایل تشخیص داده و با Pillow رمزگشایی می‌شود؛ site_content فقط
+    # نشانی پایدار /api/public/media/{id} را نگه می‌دارد. هیچ حذف خودکاری نیست.
+
+    def _media_actor(identity: OwnerIdentity | AccountIdentity) -> tuple[str, str]:
+        if isinstance(identity, OwnerIdentity):
+            return "owner", identity.owner_id
+        return "account", identity.account_id
+
+    @app.post("/api/admin/media", status_code=201)
+    async def upload_admin_media(
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write("ev_create")),
+        db: Session = Depends(get_db),
+    ):
+        cfg: Settings = request.app.state.settings
+        _enforce_owner_upload_limit(request, db, cfg, identity, limit=60, scope="media-upload")
+        declared = request.headers.get("x-file-name", "image")
+        chunks: list[bytes] = []
+        size = 0
+        async for chunk in request.stream():
+            if not chunk:
+                continue
+            size += len(chunk)
+            if size > public_media_mod.MAX_BYTES:
+                raise HTTPException(413, "image_too_large")
+            chunks.append(chunk)
+        content = b"".join(chunks)
+        actor_kind, actor_id = _media_actor(identity)
+        try:
+            record, created = public_media_mod.store(
+                db, content, declared_name=declared, actor_kind=actor_kind, actor_id=actor_id,
+            )
+        except public_media_mod.MediaError as error:
+            record_audit(
+                db, identity, "media.upload", target_type="public_media", outcome="rejected",
+                details={"code": error.code, "size": size},
+            )
+            db.commit()
+            raise HTTPException(error.status, error.code) from None
+        if created:
+            record_audit(
+                db, identity, "media.upload", target_type="public_media", target_id=record.id,
+                details={"content_type": record.content_type, "size": record.content_size,
+                         "width": record.width, "height": record.height},
+            )
+        db.commit()
+        payload = public_media_mod.serialize(record)
+        payload["created"] = created
+        payload["source"] = public_media_mod.SOURCE
+        return payload
+
+    @app.get("/api/admin/media")
+    def list_admin_media(
+        response: Response,
+        limit: int = Query(default=20, ge=1, le=100),
+        offset: int = Query(default=0, ge=0, le=1_000_000),
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("ev_create")),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        return public_media_mod.list_records(db, limit=limit, offset=offset)
+
+    @app.delete("/api/admin/media/{media_id}")
+    def delete_admin_media(
+        media_id: str,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write("ev_create")),
+        db: Session = Depends(get_db),
+    ):
+        parsed = public_media_mod.parse_id(media_id)
+        record = db.get(PublicMediaRecord, parsed) if parsed else None
+        if record is None:
+            raise HTTPException(404, "media_not_found")
+        used_in = public_media_mod.usage_index(db).get(record.id, 0)
+        if used_in:
+            raise HTTPException(409, {"code": "media_in_use", "used_in": used_in})
+        record_audit(
+            db, identity, "media.delete", target_type="public_media", target_id=record.id,
+            details={"content_type": record.content_type, "size": record.content_size, "file_name": record.file_name},
+        )
+        db.delete(record)
+        db.commit()
+        return {"deleted": True, "id": record.id}
+
+    @app.get("/api/public/media/{media_id}")
+    def public_media_file(media_id: str, request: Request, db: Session = Depends(get_db)):
+        parsed = public_media_mod.parse_id(media_id)
+        record = db.get(PublicMediaRecord, parsed) if parsed else None
+        if record is None:
+            raise HTTPException(404, "media_not_found")
+        etag = f'"{record.content_hash[:32]}"'
+        headers = {
+            "Cache-Control": "public, max-age=31536000, immutable",
+            "ETag": etag,
+            "X-Content-Type-Options": "nosniff",
+            "Content-Security-Policy": "default-src 'none'; sandbox",
+            "Content-Disposition": f'inline; filename="{record.file_name}"',
+        }
+        if request.headers.get("if-none-match", "") == etag:
+            return Response(status_code=304, headers=headers)
+        return Response(content=record.content, media_type=record.content_type, headers=headers)
+
+    # ── فاز ۸: منابع، پرسش‌وپاسخ، دیدگاه و گزارش محتوای رویداد ──
+    # رویداد از همان سند site_content می‌آید؛ ثبت‌نام/حضور از همان form_responses.
+    # هر تصمیم دسترسی در همین‌جا و روی ردیف‌های واقعی گرفته می‌شود، نه در مرورگر.
+    _INTERACTION_READ_PERMS = ("ev_create", "ev_publish")
+    _INTERACTION_MODERATE_PERMS = ("ev_publish",)
+    _INTERACTION_RESOURCE_PERMS = ("ev_create",)
+    _UPLOAD_SESSION_LOCKS: dict[str, asyncio.Lock] = {}
+
+    def _interaction_error(error: interaction_mod.InteractionError) -> HTTPException:
+        detail: Any = {"code": error.code, "field": error.field} if error.field else error.code
+        return HTTPException(error.status, detail)
+
+    _EXTERNAL_VIDEO_KINDS = ("youtube", "aparat")
+
+    def _pop_external_acknowledgement(payload: dict[str, Any]) -> bool:
+        """Phase 9.5 §6.4: ``acknowledge_external_exposure`` is a boolean flag outside the stored fields."""
+        if "acknowledge_external_exposure" not in payload:
+            return False
+        value = payload.pop("acknowledge_external_exposure")
+        if not isinstance(value, bool):
+            raise HTTPException(422, {"code": "invalid_value", "field": "acknowledge_external_exposure"})
+        return value
+
+    def _require_external_exposure_ack(
+        *, kind: str, before: tuple[str, str] | None, after: tuple[str, str], acknowledged: bool
+    ) -> bool:
+        """A paid (``purchased``) resource hosted on YouTube/Aparat is *not* protected by Nora.
+
+        Entering the state (published, purchased, external) requires the operator's explicit
+        ``acknowledge_external_exposure: true`` (recorded in the audit row); any other change is free.
+        Returns True when the acknowledgement was consumed (so the caller can audit it).
+        """
+        if kind not in _EXTERNAL_VIDEO_KINDS:
+            return False
+        exposed_after = after == ("published", "purchased")
+        exposed_before = before == ("published", "purchased")
+        if not exposed_after or exposed_before:
+            return False
+        if not acknowledged:
+            raise HTTPException(409, {"code": "external_exposure_acknowledgement_required", "provider": kind})
+        return True
+
+    def _interaction_event(db: Session, event_id: str) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+        """``(public_projection, stored_row)``; the projection is ``None`` unless published."""
+        record = db.get(SiteContentRecord, "public")
+        found = content_admin_mod.find_row(_content_rows(record, "events"), event_id)
+        if found is None:
+            return None, None
+        stored = found[1]
+        projected = public_site_content({"events": [stored]}).get("events") or []
+        return (projected[0] if projected else None), stored
+
+    def _interaction_event_titles(db: Session, event_ids: set[str]) -> dict[str, str]:
+        if not event_ids:
+            return {}
+        record = db.get(SiteContentRecord, "public")
+        titles: dict[str, str] = {}
+        for row in _content_rows(record, "events"):
+            if isinstance(row, dict) and str(row.get("id") or "") in event_ids:
+                titles[str(row["id"])] = str(row.get("t") or row.get("n") or "")[:160]
+        return titles
+
+    def _interaction_staff(request: Request, db: Session) -> OwnerIdentity | AccountIdentity | None:
+        try:
+            return require_any_permission(*_INTERACTION_READ_PERMS)(request, db)
+        except HTTPException:
+            return None
+
+    def _interaction_participation(db: Session, account_id: str, event_id: str) -> interaction_mod.Participation:
+        return interaction_mod.participation_for(
+            db, account_id, event_id,
+            scope=account_form_record_scope(db, account_id),
+            payment_approved=_response_payment_approved,
+        )
+
+    def _interaction_display_name(db: Session, account_id: str) -> str:
+        profile = db.get(AccountProfileRecord, account_id)
+        fields = profile.fields if profile is not None and isinstance(profile.fields, dict) else {}
+        return str(fields.get("fullName") or "")[:120]
+
+    def _interaction_actor(identity: OwnerIdentity | AccountIdentity) -> tuple[str, str]:
+        if isinstance(identity, OwnerIdentity):
+            return "owner", identity.owner_id
+        return "account", identity.account_id
+
+    def _interaction_question_notification(
+        db: Session, question: EventQuestionRecord
+    ) -> dict[str, Any] | None:
+        if not question.notification_id:
+            return None
+        item = db.get(UserNotificationRecord, question.notification_id)
+        if item is None:
+            return None
+        return {
+            "id": item.id,
+            "state": interaction_mod.delivery_state(item.delivery_status, item.delivery_attempts),
+            "delivery_status": item.delivery_status,
+            "attempts": item.delivery_attempts,
+            "last_error": item.last_delivery_error or None,
+            "has_bale_target": bool(item.bale_user_id),
+            "created_at": _as_utc(item.created_at).isoformat(),
+            "delivered_at": _as_utc(item.delivered_at).isoformat() if item.delivered_at else None,
+        }
+
+    def _queue_question_answer_notification(db: Session, question: EventQuestionRecord, event_title: str) -> UserNotificationRecord:
+        """One outbox row per answered question (idempotent via ``notification_id``).
+
+        The answer itself is already persisted; this only enqueues. Accounts without a
+        server-verified Bale identity get a web-only row (``failed`` / ``no_bale_identity``)
+        so nothing is ever sent to a guessed destination and the state stays honest.
+        """
+        bale_ids = verified_bale_ids_for_account(db, question.account_id)
+        title = "پاسخ برگزارکننده به پرسش شما"
+        body = (
+            f"پرسش شما دربارهٔ «{event_title}» پاسخ داده شد.\n\n"
+            f"پرسش: {question.body[:300]}\n\nپاسخ: {question.answer_body[:900]}"
+        )
+        item, _created = notifications_mod.queue(
+            db, account_id=question.account_id, kind=interaction_mod.NOTIFICATION_KIND, title=title, body=body,
+            key=notifications_mod.dedupe_key("event_question", question.id, "answer"), bale_ids=bale_ids,
+            link=notifications_mod.event_link(question.event_id, anchor="qa"), refresh=True,
+        )
+        if question.notification_id != item.id:
+            question.notification_id = item.id
+            db.flush()
+        return item
+
+    @app.get("/api/public/events/{event_id}/interaction")
+    def public_event_interaction(event_id: str, request: Request, response: Response, db: Session = Depends(get_db)):
+        """Resources, Q&A and reviews of one event for the current viewer (guest, account or staff)."""
+        response.headers["Cache-Control"] = "private, no-store"
+        response.headers["Vary"] = "Cookie"
+        try:
+            event_id = interaction_mod.parse_event_id(event_id)
+        except interaction_mod.InteractionError as error:
+            raise _interaction_error(error) from None
+        staff = _interaction_staff(request, db)
+        account = account_identity_from_request(request, db) if staff is None or isinstance(staff, AccountIdentity) else None
+        if isinstance(staff, AccountIdentity):
+            account = staff
+        public_event, stored = _interaction_event(db, event_id)
+        if stored is None or (public_event is None and staff is None):
+            raise HTTPException(404, "event_not_found")
+        source = public_event or {}
+        now = _utc_now()
+        participation = (
+            _interaction_participation(db, account.account_id, event_id) if account is not None else None
+        )
+        viewer_id = account.account_id if account is not None else None
+        recording_row = _recording_for_event(db, event_id)
+        recording_viewer = _recording_viewer(
+            db, recording_row, account=account, staff=staff is not None, participation=participation, now=now,
+        )
+        purchased_state = _purchased_state(recording_row, recording_viewer)
+        resources = db.scalars(
+            select(EventResourceRecord)
+            .where(EventResourceRecord.event_id == event_id, EventResourceRecord.status != "removed")
+            .order_by(EventResourceRecord.sort_order.asc(), EventResourceRecord.created_at.asc())
+        ).all()
+        resource_rows = [
+            interaction_mod.resource_public_view(
+                row, now=now, signed_in=account is not None, participation=participation, staff=staff is not None,
+                purchased=purchased_state,
+            )
+            for row in resources
+            # Session files of the recorded product are listed inside its sessions, not in the general list.
+            if (staff is not None or interaction_mod.resource_is_live(row, now)) and not row.session_id
+        ]
+        recording_payload = _recording_public_payload(
+            db, request, event_id=event_id, public_event=public_event, account=account, staff=staff is not None, now=now,
+        )
+        questions = db.scalars(
+            select(EventQuestionRecord)
+            .where(EventQuestionRecord.event_id == event_id)
+            .order_by(EventQuestionRecord.created_at.desc(), EventQuestionRecord.id)
+            .limit(300)
+        ).all()
+        visible_questions = [row for row in questions if interaction_mod.question_visible_to(row, viewer_id)]
+        reported_q = interaction_mod.reported_by(db, "question", viewer_id, [row.id for row in visible_questions])
+        reviews = db.scalars(
+            select(EventReviewRecord)
+            .where(EventReviewRecord.event_id == event_id)
+            .order_by(EventReviewRecord.created_at.desc(), EventReviewRecord.id)
+            .limit(300)
+        ).all()
+        visible_reviews = [row for row in reviews if interaction_mod.review_visible_to(row, viewer_id)]
+        reported_r = interaction_mod.reported_by(db, "review", viewer_id, [row.id for row in visible_reviews])
+        mine_review = next((row for row in reviews if viewer_id and row.account_id == viewer_id), None)
+        lifecycle = str(source.get("lifecycle") or stored.get("lifecycle") or "scheduled")
+        qa_closed = bool(source.get("qaClosed") if public_event else stored.get("qaClosed") is True)
+        buyer = recording_viewer.access_state == "active"
+        return {
+            "source": "shared_server_database",
+            "server_time": event_time.to_iso(now),
+            "event": {
+                "id": event_id,
+                "title": str(source.get("t") or stored.get("t") or "")[:240],
+                "published": public_event is not None,
+                "lifecycle": lifecycle,
+                "held": recordings_mod.event_held(source, now) if public_event else False,
+                "qa_open": not qa_closed and lifecycle != "cancelled",
+                "qa_closed_reason": "cancelled" if lifecycle == "cancelled" else ("closed" if qa_closed else ""),
+            },
+            "viewer": {
+                "signed_in": account is not None,
+                "staff": staff is not None,
+                "participation": (participation or interaction_mod.Participation()).as_dict(),
+                "buyer": buyer,
+            },
+            "recording": recording_payload,
+            "resources": resource_rows,
+            "questions": {
+                "items": [
+                    interaction_mod.question_public_view(row, viewer_account_id=viewer_id, reported=row.id in reported_q)
+                    for row in visible_questions
+                ],
+                "total": len(visible_questions),
+                "mine_pending": sum(1 for row in visible_questions if viewer_id and row.account_id == viewer_id and row.status == "pending"),
+            },
+            "reviews": {
+                "eligible": bool(participation and participation.attended) or buyer,
+                "badge": "attendee" if participation and participation.attended else ("buyer" if buyer else ""),
+                "items": [
+                    interaction_mod.review_public_view(row, viewer_account_id=viewer_id, reported=row.id in reported_r)
+                    for row in visible_reviews
+                ],
+                "total": len(visible_reviews),
+                "mine": interaction_mod.review_public_view(mine_review, viewer_account_id=viewer_id) if mine_review else None,
+            },
+        }
+
+    @app.get("/api/public/events/{event_id}/resources/{resource_id}/download")
+    def public_event_resource_download(
+        event_id: str, resource_id: str, request: Request, db: Session = Depends(get_db)
+    ):
+        """The only way to read resource bytes; access is decided here per request."""
+        try:
+            event_id = interaction_mod.parse_event_id(event_id)
+        except interaction_mod.InteractionError as error:
+            raise _interaction_error(error) from None
+        parsed = interaction_mod.parse_row_id(resource_id)
+        record = db.get(EventResourceRecord, parsed) if parsed else None
+        # The event id in the URL must match: swapping ids across events is a 404, not a bypass.
+        if record is None or record.event_id != event_id or record.kind != "file":
+            raise HTTPException(404, "resource_not_found")
+        staff = _interaction_staff(request, db)
+        account = staff if isinstance(staff, AccountIdentity) else (
+            account_identity_from_request(request, db) if staff is None else None
+        )
+        public_event, stored = _interaction_event(db, event_id)
+        if stored is None or (public_event is None and staff is None):
+            raise HTTPException(404, "resource_not_found")
+        now = _utc_now()
+        participation = (
+            _interaction_participation(db, account.account_id, event_id) if account is not None else None
+        )
+        purchased_state: tuple[bool, str] | None = None
+        preview_open = False
+        if record.access == "purchased" or record.session_id:
+            recording_row = _recording_for_event(db, event_id)
+            viewer = _recording_viewer(
+                db, recording_row, account=account, staff=staff is not None, participation=participation, now=now,
+            )
+            purchased_state = _purchased_state(recording_row, viewer)
+            if recording_row is not None and record.session_id and recording_row.status in recordings_mod.SHELF_STATUSES:
+                session = db.get(RecordingSessionRecord, record.session_id)
+                preview_open = bool(
+                    session is not None and session.preview and session.status == "published"
+                    and record.access in {"public", "purchased"}
+                )
+        allowed, reason = interaction_mod.resource_access_state(
+            record, now=now, signed_in=account is not None, participation=participation, staff=staff is not None,
+            purchased=purchased_state,
+        )
+        if not allowed and preview_open and interaction_mod.resource_is_live(record, now):
+            allowed, reason = True, "preview"
+        if not allowed:
+            if reason in {"removed", "not_published"}:
+                raise HTTPException(404, "resource_not_found")
+            if reason.startswith("purchase") or reason.startswith("access_"):
+                # Unauthorized attempts on paid content are logged (no bytes, no account data in the row).
+                audit_mod.record_admin_event(
+                    db, actor_kind=audit_mod.ACTOR_ACCOUNT if account is not None else "guest",
+                    actor_id=account.account_id if account is not None else "", actor_role="",
+                    action="recording.download.denied", target_type="event_resource", target_id=record.id,
+                    outcome="denied", details={"event_id": event_id, "reason": reason},
+                )
+                db.commit()
+            raise HTTPException(
+                401 if reason == "login_required" else 403,
+                {"code": "resource_access_denied", "reason": reason},
+            )
+        if not _resource_has_bytes(request, record):
+            raise HTTPException(404, "resource_not_found")
+        return _resource_file_response(request, record, reason)
+
+    def _private_storage(request: Request) -> storage_mod.LocalPrivateStorage | None:
+        return getattr(request.app.state, "private_storage", None)
+
+    def _resource_storage_state(request: Request, record: EventResourceRecord) -> dict[str, Any]:
+        """Honest storage view for the panel: where the bytes are and whether they are reachable now."""
+        if record.kind != "file":
+            return {"backend": "none", "state": "not_file"}
+        if record.storage_key:
+            store = _private_storage(request)
+            if store is None:
+                return {"backend": "local_disk", "state": "storage_not_configured"}
+            size = store.size(record.storage_key)
+            if size is None:
+                return {"backend": "local_disk", "state": "missing"}
+            return {"backend": "local_disk", "state": "ready" if size == record.content_size else "size_mismatch"}
+        return {"backend": "database", "state": "ready" if record.content is not None else "empty"}
+
+    def _resource_limits(request: Request) -> dict[str, Any]:
+        store = _private_storage(request)
+        status = store.status() if store is not None else storage_mod.unconfigured_status(inline_max_bytes=interaction_mod.MAX_BYTES)
+        return {
+            "max_bytes": store.max_bytes if store is not None else interaction_mod.MAX_BYTES,
+            "inline_max_bytes": interaction_mod.MAX_BYTES,
+            "content_types": list(interaction_mod.CONTENT_TYPES),
+            "storage": asdict(status),
+        }
+
+    def _resource_has_bytes(request: Request, record: EventResourceRecord) -> bool:
+        return _resource_storage_state(request, record)["state"] == "ready"
+
+    def _resource_admin_view(request: Request, record: EventResourceRecord) -> dict[str, Any]:
+        view = interaction_mod.resource_admin_view(record)
+        view["storage"] = _resource_storage_state(request, record)
+        return view
+
+    def _resource_file_response(request: Request, record: EventResourceRecord, reason: str) -> Response:
+        """Whole file (download) or inline bytes with HTTP Range support (``delivery='view'``).
+
+        Bytes come either from the row (legacy inline, ≤ 8 MiB) or from the private storage, streamed
+        in bounded chunks so a long video never sits in the web process' memory. ``Content-Encoding:
+        identity`` keeps the gzip middleware away so byte ranges stay exact.
+        """
+        headers = {
+            "Cache-Control": "private, no-store",
+            "Vary": "Cookie",
+            "X-Content-Type-Options": "nosniff",
+            "Content-Security-Policy": "default-src 'none'; sandbox",
+            "Content-Encoding": "identity",
+            "X-Nora-Resource-Access": reason,
+        }
+        store = _private_storage(request) if record.storage_key else None
+        if record.storage_key:
+            total = store.size(record.storage_key) if store is not None else None
+            if total is None:
+                raise HTTPException(409, {"code": "resource_file_unavailable"})
+
+            def reader(start: int, end: int) -> Iterator[bytes]:
+                assert store is not None and record.storage_key
+                return store.open_range(record.storage_key, start, end)
+        else:
+            content = record.content or b""
+            total = len(content)
+
+            def reader(start: int, end: int) -> Iterator[bytes]:
+                for offset in range(start, end + 1, storage_mod.CHUNK_BYTES):
+                    yield content[offset:min(offset + storage_mod.CHUNK_BYTES, end + 1)]
+
+        def stream(start: int, end: int, status: int) -> Response:
+            headers["Content-Length"] = str(end - start + 1 if total else 0)
+            body = reader(start, end) if total else iter(())
+            return StreamingResponse(body, status_code=status, media_type=record.content_type, headers=headers)
+
+        if record.delivery != "view":
+            headers["Content-Disposition"] = interaction_mod.content_disposition(record.file_name)
+            return stream(0, total - 1, 200)
+        headers["Content-Disposition"] = interaction_mod.content_disposition(record.file_name).replace("attachment", "inline", 1)
+        headers["Accept-Ranges"] = "bytes"
+        range_header = request.headers.get("range", "")
+        match = re.fullmatch(r"bytes=(\d*)-(\d*)", range_header.strip()) if range_header else None
+        if match is None:
+            # Multi-range or malformed ranges are answered with the whole body (RFC 9110 §14.2 allows ignoring).
+            return stream(0, total - 1, 200)
+        start_text, end_text = match.group(1), match.group(2)
+        if not start_text and not end_text:
+            raise HTTPException(416, "range_not_satisfiable", headers={"Content-Range": f"bytes */{total}"})
+        if start_text:
+            start = int(start_text)
+            end = min(int(end_text), total - 1) if end_text else total - 1
+        else:
+            suffix = int(end_text)
+            start, end = max(0, total - suffix), total - 1
+        if start >= total or start > end:
+            raise HTTPException(416, "range_not_satisfiable", headers={"Content-Range": f"bytes */{total}"})
+        headers["Content-Range"] = f"bytes {start}-{end}/{total}"
+        return stream(start, end, 206)
+
+    def _interaction_event_for_write(db: Session, event_id: str) -> tuple[str, dict[str, Any]]:
+        try:
+            event_id = interaction_mod.parse_event_id(event_id)
+        except interaction_mod.InteractionError as error:
+            raise _interaction_error(error) from None
+        public_event, stored = _interaction_event(db, event_id)
+        if public_event is None:
+            raise HTTPException(404, "event_not_found")
+        return event_id, public_event
+
+    @app.post("/api/account/events/{event_id}/questions", status_code=201)
+    async def account_ask_event_question(
+        event_id: str,
+        request: Request,
+        identity: AccountIdentity = Depends(require_account_write),
+        db: Session = Depends(get_db),
+    ):
+        event_id, event = _interaction_event_for_write(db, event_id)
+        if event.get("qaClosed") is True or str(event.get("lifecycle") or "") == "cancelled":
+            raise HTTPException(409, {"code": "qa_closed", "reason": "cancelled" if event.get("lifecycle") == "cancelled" else "closed"})
+        payload = await _read_json_object(request, 16_384)
+        if set(payload) - {"body", "session_id"}:
+            raise HTTPException(400, "invalid_question")
+        try:
+            body = interaction_mod.clean_text(
+                payload.get("body"), interaction_mod.QUESTION_MAX_CHARS, field="body",
+                minimum=interaction_mod.QUESTION_MIN_CHARS, required=True,
+            )
+        except interaction_mod.InteractionError as error:
+            raise _interaction_error(error) from None
+        # Phase 9 (optional): bind the question to one published session of this event's recorded product.
+        session_id: str | None = None
+        raw_session = payload.get("session_id")
+        if raw_session not in (None, ""):
+            parsed_session = interaction_mod.parse_row_id(raw_session)
+            product_row = _recording_for_event(db, event_id)
+            session_row = db.get(RecordingSessionRecord, parsed_session) if parsed_session and product_row is not None else None
+            if (
+                product_row is None or session_row is None or session_row.recording_id != product_row.id
+                or session_row.status != "published" or product_row.status not in {"published", "sales_paused"}
+            ):
+                raise HTTPException(404, {"code": "session_not_found"})
+            session_id = session_row.id
+        cfg: Settings = request.app.state.settings
+        _enforce_owner_upload_limit(
+            request, db, cfg, identity, limit=interaction_mod.QUESTIONS_PER_HOUR, scope="event-question",
+        )
+        digest = interaction_mod.body_hash(body)
+        duplicate = db.scalar(
+            select(EventQuestionRecord.id).where(
+                EventQuestionRecord.event_id == event_id,
+                EventQuestionRecord.account_id == identity.account_id,
+                EventQuestionRecord.body_hash == digest,
+            )
+        )
+        if duplicate:
+            raise HTTPException(409, {"code": "duplicate_question", "id": duplicate})
+        open_count = int(db.scalar(
+            select(func.count(EventQuestionRecord.id)).where(
+                EventQuestionRecord.event_id == event_id,
+                EventQuestionRecord.account_id == identity.account_id,
+                EventQuestionRecord.answered_at.is_(None),
+                EventQuestionRecord.status != "hidden",
+            )
+        ) or 0)
+        if open_count >= interaction_mod.OPEN_QUESTIONS_PER_EVENT:
+            raise HTTPException(429, {"code": "too_many_open_questions", "limit": interaction_mod.OPEN_QUESTIONS_PER_EVENT})
+        record = EventQuestionRecord(
+            id=interaction_mod.new_id(),
+            event_id=event_id,
+            account_id=identity.account_id,
+            author_label=interaction_mod.author_label(_interaction_display_name(db, identity.account_id)),
+            body=body,
+            body_hash=digest,
+            status="pending",
+            session_id=session_id,
+        )
+        db.add(record)
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(409, {"code": "duplicate_question"}) from None
+        db.refresh(record)
+        return interaction_mod.question_public_view(record, viewer_account_id=identity.account_id)
+
+    async def _interaction_report(
+        request: Request, db: Session, identity: AccountIdentity, *, event_id: str, kind: str, target_id: str
+    ) -> dict[str, Any]:
+        event_id, _event = _interaction_event_for_write(db, event_id)
+        parsed = interaction_mod.parse_row_id(target_id)
+        target: EventQuestionRecord | EventReviewRecord | None = None
+        if parsed:
+            target = db.get(EventQuestionRecord, parsed) if kind == "question" else db.get(EventReviewRecord, parsed)
+        if target is None or target.event_id != event_id or target.account_id == identity.account_id:
+            raise HTTPException(404, "report_target_not_found")
+        visible = (
+            interaction_mod.question_visible_to(target, identity.account_id)
+            if isinstance(target, EventQuestionRecord)
+            else interaction_mod.review_visible_to(target, identity.account_id)
+        )
+        if not visible:
+            raise HTTPException(404, "report_target_not_found")
+        payload = await _read_json_object(request, 4096)
+        if set(payload) - {"reason"}:
+            raise HTTPException(400, "invalid_report")
+        try:
+            reason = interaction_mod.clean_text(payload.get("reason"), interaction_mod.REASON_MAX_CHARS, field="reason")
+        except interaction_mod.InteractionError as error:
+            raise _interaction_error(error) from None
+        cfg: Settings = request.app.state.settings
+        _enforce_owner_upload_limit(request, db, cfg, identity, limit=20, scope="event-report")
+        existing = db.scalar(
+            select(EventContentReportRecord).where(
+                EventContentReportRecord.target_kind == kind,
+                EventContentReportRecord.target_id == target.id,
+                EventContentReportRecord.reporter_account_id == identity.account_id,
+            )
+        )
+        if existing is not None:
+            return {"reported": True, "id": existing.id, "status": existing.status, "duplicate": True}
+        record = EventContentReportRecord(
+            id=interaction_mod.new_id(), event_id=event_id, target_kind=kind, target_id=target.id,
+            reporter_account_id=identity.account_id, reason=reason, status="open",
+        )
+        db.add(record)
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            return {"reported": True, "duplicate": True}
+        return {"reported": True, "id": record.id, "status": "open", "duplicate": False}
+
+    @app.post("/api/account/events/{event_id}/questions/{question_id}/report", status_code=201)
+    async def account_report_event_question(
+        event_id: str, question_id: str, request: Request,
+        identity: AccountIdentity = Depends(require_account_write), db: Session = Depends(get_db),
+    ):
+        return await _interaction_report(request, db, identity, event_id=event_id, kind="question", target_id=question_id)
+
+    @app.post("/api/account/events/{event_id}/reviews/{review_id}/report", status_code=201)
+    async def account_report_event_review(
+        event_id: str, review_id: str, request: Request,
+        identity: AccountIdentity = Depends(require_account_write), db: Session = Depends(get_db),
+    ):
+        return await _interaction_report(request, db, identity, event_id=event_id, kind="review", target_id=review_id)
+
+    @app.post("/api/account/events/{event_id}/reviews", status_code=201)
+    async def account_post_event_review(
+        event_id: str,
+        request: Request,
+        identity: AccountIdentity = Depends(require_account_write),
+        db: Session = Depends(get_db),
+    ):
+        event_id, _event = _interaction_event_for_write(db, event_id)
+        participation = _interaction_participation(db, identity.account_id, event_id)
+        # Phase 9: a verified buyer (active recording access) may review too; the badge is decided here, never by the client.
+        recording_row = _recording_for_event(db, event_id)
+        recording_viewer = _recording_viewer(
+            db, recording_row, account=identity, staff=False, participation=participation, now=_utc_now(),
+        )
+        buyer = recording_viewer.access_state == "active"
+        if not participation.attended and not buyer:
+            sellable = recording_row is not None and recording_row.status in {"published", "sales_paused"}
+            raise HTTPException(
+                403,
+                {
+                    "code": "review_not_eligible",
+                    "reason": "attendance_or_purchase_required" if sellable else "attendance_required",
+                    "registered": participation.registered,
+                },
+            )
+        payload = await _read_json_object(request, 16_384)
+        if set(payload) - {"body"}:
+            raise HTTPException(400, "invalid_review")
+        try:
+            body = interaction_mod.clean_text(
+                payload.get("body"), interaction_mod.REVIEW_MAX_CHARS, field="body",
+                minimum=interaction_mod.REVIEW_MIN_CHARS, required=True,
+            )
+        except interaction_mod.InteractionError as error:
+            raise _interaction_error(error) from None
+        existing = db.scalar(
+            select(EventReviewRecord).where(
+                EventReviewRecord.event_id == event_id, EventReviewRecord.account_id == identity.account_id,
+            )
+        )
+        if existing is not None:
+            raise HTTPException(409, {"code": "review_exists", "id": existing.id, "status": existing.status})
+        record = EventReviewRecord(
+            id=interaction_mod.new_id(), event_id=event_id, account_id=identity.account_id,
+            response_id=participation.response_id,
+            author_label=interaction_mod.author_label(_interaction_display_name(db, identity.account_id)),
+            verified_attendee=bool(participation.attended), badge="attendee" if participation.attended else "buyer",
+            body=body, status="pending",
+        )
+        db.add(record)
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(409, {"code": "review_exists"}) from None
+        db.refresh(record)
+        return interaction_mod.review_public_view(record, viewer_account_id=identity.account_id)
+
+    def _own_review(db: Session, identity: AccountIdentity, event_id: str, review_id: str) -> EventReviewRecord:
+        parsed = interaction_mod.parse_row_id(review_id)
+        record = db.get(EventReviewRecord, parsed) if parsed else None
+        if record is None or record.event_id != event_id or record.account_id != identity.account_id:
+            raise HTTPException(404, "review_not_found")
+        return record
+
+    @app.put("/api/account/events/{event_id}/reviews/{review_id}")
+    async def account_edit_event_review(
+        event_id: str, review_id: str, request: Request,
+        identity: AccountIdentity = Depends(require_account_write), db: Session = Depends(get_db),
+    ):
+        event_id, _event = _interaction_event_for_write(db, event_id)
+        record = _own_review(db, identity, event_id, review_id)
+        if record.status in {"hidden", "withdrawn"}:
+            raise HTTPException(409, {"code": "review_locked", "status": record.status})
+        payload = await _read_json_object(request, 16_384)
+        if set(payload) - {"body"}:
+            raise HTTPException(400, "invalid_review")
+        try:
+            body = interaction_mod.clean_text(
+                payload.get("body"), interaction_mod.REVIEW_MAX_CHARS, field="body",
+                minimum=interaction_mod.REVIEW_MIN_CHARS, required=True,
+            )
+        except interaction_mod.InteractionError as error:
+            raise _interaction_error(error) from None
+        if body != record.body:
+            record.body = body
+            record.edit_count += 1
+            record.edited_at = _utc_now()
+            # An edited text is a new submission: it leaves the public list until re-approved.
+            record.status = "pending"
+            db.commit()
+            db.refresh(record)
+        return interaction_mod.review_public_view(record, viewer_account_id=identity.account_id)
+
+    @app.post("/api/account/events/{event_id}/reviews/{review_id}/withdraw")
+    def account_withdraw_event_review(
+        event_id: str, review_id: str,
+        identity: AccountIdentity = Depends(require_account_write), db: Session = Depends(get_db),
+    ):
+        event_id, _event = _interaction_event_for_write(db, event_id)
+        record = _own_review(db, identity, event_id, review_id)
+        if record.status != "withdrawn":
+            record.status = "withdrawn"
+            db.commit()
+            db.refresh(record)
+        return interaction_mod.review_public_view(record, viewer_account_id=identity.account_id)
+
+    # ── پنل: منابع ──
+
+    def _admin_event_id(db: Session, event_id: str) -> str:
+        try:
+            event_id = interaction_mod.parse_event_id(event_id)
+        except interaction_mod.InteractionError as error:
+            raise _interaction_error(error) from None
+        _public, stored = _interaction_event(db, event_id)
+        if stored is None:
+            raise HTTPException(404, "event_not_found")
+        return event_id
+
+    def _check_resource_session(db: Session, event_id: str, fields: dict[str, Any]) -> None:
+        """A resource may only hang off a session of *this* event's recorded product."""
+        session_id = fields.get("session_id")
+        if not session_id:
+            return
+        session = db.get(RecordingSessionRecord, session_id)
+        recording = db.get(EventRecordingRecord, session.recording_id) if session is not None else None
+        if session is None or recording is None or recording.event_id != event_id:
+            raise HTTPException(404, "session_not_found")
+
+    def _admin_resource(db: Session, event_id: str, resource_id: str) -> EventResourceRecord:
+        parsed = interaction_mod.parse_row_id(resource_id)
+        record = db.get(EventResourceRecord, parsed) if parsed else None
+        if record is None or record.event_id != event_id:
+            raise HTTPException(404, "resource_not_found")
+        return record
+
+    @app.get("/api/admin/events/{event_id}/resources")
+    def admin_list_event_resources(
+        event_id: str,
+        request: Request,
+        response: Response,
+        include_removed: bool = Query(default=False),
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_INTERACTION_READ_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        event_id = _admin_event_id(db, event_id)
+        query = select(EventResourceRecord).where(EventResourceRecord.event_id == event_id)
+        if not include_removed:
+            query = query.where(EventResourceRecord.status != "removed")
+        rows = db.scalars(query.order_by(EventResourceRecord.sort_order.asc(), EventResourceRecord.created_at.asc())).all()
+        return {
+            "source": "shared_server_database",
+            "event_id": event_id,
+            "items": [_resource_admin_view(request, row) for row in rows],
+            "limits": _resource_limits(request),
+        }
+
+    @app.post("/api/admin/events/{event_id}/resources", status_code=201)
+    async def admin_create_event_resource(
+        event_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_INTERACTION_RESOURCE_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        event_id = _admin_event_id(db, event_id)
+        payload = await _read_json_object(request, 16_384)
+        acknowledged = _pop_external_acknowledgement(payload)
+        try:
+            fields = interaction_mod.validate_resource_fields(
+                payload, existing=None, parse_datetime=event_time.parse_event_datetime
+            )
+        except interaction_mod.InteractionError as error:
+            raise _interaction_error(error) from None
+        if fields.get("status") == "published" and fields.get("kind", "file") == "file":
+            # A file row cannot be published before its bytes exist.
+            raise HTTPException(409, {"code": "resource_file_missing"})
+        ack_used = _require_external_exposure_ack(
+            kind=str(fields.get("kind", "file")), before=None,
+            after=(str(fields.get("status", "draft")), str(fields.get("access", "public"))), acknowledged=acknowledged,
+        )
+        _check_resource_session(db, event_id, fields)
+        actor_kind, actor_id = _interaction_actor(identity)
+        record = EventResourceRecord(
+            id=interaction_mod.new_id(), event_id=event_id, created_by_kind=actor_kind, created_by_id=actor_id,
+            status=fields.pop("status", "draft"), **fields,
+        )
+        db.add(record)
+        create_details: dict[str, Any] = {"event_id": event_id, "kind": record.kind, "access": record.access, "status": record.status}
+        if ack_used:
+            create_details["external_exposure_acknowledged"] = True
+        record_audit(
+            db, identity, "event_resource.create", target_type="event_resource", target_id=record.id,
+            details=create_details,
+        )
+        db.commit()
+        db.refresh(record)
+        return _resource_admin_view(request, record)
+
+    @app.put("/api/admin/events/{event_id}/resources/{resource_id}")
+    async def admin_update_event_resource(
+        event_id: str,
+        resource_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_INTERACTION_RESOURCE_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        event_id = _admin_event_id(db, event_id)
+        record = _admin_resource(db, event_id, resource_id)
+        if record.status == "removed":
+            raise HTTPException(409, {"code": "resource_removed"})
+        payload = await _read_json_object(request, 16_384)
+        acknowledged = _pop_external_acknowledgement(payload)
+        try:
+            fields = interaction_mod.validate_resource_fields(
+                payload, existing=record, parse_datetime=event_time.parse_event_datetime
+            )
+        except interaction_mod.InteractionError as error:
+            raise _interaction_error(error) from None
+        if "kind" in fields and fields["kind"] != record.kind:
+            raise HTTPException(409, {"code": "resource_kind_immutable"})
+        if fields.get("status") == "published" and record.kind == "file" and not _resource_has_bytes(request, record):
+            raise HTTPException(409, {"code": "resource_file_missing"})
+        ack_used = _require_external_exposure_ack(
+            kind=record.kind, before=(record.status, record.access),
+            after=(str(fields.get("status", record.status)), str(fields.get("access", record.access))), acknowledged=acknowledged,
+        )
+        _check_resource_session(db, event_id, fields)
+        before = {"access": record.access, "status": record.status, "publish_at": interaction_mod.iso(record.publish_at)}
+        for key, value in fields.items():
+            setattr(record, key, value)
+        after = {"access": record.access, "status": record.status, "publish_at": interaction_mod.iso(record.publish_at)}
+        changed = sorted(fields)
+        # Audit details are flat scalars (see audit.sanitize_details): before/after per watched key.
+        details: dict[str, Any] = {"event_id": event_id, "changed": ",".join(changed)[:200]}
+        if ack_used:
+            details["external_exposure_acknowledged"] = True
+        for key in ("access", "status", "publish_at"):
+            if before[key] != after[key]:
+                details[f"{key}_before"] = before[key]
+                details[f"{key}_after"] = after[key]
+        if before["status"] == "published" and record.status != "published":
+            # Back to draft: a later re-publish is a new announcement decision (dedupe key still guards the outbox).
+            record.announced_at = None
+        if before["status"] != "published" and record.status == "published" and record.session_id:
+            now = _utc_now()
+            live_now = record.publish_at is None or _as_utc(record.publish_at) <= now
+            product = db.scalar(
+                select(EventRecordingRecord).join(RecordingSessionRecord, RecordingSessionRecord.recording_id == EventRecordingRecord.id)
+                .where(RecordingSessionRecord.id == record.session_id)
+            )
+            session_row = db.get(RecordingSessionRecord, record.session_id)
+            if live_now and product is not None and session_row is not None and session_row.status == "published":
+                details["notified_holders"] = _notify_content_published(
+                    db, product, what="resource", target_id=record.id, title_text=record.title, now=now,
+                )
+                record.announced_at = now
+            elif not live_now:
+                # Scheduled: nothing is visible yet; the scheduler (timer / manual run) announces at publish_at.
+                details["scheduled_announcement"] = True
+        record_audit(
+            db, identity, "event_resource.update", target_type="event_resource", target_id=record.id,
+            details=details,
+        )
+        db.commit()
+        db.refresh(record)
+        return _resource_admin_view(request, record)
+
+    @app.put("/api/admin/events/{event_id}/resources/{resource_id}/file")
+    async def admin_upload_event_resource_file(
+        event_id: str,
+        resource_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_INTERACTION_RESOURCE_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """Upload or replace the bytes of a file resource (raw body + ``X-File-Name``).
+
+        With the private storage configured the body streams straight to a staged file (hashed on
+        the way, never held in memory) up to ``private_storage_max_bytes``; the row only points at
+        the new key after the file is fsync-ed and renamed, so an aborted or rejected upload leaves
+        the previous bytes untouched. Without it, the legacy inline path (≤ 8 MiB) applies.
+        """
+        event_id = _admin_event_id(db, event_id)
+        record = _admin_resource(db, event_id, resource_id)
+        if record.status == "removed" or record.kind != "file":
+            raise HTTPException(409, {"code": "resource_not_file"})
+        cfg: Settings = request.app.state.settings
+        _enforce_owner_upload_limit(request, db, cfg, identity, limit=60, scope="event-resource-upload")
+        declared = unquote(request.headers.get("x-file-name", "resource"))
+        store = _private_storage(request)
+        limit = store.max_bytes if store is not None else interaction_mod.MAX_BYTES
+
+        def rejected(code: str, size: int, status: int) -> HTTPException:
+            record_audit(
+                db, identity, "event_resource.file", target_type="event_resource", target_id=record.id,
+                outcome="rejected", details={"code": code, "size": size, "backend": "local_disk" if store else "database"},
+            )
+            db.commit()
+            return HTTPException(status, code if status == 413 else {"code": code})
+
+        pending: storage_mod.PendingUpload | None = None
+        chunks: list[bytes] = []
+        size = 0
+        try:
+            if store is not None:
+                pending = store.begin()
+            async for chunk in request.stream():
+                if not chunk:
+                    continue
+                size += len(chunk)
+                if size > limit:
+                    raise rejected("file_too_large", size, 413)
+                if pending is not None:
+                    pending.write(chunk)
+                else:
+                    chunks.append(chunk)
+            head = pending.head if pending is not None else b"".join(chunks)[:8192]
+            try:
+                content_type = interaction_mod.sniff_content_type(head, declared)
+                if content_type not in interaction_mod.CONTENT_TYPES:
+                    raise interaction_mod.InteractionError("file_type_not_allowed", status=415)
+                file_name = interaction_mod.safe_file_name(declared, content_type)
+            except interaction_mod.InteractionError as error:
+                record_audit(
+                    db, identity, "event_resource.file", target_type="event_resource", target_id=record.id,
+                    outcome="rejected", details={"code": error.code, "size": size},
+                )
+                db.commit()
+                raise _interaction_error(error) from None
+            previous_hash, previous_key = record.content_hash, record.storage_key
+            if pending is not None:
+                stored = pending.commit()
+                pending = None
+                record.content = None
+                record.storage_key = stored.key
+                record.content_size = stored.size
+                record.content_hash = stored.sha256
+            else:
+                content = b"".join(chunks)
+                record.content = content
+                record.storage_key = None
+                record.content_size = len(content)
+                record.content_hash = hashlib.sha256(content).hexdigest()
+            record.content_type = content_type
+            record.file_name = file_name
+            record_audit(
+                db, identity, "event_resource.file", target_type="event_resource", target_id=record.id,
+                details={
+                    "event_id": event_id, "content_type": content_type, "size": record.content_size,
+                    "backend": "local_disk" if record.storage_key else "database",
+                    "replaced": bool(previous_hash), "previous_hash": previous_hash[:16],
+                    "previous_storage_key": previous_key or "",
+                },
+            )
+            db.commit()
+        except storage_mod.StorageError as error:
+            if pending is not None:
+                pending.abort()
+                pending = None
+            record_audit(
+                db, identity, "event_resource.file", target_type="event_resource", target_id=record.id,
+                outcome="rejected", details={"code": error.code, "size": size},
+            )
+            db.commit()
+            raise HTTPException(413 if error.code == "file_too_large" else 503, {"code": error.code}) from None
+        finally:
+            if pending is not None:  # any other failure (client abort, DB error): no trace on disk
+                pending.abort()
+        if previous_key and previous_key != record.storage_key and store is not None:
+            # Old bytes go only after the row points elsewhere (committed); purchases/access rows are untouched.
+            removed = store.delete(previous_key)
+            record_audit(
+                db, identity, "event_resource.file_pruned", target_type="event_resource", target_id=record.id,
+                outcome="ok" if removed else "missing", details={"previous_storage_key": previous_key},
+            )
+            db.commit()
+        db.refresh(record)
+        return _resource_admin_view(request, record)
+
+    # ── Phase 9.5 §5.2: resumable upload sessions (internal, limited protocol; see backend/upload_sessions.py) ──
+
+    def _upload_error(error: upload_mod.UploadSessionError) -> HTTPException:
+        detail: dict[str, Any] = {"code": error.code}
+        detail.update(error.extra)
+        return HTTPException(error.status, detail)
+
+    def _upload_store(request: Request) -> storage_mod.LocalPrivateStorage:
+        store = _private_storage(request)
+        if store is None:
+            raise HTTPException(409, {"code": "resumable_requires_private_storage"})
+        return store
+
+    def _upload_session_lock(session_id: str) -> asyncio.Lock:
+        lock = _UPLOAD_SESSION_LOCKS.get(session_id)
+        if lock is None:
+            if len(_UPLOAD_SESSION_LOCKS) > 512:  # bounded: forget idle locks (sessions are short-lived)
+                for key, candidate in list(_UPLOAD_SESSION_LOCKS.items()):
+                    if not candidate.locked():
+                        _UPLOAD_SESSION_LOCKS.pop(key, None)
+            lock = _UPLOAD_SESSION_LOCKS[session_id] = asyncio.Lock()
+        return lock
+
+    def _upload_session_audit(
+        db: Session, identity: OwnerIdentity | AccountIdentity, action: str, session: UploadSessionRecord, *,
+        outcome: str = "ok", **details: Any,
+    ) -> None:
+        record_audit(
+            db, identity, action, target_type="event_resource", target_id=session.resource_id, outcome=outcome,
+            details={"session_id": session.id, "event_id": session.event_id, "status": session.status,
+                     "received_bytes": session.received_bytes, "expected_size": session.expected_size, **details},
+        )
+
+    @app.post("/api/admin/events/{event_id}/resources/{resource_id}/upload-sessions")
+    async def admin_start_upload_session(
+        event_id: str,
+        resource_id: str,
+        request: Request,
+        response: Response,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_INTERACTION_RESOURCE_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """Open (or resume) a resumable upload for a file resource — private storage only."""
+        event_id = _admin_event_id(db, event_id)
+        record = _admin_resource(db, event_id, resource_id)
+        if record.status == "removed" or record.kind != "file":
+            raise HTTPException(409, {"code": "resource_not_file"})
+        store = _upload_store(request)
+        cfg: Settings = request.app.state.settings
+        payload = await _read_json_object(request, min(cfg.max_request_bytes, 4096))
+        if set(payload) - {"size", "sha256", "file_name"}:
+            raise HTTPException(400, "invalid_upload_session")
+        now = _utc_now()
+        upload_mod.expire_stale(db, store, now)
+        file_name = str(payload.get("file_name") or "resource")
+        try:
+            session, resumed = upload_mod.start(
+                db, store, record=record, event_id=event_id, actor=_interaction_actor(identity),
+                size=payload.get("size"), sha256=payload.get("sha256"), file_name=file_name, now=now,
+            )
+        except upload_mod.UploadSessionError as error:
+            record_audit(
+                db, identity, "event_resource.upload_session", target_type="event_resource", target_id=record.id,
+                outcome="rejected", details={"code": error.code, "event_id": event_id, "size": payload.get("size")},
+            )
+            db.commit()
+            raise _upload_error(error) from None
+        if not resumed:
+            _enforce_owner_upload_limit(request, db, cfg, identity, limit=60, scope="event-resource-upload")
+            _upload_session_audit(db, identity, "event_resource.upload_session", session, file_name=session.declared_name)
+        db.commit()
+        response.status_code = 200 if resumed else 201
+        return upload_mod.view(session, offset=store.part_size(session.part_id) or 0, resumed=resumed)
+
+    @app.get("/api/admin/events/{event_id}/resources/{resource_id}/upload-sessions/{session_id}")
+    def admin_upload_session_status(
+        event_id: str,
+        resource_id: str,
+        session_id: str,
+        request: Request,
+        response: Response,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_INTERACTION_RESOURCE_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """The resume point: the offset is the staged file's size on disk (cross-checked with the row)."""
+        event_id = _admin_event_id(db, event_id)
+        record = _admin_resource(db, event_id, resource_id)
+        store = _upload_store(request)
+        response.headers["Cache-Control"] = "no-store"
+        try:
+            session = upload_mod.load_open(db, store, session_id=session_id, record=record, actor=_interaction_actor(identity), now=_utc_now())
+            db.commit()
+            offset = upload_mod.current_offset(store, session) if session.status in ("open", "completing") else session.received_bytes
+        except upload_mod.UploadSessionError as error:
+            db.commit()
+            raise _upload_error(error) from None
+        return upload_mod.view(session, offset=offset)
+
+    @app.patch("/api/admin/events/{event_id}/resources/{resource_id}/upload-sessions/{session_id}")
+    async def admin_upload_session_chunk(
+        event_id: str,
+        resource_id: str,
+        session_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_INTERACTION_RESOURCE_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """Append one chunk at ``Upload-Offset`` with a mandatory ``Upload-Checksum: sha256 <hex>``.
+
+        The body is bounded by ``MAX_CHUNK_BYTES`` (buffered, then appended + fsync-ed). A stale or
+        duplicate offset is refused with the real offset so the client re-syncs; a checksum mismatch
+        never leaves bytes behind.
+        """
+        event_id = _admin_event_id(db, event_id)
+        record = _admin_resource(db, event_id, resource_id)
+        store = _upload_store(request)
+        actor = _interaction_actor(identity)
+        try:
+            checksum = upload_mod.parse_checksum_header(request.headers.get("upload-checksum"))
+            raw_offset = request.headers.get("upload-offset", "")
+            if not raw_offset.isdigit():
+                raise upload_mod.UploadSessionError("upload_offset_required", 400)
+            offset = int(raw_offset)
+        except upload_mod.UploadSessionError as error:
+            raise _upload_error(error) from None
+        declared = request.headers.get("content-length", "")
+        if declared.isdigit() and int(declared) > upload_mod.MAX_CHUNK_BYTES:
+            raise HTTPException(413, {"code": "chunk_too_large", "max_chunk_bytes": upload_mod.MAX_CHUNK_BYTES})
+        pieces: list[bytes] = []
+        received = 0
+        try:
+            async for piece in request.stream():
+                if not piece:
+                    continue
+                received += len(piece)
+                if received > upload_mod.MAX_CHUNK_BYTES:
+                    raise HTTPException(413, {"code": "chunk_too_large", "max_chunk_bytes": upload_mod.MAX_CHUNK_BYTES})
+                pieces.append(piece)
+        except ClientDisconnect:
+            # Nothing was appended: the next GET returns the unchanged offset and the client resumes.
+            raise HTTPException(400, {"code": "client_disconnected"}) from None
+        body = b"".join(pieces)
+        del pieces
+        async with _upload_session_lock(session_id):
+            now = _utc_now()
+            try:
+                session = upload_mod.load_open(db, store, session_id=session_id, record=record, actor=actor, now=now, for_update=True)
+                try:
+                    new_size = upload_mod.append(store, session, offset=offset, body=body, checksum=checksum, now=now)
+                except storage_mod.StorageError as error:
+                    upload_mod.fail(store, session, code=error.code, now=now)
+                    _upload_session_audit(db, identity, "event_resource.upload_chunk", session, outcome="rejected", code=error.code)
+                    db.commit()
+                    raise HTTPException(413 if error.code == "file_too_large" else 503, {"code": error.code}) from None
+                db.commit()
+            except upload_mod.UploadSessionError as error:
+                db.commit()
+                raise _upload_error(error) from None
+        return {"id": session.id, "offset": new_size, "expected_size": session.expected_size,
+                "complete": new_size == session.expected_size, "chunk_count": session.chunk_count}
+
+    @app.post("/api/admin/events/{event_id}/resources/{resource_id}/upload-sessions/{session_id}/complete")
+    async def admin_upload_session_complete(
+        event_id: str,
+        resource_id: str,
+        session_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_INTERACTION_RESOURCE_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """Verify size + sha256 + sniffed type, then switch the resource to the new bytes atomically."""
+        event_id = _admin_event_id(db, event_id)
+        record = _admin_resource(db, event_id, resource_id)
+        if record.status == "removed" or record.kind != "file":
+            raise HTTPException(409, {"code": "resource_not_file"})
+        store = _upload_store(request)
+        cfg: Settings = request.app.state.settings
+        payload = await _read_json_object(request, min(cfg.max_request_bytes, 4096))
+        if set(payload) - {"sha256"}:
+            raise HTTPException(400, "invalid_upload_complete")
+        actor = _interaction_actor(identity)
+        async with _upload_session_lock(session_id):
+            now = _utc_now()
+            try:
+                session = upload_mod.load_open(db, store, session_id=session_id, record=record, actor=actor, now=now, for_update=True)
+                expected_digest = upload_mod.begin_complete(store, session, sha256=payload.get("sha256"), now=now)
+                db.commit()  # the lock is visible to everybody from here on (one finalizer only)
+            except upload_mod.UploadSessionError as error:
+                db.commit()
+                raise _upload_error(error) from None
+
+            def reject(code: str, status: int) -> HTTPException:
+                upload_mod.fail(store, session, code=code, now=_utc_now())
+                _upload_session_audit(db, identity, "event_resource.upload_complete", session, outcome="rejected", code=code)
+                db.commit()
+                return HTTPException(status, {"code": code})
+
+            try:
+                actual_digest = store.part_sha256(session.part_id)
+                if actual_digest != expected_digest:
+                    raise reject("sha256_mismatch", 422)
+                head = store.part_head(session.part_id)
+                try:
+                    content_type = interaction_mod.sniff_content_type(head, session.declared_name)
+                    if content_type not in interaction_mod.CONTENT_TYPES:
+                        raise interaction_mod.InteractionError("file_type_not_allowed", status=415)
+                    file_name = interaction_mod.safe_file_name(session.declared_name, content_type)
+                except interaction_mod.InteractionError as error:
+                    raise reject(error.code, error.status) from None
+                previous_hash, previous_key = record.content_hash, record.storage_key
+                stored = store.commit_part(session.part_id, expected_size=session.expected_size, sha256=actual_digest)
+            except storage_mod.StorageError as error:
+                raise reject(error.code, 413 if error.code == "file_too_large" else 503) from None
+            record.content = None
+            record.storage_key = stored.key
+            record.content_size = stored.size
+            record.content_hash = stored.sha256
+            record.content_type = content_type
+            record.file_name = file_name
+            session.status = "completed"
+            session.storage_key = stored.key
+            session.completed_at = now
+            session.updated_at = now
+            record_audit(
+                db, identity, "event_resource.file", target_type="event_resource", target_id=record.id,
+                details={
+                    "event_id": event_id, "content_type": content_type, "size": record.content_size,
+                    "backend": "local_disk", "via": "resumable", "session_id": session.id, "chunks": session.chunk_count,
+                    "replaced": bool(previous_hash), "previous_hash": (previous_hash or "")[:16],
+                    "previous_storage_key": previous_key or "",
+                },
+            )
+            db.commit()
+        if previous_key and previous_key != record.storage_key:
+            removed = store.delete(previous_key)
+            record_audit(
+                db, identity, "event_resource.file_pruned", target_type="event_resource", target_id=record.id,
+                outcome="ok" if removed else "missing", details={"previous_storage_key": previous_key},
+            )
+            db.commit()
+        db.refresh(record)
+        result = _resource_admin_view(request, record)
+        result["upload_session"] = upload_mod.view(session)
+        return result
+
+    @app.delete("/api/admin/events/{event_id}/resources/{resource_id}/upload-sessions/{session_id}")
+    def admin_upload_session_abort(
+        event_id: str,
+        resource_id: str,
+        session_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_INTERACTION_RESOURCE_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        event_id = _admin_event_id(db, event_id)
+        record = _admin_resource(db, event_id, resource_id)
+        store = _upload_store(request)
+        now = _utc_now()
+        try:
+            session = upload_mod.load_open(db, store, session_id=session_id, record=record, actor=_interaction_actor(identity), now=now)
+        except upload_mod.UploadSessionError as error:
+            db.commit()
+            raise _upload_error(error) from None
+        if session.status in ("open", "completing"):
+            session.status = "aborted"
+            session.error_code = "aborted_by_client"
+            session.updated_at = now
+            store.discard_part(session.part_id)
+            _upload_session_audit(db, identity, "event_resource.upload_abort", session)
+        db.commit()
+        return upload_mod.view(session)
+
+    @app.get("/api/admin/storage/health")
+    def admin_storage_health(
+        request: Request,
+        response: Response,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_INTERACTION_RESOURCE_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """Phase 9.5 §5.1: honest storage view — path-free, read-only.
+
+        ``configured``/``free_bytes``/``writable``, referenced rows and bytes, rows whose file is
+        missing or has the wrong size, orphan files without a row, incomplete parts (open sessions
+        and stale parts), and the last backup/verify markers written by
+        ``tools/private-storage-backup.py``. Nothing here deletes or repairs.
+        """
+        response.headers["Cache-Control"] = "no-store"
+        store = _private_storage(request)
+        now = _utc_now()
+        rows = db.execute(
+            select(EventResourceRecord.id, EventResourceRecord.storage_key, EventResourceRecord.content_size, EventResourceRecord.status)
+            .where(EventResourceRecord.storage_key.is_not(None))
+        ).all()
+        inline = db.execute(
+            select(func.count(EventResourceRecord.id), func.coalesce(func.sum(EventResourceRecord.content_size), 0))
+            .where(EventResourceRecord.storage_key.is_(None), EventResourceRecord.content.is_not(None))
+        ).one()
+        markers = {
+            row.key: {"at": interaction_mod.iso(row.updated_at), **(row.value if isinstance(row.value, dict) else {})}
+            for row in db.scalars(select(SystemMarkerRecord).where(SystemMarkerRecord.key.in_(
+                ("storage_verify", "storage_snapshot", "storage_restore", "scheduled_publish")
+            ))).all()
+        }
+        sessions = db.execute(
+            select(UploadSessionRecord.status, func.count(UploadSessionRecord.id), func.coalesce(func.sum(UploadSessionRecord.received_bytes), 0))
+            .group_by(UploadSessionRecord.status)
+        ).all()
+        session_counts = {status: {"count": int(count), "bytes": int(total)} for status, count, total in sessions}
+        base = {
+            "generated_at": now.isoformat(),
+            "read_only": True,
+            "max_bytes": store.max_bytes if store is not None else interaction_mod.MAX_BYTES,
+            "inline": {"rows": int(inline[0]), "bytes": int(inline[1]), "max_bytes": interaction_mod.MAX_BYTES},
+            "upload_sessions": session_counts,
+            "markers": markers,
+        }
+        if store is None:
+            base.update({
+                "configured": False, "backend": "database", "free_bytes": None, "writable": None,
+                "referenced": {"rows": len(rows), "bytes": int(sum(r.content_size or 0 for r in rows))},
+                "missing": {"count": len(rows), "resource_ids": [r.id for r in rows][:50]},
+                "size_mismatch": {"count": 0, "resource_ids": []},
+                "orphans": {"count": 0, "bytes": 0}, "incomplete": {"parts": 0, "bytes": 0, "stale_parts": 0},
+                "state": "not_configured" if rows else "inline_only",
+            })
+            return base
+        status = store.status()
+        missing: list[str] = []
+        mismatch: list[str] = []
+        referenced_bytes = 0
+        referenced_keys: set[str] = set()
+        for row in rows:
+            referenced_keys.add(row.storage_key)
+            size = store.size(row.storage_key)
+            if size is None:
+                missing.append(row.id)
+            elif size != (row.content_size or 0):
+                mismatch.append(row.id)
+            else:
+                referenced_bytes += size
+        orphan_count = 0
+        orphan_bytes = 0
+        for key in store.list_keys():
+            if key not in referenced_keys:
+                orphan_count += 1
+                orphan_bytes += store.size(key) or 0
+        parts = store.incoming_parts()
+        open_part_ids = set(db.scalars(select(UploadSessionRecord.part_id).where(UploadSessionRecord.status.in_(("open", "completing")))).all())
+        stale_cutoff = now.timestamp() - upload_mod.SESSION_TTL.total_seconds()
+        stale = [p for p in parts if p[0] not in open_part_ids and p[2] < stale_cutoff]
+        state = "error" if missing or mismatch else ("warning" if orphan_count or stale or not status.writable else "ok")
+        base.update({
+            "configured": True, "backend": status.backend, "free_bytes": status.free_bytes, "writable": status.writable,
+            "referenced": {"rows": len(rows), "bytes": referenced_bytes},
+            "missing": {"count": len(missing), "resource_ids": missing[:50]},
+            "size_mismatch": {"count": len(mismatch), "resource_ids": mismatch[:50]},
+            "orphans": {"count": orphan_count, "bytes": orphan_bytes},
+            "incomplete": {"parts": len(parts), "bytes": int(sum(p[1] for p in parts)), "stale_parts": len(stale),
+                           "open_sessions": len(open_part_ids)},
+            "state": state,
+        })
+        return base
+
+    @app.post("/api/admin/events/{event_id}/resources/{resource_id}/remove")
+    async def admin_remove_event_resource(
+        event_id: str,
+        resource_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_INTERACTION_RESOURCE_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """Logical removal: the row (and its audit trail) stays; downloads stop immediately."""
+        event_id = _admin_event_id(db, event_id)
+        record = _admin_resource(db, event_id, resource_id)
+        payload = await _read_json_object(request, 4096)
+        if set(payload) - {"reason"}:
+            raise HTTPException(400, "invalid_removal")
+        try:
+            reason = interaction_mod.clean_text(payload.get("reason"), interaction_mod.REASON_MAX_CHARS, field="reason")
+        except interaction_mod.InteractionError as error:
+            raise _interaction_error(error) from None
+        if record.status != "removed":
+            record.status = "removed"
+            record.removed_at = _utc_now()
+            record.removed_reason = reason
+            record.content = None
+            record_audit(
+                db, identity, "event_resource.remove", target_type="event_resource", target_id=record.id,
+                details={"event_id": event_id, "reason": reason, "size": record.content_size},
+            )
+            db.commit()
+            db.refresh(record)
+        return _resource_admin_view(request, record)
+
+    # ── پنل: پرسش‌وپاسخ ──
+
+    def _admin_question(db: Session, event_id: str, question_id: str) -> EventQuestionRecord:
+        parsed = interaction_mod.parse_row_id(question_id)
+        record = db.get(EventQuestionRecord, parsed) if parsed else None
+        if record is None or record.event_id != event_id:
+            raise HTTPException(404, "question_not_found")
+        return record
+
+    def _admin_question_rows(
+        db: Session, rows: Sequence[EventQuestionRecord]
+    ) -> list[dict[str, Any]]:
+        titles = _interaction_event_titles(db, {row.event_id for row in rows})
+        counts = interaction_mod.open_report_counts(db, "question", [row.id for row in rows])
+        return [
+            interaction_mod.question_admin_view(
+                row, notification=_interaction_question_notification(db, row),
+                open_reports=counts.get(row.id, 0), event_title=titles.get(row.event_id, ""),
+            )
+            for row in rows
+        ]
+
+    def _question_filters(status: str, answered: str) -> list[ColumnElement[bool]]:
+        filters: list[ColumnElement[bool]] = []
+        if status:
+            if status not in interaction_mod.QUESTION_STATUSES:
+                raise HTTPException(422, {"code": "invalid_choice", "field": "status"})
+            filters.append(EventQuestionRecord.status == status)
+        if answered == "false":
+            filters.append(EventQuestionRecord.answered_at.is_(None))
+        elif answered == "true":
+            filters.append(EventQuestionRecord.answered_at.is_not(None))
+        elif answered:
+            raise HTTPException(422, {"code": "invalid_choice", "field": "answered"})
+        return filters
+
+    @app.get("/api/admin/events/{event_id}/questions")
+    def admin_list_event_questions(
+        event_id: str,
+        response: Response,
+        status: str = Query(default="", max_length=16),
+        answered: str = Query(default="", max_length=8),
+        limit: int = Query(default=50, ge=1, le=200),
+        offset: int = Query(default=0, ge=0, le=100_000),
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_INTERACTION_READ_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        event_id = _admin_event_id(db, event_id)
+        filters = [EventQuestionRecord.event_id == event_id, *_question_filters(status, answered)]
+        total = int(db.scalar(select(func.count(EventQuestionRecord.id)).where(*filters)) or 0)
+        rows = db.scalars(
+            select(EventQuestionRecord).where(*filters)
+            .order_by(EventQuestionRecord.created_at.desc(), EventQuestionRecord.id).limit(limit).offset(offset)
+        ).all()
+        return {"source": "shared_server_database", "event_id": event_id, "items": _admin_question_rows(db, rows),
+                "total": total, "limit": limit, "offset": offset}
+
+    @app.get("/api/admin/event-questions")
+    def admin_list_all_event_questions(
+        response: Response,
+        status: str = Query(default="", max_length=16),
+        answered: str = Query(default="false", max_length=8),
+        limit: int = Query(default=50, ge=1, le=200),
+        offset: int = Query(default=0, ge=0, le=100_000),
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_INTERACTION_READ_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """Cross-event work list (unanswered by default) for the existing events section."""
+        response.headers["Cache-Control"] = "private, no-store"
+        filters = _question_filters(status, answered)
+        total = int(db.scalar(select(func.count(EventQuestionRecord.id)).where(*filters)) or 0)
+        rows = db.scalars(
+            select(EventQuestionRecord).where(*filters)
+            .order_by(EventQuestionRecord.created_at.asc(), EventQuestionRecord.id).limit(limit).offset(offset)
+        ).all()
+        return {"source": "shared_server_database", "items": _admin_question_rows(db, rows),
+                "total": total, "limit": limit, "offset": offset}
+
+    @app.post("/api/admin/events/{event_id}/questions/{question_id}/answer")
+    async def admin_answer_event_question(
+        event_id: str,
+        question_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_INTERACTION_MODERATE_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """Persist the answer first; the notification is queued afterwards and never blocks it."""
+        event_id = _admin_event_id(db, event_id)
+        record = _admin_question(db, event_id, question_id)
+        payload = await _read_json_object(request, 32_768)
+        if set(payload) - {"answer", "official", "publish", "label"}:
+            raise HTTPException(400, "invalid_answer")
+        try:
+            answer = interaction_mod.clean_text(
+                payload.get("answer"), interaction_mod.ANSWER_MAX_CHARS, field="answer", required=True, minimum=2,
+            )
+            label = interaction_mod.clean_text(payload.get("label"), 120, field="label")
+        except interaction_mod.InteractionError as error:
+            raise _interaction_error(error) from None
+        official = payload.get("official", True)
+        publish = payload.get("publish", True)
+        if not isinstance(official, bool) or not isinstance(publish, bool):
+            raise HTTPException(422, {"code": "invalid_choice", "field": "official"})
+        actor_kind, actor_id = _interaction_actor(identity)
+        first_answer = record.answered_at is None
+        record.answer_body = answer
+        record.answer_official = official
+        record.answered_at = _utc_now()
+        record.answered_by_kind = actor_kind
+        record.answered_by_id = actor_id
+        record.answer_label = label or interaction_mod.ANSWER_LABEL_DEFAULT
+        if publish and record.status != "hidden":
+            record.status = "published"
+        db.flush()
+        titles = _interaction_event_titles(db, {event_id})
+        notification = _queue_question_answer_notification(db, record, titles.get(event_id, ""))
+        record_audit(
+            db, identity, "event_question.answer", target_type="event_question", target_id=record.id,
+            details={
+                "event_id": event_id, "first_answer": first_answer, "official": official,
+                "published": record.status == "published", "notification_id": notification.id,
+                "notification_state": interaction_mod.delivery_state(notification.delivery_status, notification.delivery_attempts),
+            },
+        )
+        db.commit()
+        db.refresh(record)
+        return _admin_question_rows(db, [record])[0]
+
+    @app.post("/api/admin/events/{event_id}/questions/{question_id}/status")
+    async def admin_set_event_question_status(
+        event_id: str,
+        question_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_INTERACTION_MODERATE_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        event_id = _admin_event_id(db, event_id)
+        record = _admin_question(db, event_id, question_id)
+        payload = await _read_json_object(request, 4096)
+        if set(payload) - {"status", "reason"}:
+            raise HTTPException(400, "invalid_status")
+        try:
+            status = interaction_mod.choice(payload.get("status"), interaction_mod.QUESTION_STATUSES, field="status")
+            reason = interaction_mod.clean_text(payload.get("reason"), interaction_mod.REASON_MAX_CHARS, field="reason")
+        except interaction_mod.InteractionError as error:
+            raise _interaction_error(error) from None
+        if status == "hidden" and not reason:
+            raise HTTPException(422, {"code": "text_required", "field": "reason"})
+        previous = record.status
+        actor_kind, actor_id = _interaction_actor(identity)
+        record.status = status
+        record.moderation_reason = reason
+        record.moderated_by_kind = actor_kind
+        record.moderated_by_id = actor_id
+        record.moderated_at = _utc_now()
+        if status == "hidden":
+            db.execute(
+                update(EventContentReportRecord)
+                .where(
+                    EventContentReportRecord.target_kind == "question",
+                    EventContentReportRecord.target_id == record.id,
+                    EventContentReportRecord.status == "open",
+                )
+                .values(status="resolved", resolution_note="hidden", resolved_by_kind=actor_kind,
+                        resolved_by_id=actor_id, resolved_at=_utc_now())
+            )
+        record_audit(
+            db, identity, "event_question.status", target_type="event_question", target_id=record.id,
+            details={"event_id": event_id, "from": previous, "to": status, "reason": reason},
+        )
+        db.commit()
+        db.refresh(record)
+        return _admin_question_rows(db, [record])[0]
+
+    @app.post("/api/admin/events/{event_id}/questions/{question_id}/resend-notification")
+    def admin_resend_event_question_notification(
+        event_id: str,
+        question_id: str,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_INTERACTION_MODERATE_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """Re-queue the same outbox row (never a second one); delivered rows are left alone."""
+        event_id = _admin_event_id(db, event_id)
+        record = _admin_question(db, event_id, question_id)
+        if record.answered_at is None:
+            raise HTTPException(409, {"code": "question_not_answered"})
+        titles = _interaction_event_titles(db, {event_id})
+        notification = _queue_question_answer_notification(db, record, titles.get(event_id, ""))
+        record_audit(
+            db, identity, "event_question.notification_resend", target_type="event_question", target_id=record.id,
+            details={
+                "event_id": event_id, "notification_id": notification.id,
+                "state": interaction_mod.delivery_state(notification.delivery_status, notification.delivery_attempts),
+                "attempts": notification.delivery_attempts,
+            },
+        )
+        db.commit()
+        db.refresh(record)
+        return _admin_question_rows(db, [record])[0]
+
+    # ── پنل: دیدگاه‌ها و گزارش‌ها ──
+
+    def _admin_review_rows(db: Session, rows: Sequence[EventReviewRecord]) -> list[dict[str, Any]]:
+        titles = _interaction_event_titles(db, {row.event_id for row in rows})
+        counts = interaction_mod.open_report_counts(db, "review", [row.id for row in rows])
+        return [
+            interaction_mod.review_admin_view(row, open_reports=counts.get(row.id, 0), event_title=titles.get(row.event_id, ""))
+            for row in rows
+        ]
+
+    @app.get("/api/admin/events/{event_id}/reviews")
+    def admin_list_event_reviews(
+        event_id: str,
+        response: Response,
+        status: str = Query(default="", max_length=16),
+        limit: int = Query(default=50, ge=1, le=200),
+        offset: int = Query(default=0, ge=0, le=100_000),
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_INTERACTION_READ_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        event_id = _admin_event_id(db, event_id)
+        filters: list[ColumnElement[bool]] = [EventReviewRecord.event_id == event_id]
+        if status:
+            if status not in interaction_mod.REVIEW_STATUSES:
+                raise HTTPException(422, {"code": "invalid_choice", "field": "status"})
+            filters.append(EventReviewRecord.status == status)
+        total = int(db.scalar(select(func.count(EventReviewRecord.id)).where(*filters)) or 0)
+        rows = db.scalars(
+            select(EventReviewRecord).where(*filters)
+            .order_by(EventReviewRecord.created_at.desc(), EventReviewRecord.id).limit(limit).offset(offset)
+        ).all()
+        return {"source": "shared_server_database", "event_id": event_id, "items": _admin_review_rows(db, rows),
+                "total": total, "limit": limit, "offset": offset}
+
+    @app.post("/api/admin/events/{event_id}/reviews/{review_id}/status")
+    async def admin_set_event_review_status(
+        event_id: str,
+        review_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_INTERACTION_MODERATE_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        event_id = _admin_event_id(db, event_id)
+        parsed = interaction_mod.parse_row_id(review_id)
+        record = db.get(EventReviewRecord, parsed) if parsed else None
+        if record is None or record.event_id != event_id:
+            raise HTTPException(404, "review_not_found")
+        payload = await _read_json_object(request, 4096)
+        if set(payload) - {"status", "reason"}:
+            raise HTTPException(400, "invalid_status")
+        try:
+            status = interaction_mod.choice(payload.get("status"), ("pending", "published", "hidden"), field="status")
+            reason = interaction_mod.clean_text(payload.get("reason"), interaction_mod.REASON_MAX_CHARS, field="reason")
+        except interaction_mod.InteractionError as error:
+            raise _interaction_error(error) from None
+        if status == "hidden" and not reason:
+            raise HTTPException(422, {"code": "text_required", "field": "reason"})
+        if record.status == "withdrawn":
+            raise HTTPException(409, {"code": "review_withdrawn"})
+        previous = record.status
+        actor_kind, actor_id = _interaction_actor(identity)
+        record.status = status
+        record.moderation_reason = reason
+        record.moderated_by_kind = actor_kind
+        record.moderated_by_id = actor_id
+        record.moderated_at = _utc_now()
+        if status == "hidden":
+            db.execute(
+                update(EventContentReportRecord)
+                .where(
+                    EventContentReportRecord.target_kind == "review",
+                    EventContentReportRecord.target_id == record.id,
+                    EventContentReportRecord.status == "open",
+                )
+                .values(status="resolved", resolution_note="hidden", resolved_by_kind=actor_kind,
+                        resolved_by_id=actor_id, resolved_at=_utc_now())
+            )
+        record_audit(
+            db, identity, "event_review.status", target_type="event_review", target_id=record.id,
+            details={"event_id": event_id, "from": previous, "to": status, "reason": reason},
+        )
+        db.commit()
+        db.refresh(record)
+        return _admin_review_rows(db, [record])[0]
+
+    @app.get("/api/admin/event-reports")
+    def admin_list_event_reports(
+        response: Response,
+        status: str = Query(default="open", max_length=16),
+        event_id: str = Query(default="", max_length=100),
+        limit: int = Query(default=50, ge=1, le=200),
+        offset: int = Query(default=0, ge=0, le=100_000),
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_INTERACTION_READ_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        filters: list[ColumnElement[bool]] = []
+        if status:
+            if status not in interaction_mod.REPORT_STATUSES:
+                raise HTTPException(422, {"code": "invalid_choice", "field": "status"})
+            filters.append(EventContentReportRecord.status == status)
+        if event_id:
+            filters.append(EventContentReportRecord.event_id == _admin_event_id(db, event_id))
+        total = int(db.scalar(select(func.count(EventContentReportRecord.id)).where(*filters)) or 0)
+        rows = db.scalars(
+            select(EventContentReportRecord).where(*filters)
+            .order_by(EventContentReportRecord.created_at.asc(), EventContentReportRecord.id).limit(limit).offset(offset)
+        ).all()
+        titles = _interaction_event_titles(db, {row.event_id for row in rows})
+        items = []
+        for row in rows:
+            target: EventQuestionRecord | EventReviewRecord | None = (
+                db.get(EventQuestionRecord, row.target_id) if row.target_kind == "question"
+                else db.get(EventReviewRecord, row.target_id)
+            )
+            items.append(interaction_mod.report_admin_view(
+                row, excerpt=target.body if target is not None else "", event_title=titles.get(row.event_id, ""),
+            ))
+        return {"source": "shared_server_database", "items": items, "total": total, "limit": limit, "offset": offset}
+
+    @app.post("/api/admin/event-reports/{report_id}/resolve")
+    async def admin_resolve_event_report(
+        report_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_INTERACTION_MODERATE_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        parsed = interaction_mod.parse_row_id(report_id)
+        record = db.get(EventContentReportRecord, parsed) if parsed else None
+        if record is None:
+            raise HTTPException(404, "report_not_found")
+        payload = await _read_json_object(request, 4096)
+        if set(payload) - {"status", "note"}:
+            raise HTTPException(400, "invalid_resolution")
+        try:
+            status = interaction_mod.choice(payload.get("status"), ("resolved", "dismissed"), field="status")
+            note = interaction_mod.clean_text(payload.get("note"), interaction_mod.REASON_MAX_CHARS, field="note")
+        except interaction_mod.InteractionError as error:
+            raise _interaction_error(error) from None
+        actor_kind, actor_id = _interaction_actor(identity)
+        previous = record.status
+        record.status = status
+        record.resolution_note = note
+        record.resolved_by_kind = actor_kind
+        record.resolved_by_id = actor_id
+        record.resolved_at = _utc_now()
+        record_audit(
+            db, identity, "event_report.resolve", target_type="event_content_report", target_id=record.id,
+            details={"event_id": record.event_id, "target_kind": record.target_kind, "from": previous, "to": status, "note": note},
+        )
+        db.commit()
+        return interaction_mod.report_admin_view(record)
+
+    @app.get("/api/admin/event-interaction/summary")
+    def admin_event_interaction_summary(
+        response: Response,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_INTERACTION_READ_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """Honest counts for the panel badge: real rows, zero when nothing needs action."""
+        response.headers["Cache-Control"] = "private, no-store"
+        unanswered = int(db.scalar(
+            select(func.count(EventQuestionRecord.id)).where(
+                EventQuestionRecord.answered_at.is_(None), EventQuestionRecord.status != "hidden",
+            )
+        ) or 0)
+        pending_reviews = int(db.scalar(
+            select(func.count(EventReviewRecord.id)).where(EventReviewRecord.status == "pending")
+        ) or 0)
+        open_reports = int(db.scalar(
+            select(func.count(EventContentReportRecord.id)).where(EventContentReportRecord.status == "open")
+        ) or 0)
+        failed_notifications = int(db.scalar(
+            select(func.count(EventQuestionRecord.id))
+            .join(UserNotificationRecord, UserNotificationRecord.id == EventQuestionRecord.notification_id)
+            .where(UserNotificationRecord.delivery_status == "failed")
+        ) or 0)
+        per_event: dict[str, dict[str, int]] = {}
+        for event_key, count in db.execute(
+            select(EventQuestionRecord.event_id, func.count(EventQuestionRecord.id))
+            .where(EventQuestionRecord.answered_at.is_(None), EventQuestionRecord.status != "hidden")
+            .group_by(EventQuestionRecord.event_id)
+        ).all():
+            per_event.setdefault(str(event_key), {})["unanswered"] = int(count)
+        for event_key, count in db.execute(
+            select(EventReviewRecord.event_id, func.count(EventReviewRecord.id))
+            .where(EventReviewRecord.status == "pending").group_by(EventReviewRecord.event_id)
+        ).all():
+            per_event.setdefault(str(event_key), {})["pending_reviews"] = int(count)
+        for event_key, count in db.execute(
+            select(EventResourceRecord.event_id, func.count(EventResourceRecord.id))
+            .where(EventResourceRecord.status != "removed").group_by(EventResourceRecord.event_id)
+        ).all():
+            per_event.setdefault(str(event_key), {})["resources"] = int(count)
+        return {
+            "source": "shared_server_database",
+            "unanswered_questions": unanswered,
+            "pending_reviews": pending_reviews,
+            "open_reports": open_reports,
+            "failed_notifications": failed_notifications,
+            "per_event": per_event,
+        }
+
+    # ── فاز ۹: محصول ضبط‌شدهٔ رویداد، سفارش خرید و دسترسی ──
+    # محصول به همان رویداد site_content بسته است؛ فایل‌ها همان event_resources هستند
+    # (access='purchased' + session_id). دسترسی فقط با ردیف recording_access یا
+    # پیش‌نمایش ستاد تصمیم می‌گیرد؛ هیچ داده‌ای از مرورگر مبنای دسترسی نیست.
+    _RECORDING_EDIT_PERMS = ("ev_create",)
+    _RECORDING_STATUS_PERMS = ("ev_publish",)
+    _RECORDING_ORDER_READ_PERMS = ("receipt_approve", "ev_publish", "finance")
+    _RECORDING_DECISION_PERMS = ("receipt_approve",)
+    _RECORDING_REFUND_PERMS = ("finance",)
+
+    def _recording_error(error: interaction_mod.InteractionError) -> HTTPException:
+        return _interaction_error(error)
+
+    def _wallet_ready(db: Session, request: Request) -> bool:
+        return bool(_runtime_settings(db, request.app.state.settings).form_bale_payments_ready)
+
+    def _recording_for_event(db: Session, event_id: str, *, for_update: bool = False) -> EventRecordingRecord | None:
+        query = select(EventRecordingRecord).where(EventRecordingRecord.event_id == event_id)
+        if for_update:
+            query = query.with_for_update()
+        return db.scalar(query)
+
+    def _recording_sessions(db: Session, recording_id: str) -> list[RecordingSessionRecord]:
+        return list(db.scalars(
+            select(RecordingSessionRecord)
+            .where(RecordingSessionRecord.recording_id == recording_id)
+            .order_by(RecordingSessionRecord.sort_order.asc(), RecordingSessionRecord.created_at.asc())
+        ).all())
+
+    def _recording_resources(db: Session, event_id: str) -> list[EventResourceRecord]:
+        return list(db.scalars(
+            select(EventResourceRecord)
+            .where(EventResourceRecord.event_id == event_id, EventResourceRecord.status != "removed")
+            .order_by(EventResourceRecord.sort_order.asc(), EventResourceRecord.created_at.asc())
+        ).all())
+
+    def _recording_viewer(
+        db: Session, recording: EventRecordingRecord | None, *, account: AccountIdentity | None,
+        staff: bool, participation: interaction_mod.Participation | None, now: datetime,
+    ) -> recordings_mod.Viewer:
+        account_id = account.account_id if account is not None else None
+        access = recordings_mod.access_for(db, recording.id, account_id) if recording is not None else None
+        open_order = recordings_mod.open_order_for(db, recording.id, account_id) if recording is not None else None
+        if open_order is not None and recordings_mod.expire_open_order(open_order, now):
+            db.commit()
+            open_order = None
+        previous = (
+            recordings_mod.latest_closed_order_for(db, recording.id, account_id)
+            if recording is not None and open_order is None else None
+        )
+        return recordings_mod.Viewer(
+            signed_in=account is not None, staff=staff, account_id=account_id, participation=participation,
+            access=access, access_state=recordings_mod.access_state(access, now),
+            open_order=open_order, previous_order=previous,
+        )
+
+    def _purchased_state(recording: EventRecordingRecord | None, viewer: recordings_mod.Viewer) -> tuple[bool, str]:
+        """``(allowed, reason)`` for ``access='purchased'`` resources, decided by the product layer."""
+        if recording is None:
+            return False, "purchase_required"
+        if recording.status not in recordings_mod.SHELF_STATUSES and not viewer.staff and viewer.access_state != "active":
+            return False, "purchase_required"
+        return recordings_mod.has_content_access(recording, viewer)
+
+    def _recording_public_payload(
+        db: Session, request: Request, *, event_id: str, public_event: dict[str, Any] | None,
+        account: AccountIdentity | None, staff: bool, now: datetime,
+    ) -> dict[str, Any] | None:
+        """The ``recording`` block of the public event page (``None`` when there is no shelf product)."""
+        recording = _recording_for_event(db, event_id)
+        if recording is None:
+            return None
+        participation = _interaction_participation(db, account.account_id, event_id) if account is not None else None
+        viewer = _recording_viewer(db, recording, account=account, staff=staff, participation=participation, now=now)
+        allowed, reason = recordings_mod.has_content_access(recording, viewer)
+        keeps_archived = recording.status == "archived" and allowed  # phase 9.3: attendee courtesy survives archiving too
+        if recording.status not in recordings_mod.SHELF_STATUSES and not staff and viewer.access_state != "active" and not keeps_archived:
+            # Off the shelf (draft/ready/archived): invisible to the public — but a holder of a still-active
+            # access (purchased/granted/free, or a checked-in attendee of a courtesy product) keeps the page and
+            # the files, exactly like ``_purchased_state`` keeps the downloads (archiving stops listing and
+            # sales; it never silently strips an access).
+            return None
+        sessions = _recording_sessions(db, recording.id)
+        resources = _recording_resources(db, event_id)
+        by_session: dict[str, list[EventResourceRecord]] = {}
+        for row in resources:
+            if row.session_id:
+                by_session.setdefault(row.session_id, []).append(row)
+        session_views: list[dict[str, Any]] = []
+        total_minutes = 0
+        for session in sessions:
+            if session.status != "published" and not staff:
+                continue
+            rows = [
+                recordings_mod.session_resource_view(
+                    row, recording=recording, session=session, allowed=allowed, reason=reason, now=now, staff=staff,
+                )
+                for row in by_session.get(session.id, [])
+                if staff or interaction_mod.resource_is_live(row, now)
+            ]
+            session_views.append(recordings_mod.session_public_view(session, rows, staff=staff))
+            if session.status == "published":
+                total_minutes += int(session.duration_minutes or 0)
+        commerce = recordings_mod.commerce_for(
+            recording, recordings_mod.purchase_form_for(db, recording.id), wallet_ready=_wallet_ready(db, request),
+        )
+        cta = recordings_mod.viewer_cta(recording, viewer, wallet_ready=_wallet_ready(db, request), commerce=commerce)
+        return recordings_mod.recording_public_view(
+            recording, sessions=session_views, viewer=viewer, cta=cta, total_minutes=total_minutes, staff=staff,
+            commerce=commerce,
+        )
+
+    def _recording_cards(db: Session, event_ids: list[str]) -> dict[str, dict[str, Any]]:
+        """Shelf summaries keyed by event id for the public snapshot (published/paused only)."""
+        if not event_ids:
+            return {}
+        rows = db.scalars(
+            select(EventRecordingRecord).where(
+                EventRecordingRecord.event_id.in_(event_ids),
+                EventRecordingRecord.status.in_(recordings_mod.SHELF_STATUSES),
+            )
+        ).all()
+        stats = recordings_mod.session_stats(db, [row.id for row in rows])
+        forms = recordings_mod.purchase_forms_for(db, [row.id for row in rows])
+        out: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            count, minutes = stats.get(row.id, (0, 0))
+            commerce = recordings_mod.commerce_for(row, forms.get(row.id), wallet_ready=False)
+            out[row.event_id] = recordings_mod.recording_card_view(
+                row, session_count=count, total_minutes=minutes, commerce=commerce,
+            )
+        return out
+
+    def _recording_event_title(db: Session, event_id: str) -> str:
+        return _interaction_event_titles(db, {event_id}).get(event_id, "")
+
+    def _queue_recording_access_notification(
+        db: Session, access: RecordingAccessRecord, recording: EventRecordingRecord, *, kind_label: str,
+        reactivated: bool = False, now: datetime | None = None,
+    ) -> UserNotificationRecord:
+        """One outbox row per access *activation*; web-only accounts get an honest ``failed`` row.
+
+        Idempotent: a retried webhook / double-submitted review (row already active) maps to the
+        key of the original activation and adds nothing. A real re-grant after a revocation or
+        expiry (``reactivated``) is a new activation and gets its own row.
+        """
+        bale_ids = verified_bale_ids_for_account(db, access.account_id)
+        target = bale_ids[0] if bale_ids else ""
+        title = recording.title or _recording_event_title(db, recording.event_id) or "محتوای ضبط‌شده"
+        expiry = interaction_mod.iso(access.expires_at)
+        body = f"دسترسی شما به «{title}» فعال شد ({kind_label})."
+        if expiry:
+            body += f"\nاعتبار دسترسی تا: {event_time.to_local_input(expiry)}"
+        body += "\nبرای مشاهده به بخش «محتوای من» در حساب کاربری بروید."
+        stamp = (now or _utc_now()).strftime("%Y%m%dT%H%M") if reactivated else "first"
+        key = notifications_mod.dedupe_key("recording_access", access.id, access.source, access.order_id or "-", stamp)
+        item, _created = notifications_mod.queue(
+            db, account_id=access.account_id, kind=recordings_mod.NOTIFICATION_KIND,
+            title="دسترسی به محتوای ضبط‌شده", body=body, key=key, bale_ids=bale_ids,
+            link=notifications_mod.event_link(recording.event_id, anchor="recording"),
+        )
+        return item
+
+    def _notify_content_published(
+        db: Session, recording: EventRecordingRecord, *, what: str, target_id: str, title_text: str, now: datetime,
+    ) -> int:
+        """Phase 9.5: thin wrapper over the module-level fan-out shared with the scheduler."""
+        return scheduled_publish_mod.notify_content_published(
+            db, recording, what=what, target_id=target_id, title_text=title_text, now=now,
+            bale_ids_for=lambda account_id: verified_bale_ids_for_account(db, account_id),
+            event_title_for=lambda event_id: _recording_event_title(db, event_id),
+            payment_approved=_response_payment_approved,
+        )
+
+    def _queue_recording_order_notification(
+        db: Session, order: RecordingOrderRecord, *, title: str, body: str,
+    ) -> UserNotificationRecord:
+        """Decision outbox row (reject/refund): same honest delivery states as the access notification."""
+        bale_ids = verified_bale_ids_for_account(db, order.account_id)
+        product = db.get(EventRecordingRecord, order.recording_id)
+        item, _created = notifications_mod.queue(
+            db, account_id=order.account_id, kind=recordings_mod.ORDER_NOTIFICATION_KIND, title=title, body=body,
+            key=notifications_mod.dedupe_key("recording_order", order.id, order.status, order.refund_reference or "-"),
+            bale_ids=bale_ids, link=notifications_mod.event_link(product.event_id) if product else notifications_mod.account_link("orders"),
+        )
+        return item
+
+    def _grant_recording_access(
+        db: Session, recording: EventRecordingRecord, account_id: str, *, source: str, now: datetime,
+        order: RecordingOrderRecord | None = None, actor: tuple[str, str] = ("", ""), reason: str = "",
+        access_days: int | None = None,
+    ) -> tuple[RecordingAccessRecord, bool]:
+        """Idempotent: one row per (product, account); re-activates revoked/expired rows."""
+        row = recordings_mod.access_for(db, recording.id, account_id)
+        created = row is None
+        reactivated = row is not None and recordings_mod.access_state(row, now) != "active"
+        expires = recordings_mod.access_expiry(recording, now, days=access_days)
+        if row is None:
+            row = RecordingAccessRecord(
+                id=interaction_mod.new_id(), recording_id=recording.id, account_id=account_id,
+                source=source, status="active", order_id=order.id if order else None, expires_at=expires,
+                granted_by_kind=actor[0], granted_by_id=actor[1], reason=reason,
+            )
+            db.add(row)
+        else:
+            row.source = source
+            row.status = "active"
+            row.order_id = order.id if order else row.order_id
+            row.expires_at = expires
+            row.granted_by_kind, row.granted_by_id = actor
+            row.reason = reason
+            row.revoked_at = None
+            row.revoked_by_kind = ""
+            row.revoked_by_id = ""
+            row.revoke_reason = ""
+        db.flush()
+        label = {"purchase": "خرید", "free": "دسترسی رایگان", "granted": "اعطای دستی"}.get(source, source)
+        _queue_recording_access_notification(db, row, recording, kind_label=label, reactivated=reactivated, now=now)
+        return row, created
+
+    # ── Phase 9.1: purchase-form finalization (single path for card / wallet / free) ──
+
+    def _purchase_recording_for_form(
+        db: Session, form: FormRecord, *, for_update: bool = False,
+    ) -> EventRecordingRecord | None:
+        if not _form_is_purchase(form) or not form.recording_id:
+            return None
+        query = select(EventRecordingRecord).where(EventRecordingRecord.id == form.recording_id)
+        if for_update:
+            query = query.with_for_update()
+        return db.scalar(query)
+
+    def _purchase_ledger_for_response(db: Session, response_id: str, *, for_update: bool = False) -> RecordingOrderRecord | None:
+        query = select(RecordingOrderRecord).where(RecordingOrderRecord.form_response_id == response_id)
+        if for_update:
+            query = query.with_for_update()
+        return db.scalar(query)
+
+    def _upsert_purchase_ledger(
+        db: Session, *, recording: EventRecordingRecord, account_id: str, response: FormResponseRecord,
+        payment: FormPaymentRecord, now: datetime,
+    ) -> RecordingOrderRecord:
+        """One internal ledger row per purchase-form response; amounts copied from the form payment."""
+        order = _purchase_ledger_for_response(db, response.id, for_update=True)
+        status_map = {
+            "awaiting_receipt": "awaiting_receipt", "receipt_submitted": "receipt_submitted", "pending": "pending",
+            "paid": "paid", "paid_manual": "paid_manual", "rejected": "rejected", "cancelled": "cancelled",
+            "paid_review": "needs_review", "expired": "expired", "refunded": "refunded",
+        }
+        if order is None:
+            order = RecordingOrderRecord(
+                id=interaction_mod.new_id(), recording_id=recording.id, account_id=account_id, method=payment.method,
+                amount=int(payment.amount), currency=payment.currency,
+                idempotency_key="form-purchase:" + response.id, form_response_id=response.id, form_payment_id=payment.id,
+            )
+            db.add(order)
+        order.method = payment.method
+        order.amount = int(payment.amount)
+        order.currency = payment.currency
+        order.form_payment_id = payment.id
+        order.status = status_map.get(payment.status, "needs_review")
+        order.invoice_payload = payment.invoice_payload
+        order.payer_bale_user_id = payment.payer_bale_user_id
+        order.expires_at = payment.expires_at if payment.method == "bale_wallet" else None
+        order.updated_at = now
+        db.flush()
+        return order
+
+    def _finalize_purchase(
+        db: Session, *, form: FormRecord, response: FormResponseRecord, payment: FormPaymentRecord | None,
+        account_id: str, now: datetime, actor: tuple[str, str], reason: str,
+    ) -> tuple[RecordingOrderRecord | None, RecordingAccessRecord]:
+        """Grant access for one accepted purchase-form response (idempotent).
+
+        * free form (no payment): access ``source='free'`` directly, no ledger row,
+          no fake transaction;
+        * paid form: the ledger row mirrors the already-verified form payment
+          (``paid`` from the webhook inquiry, ``paid_manual`` from the inbox) and the
+          access row points at it (``source='purchase'``).
+        Never touches ``form_responses`` ticket/check-in columns.
+        """
+        recording = _purchase_recording_for_form(db, form, for_update=True)
+        if recording is None:
+            raise HTTPException(409, {"code": "recording_not_found"})
+        order: RecordingOrderRecord | None = None
+        if payment is None:
+            access, _created = _grant_recording_access(
+                db, recording, account_id, source="free", now=now, actor=actor, reason=reason,
+            )
+            return None, access
+        if payment.status not in {"paid", "paid_manual"}:
+            raise HTTPException(409, {"code": "payment_not_settled", "status": payment.status})
+        order = _upsert_purchase_ledger(
+            db, recording=recording, account_id=account_id, response=response, payment=payment, now=now,
+        )
+        order.transaction_id = payment.transaction_id
+        order.provider_charge_id = payment.provider_charge_id
+        order.paid_at = order.paid_at or now
+        if payment.status == "paid_manual":
+            order.decided_at = now
+            order.decided_by_kind, order.decided_by_id = actor
+            order.decision_reason = reason
+        access, _created = _grant_recording_access(
+            db, recording, account_id, source="purchase", now=now, order=order, actor=actor, reason=reason,
+        )
+        return order, access
+
+    def _reject_purchase(
+        db: Session, *, response: FormResponseRecord, reason: str, now: datetime, actor: tuple[str, str],
+    ) -> RecordingOrderRecord | None:
+        """Close the ledger row of a rejected purchase receipt; the response itself is removed by the caller."""
+        order = _purchase_ledger_for_response(db, response.id, for_update=True)
+        if order is None:
+            return None
+        order.status = "rejected"
+        order.decided_at = now
+        order.decided_by_kind, order.decided_by_id = actor
+        order.decision_reason = reason
+        order.form_response_id = None
+        order.updated_at = now
+        db.flush()
+        return order
+
+    def _purchase_state_view(db: Session, form: FormRecord, account_id: str | None, now: datetime) -> dict[str, Any] | None:
+        """What form.html shows after a purchase submit: product, access state, ledger status."""
+        recording = _purchase_recording_for_form(db, form)
+        if recording is None:
+            return None
+        access = recordings_mod.access_for(db, recording.id, account_id) if account_id else None
+        return {
+            "recording_id": recording.id,
+            "event_id": recording.event_id,
+            "title": recording.title,
+            "access_state": recordings_mod.access_state(access, now),
+        }
+
+    def _require_purchase_account(request: Request, db: Session, form: FormRecord) -> AccountIdentity | None:
+        """Purchase forms need a signed-in account because the access right belongs to one."""
+        identity = public_write_identity(request, db)
+        if _form_is_purchase(form) and identity is None:
+            raise HTTPException(401, detail={"code": "account_required", "purpose": "recording_access"})
+        return identity
+
+    def _reject_duplicate_purchase_order(
+        db: Session, recording: EventRecordingRecord, account_id: str | None, *, own_response_id: str | None = None,
+    ) -> None:
+        """One open purchase order per account and product (server-side, independent of the browser cookie).
+
+        A second device/cookie of the same signed-in account must resume the pending order
+        (``pending``/``awaiting_receipt``/``receipt_submitted``/``needs_review``) instead of
+        creating a parallel response + ledger row that staff would have to reconcile by hand.
+        The caller's own response (resubmit of the same draft) is never counted as a duplicate.
+        """
+        if not account_id:
+            return
+        open_order = recordings_mod.open_order_for(db, recording.id, account_id)
+        if open_order is None or (own_response_id and open_order.form_response_id == own_response_id):
+            return
+        raise HTTPException(409, detail={
+            "code": "purchase_order_pending",
+            "recording_id": recording.id,
+            "order_status": open_order.status,
+            "response_id": open_order.form_response_id,
+            "message": "برای این محصول یک سفارش باز با همین حساب ثبت شده است؛ همان سفارش را ادامه دهید یا منتظر بازبینی بمانید.",
+        })
+
+    def _public_purchase_header(db: Session, request: Request, form: FormRecord) -> dict[str, Any]:
+        """The purchase header of form.html: product, server price and the caller's real access state."""
+        identity = account_identity_from_request(request, db)
+        purchase = _purchase_state_view(db, form, identity.account_id if identity else None, _utc_now()) or {}
+        settings_value = form.settings if isinstance(form.settings, dict) else {}
+        purchase.update({
+            "signed_in": identity is not None,
+            "price": purchase_form_price(settings_value),
+            "currency": "IRR",
+            "selection": purchase_form_selection(settings_value),
+        })
+        return purchase
+
+    def _recording_admin_counts(db: Session, recording_id: str) -> dict[str, int]:
+        now = _utc_now()
+        rows = db.execute(
+            select(RecordingOrderRecord.status, func.count(RecordingOrderRecord.id))
+            .where(RecordingOrderRecord.recording_id == recording_id)
+            .group_by(RecordingOrderRecord.status)
+        ).all()
+        by_status = {str(status): int(count) for status, count in rows}
+        access_rows = db.scalars(
+            select(RecordingAccessRecord).where(RecordingAccessRecord.recording_id == recording_id)
+        ).all()
+        return {
+            "orders_open": sum(by_status.get(s, 0) for s in recordings_mod.OPEN_ORDER_STATUSES),
+            "orders_review": sum(by_status.get(s, 0) for s in recordings_mod.REVIEWABLE_ORDER_STATUSES),
+            "orders_paid": sum(by_status.get(s, 0) for s in recordings_mod.PAID_ORDER_STATUSES),
+            "orders_refunded": by_status.get("refunded", 0),
+            "access_active": sum(1 for row in access_rows if recordings_mod.access_state(row, now) == "active"),
+            "access_total": len(access_rows),
+        }
+
+    def _recording_admin_payload(
+        db: Session, request: Request, recording: EventRecordingRecord, *, event_id: str,
+    ) -> dict[str, Any]:
+        sessions = _recording_sessions(db, recording.id)
+        resources = _recording_resources(db, event_id)
+        per_session: dict[str, int] = {}
+        for row in resources:
+            if row.session_id:
+                per_session[row.session_id] = per_session.get(row.session_id, 0) + 1
+        public_event, _stored = _interaction_event(db, event_id)
+        commerce = recordings_mod.commerce_for(
+            recording, recordings_mod.purchase_form_for(db, recording.id), wallet_ready=_wallet_ready(db, request),
+        )
+        blockers = recordings_mod.publish_blockers(
+            recording, public_event, sessions, resources, now=_utc_now(), wallet_ready=_wallet_ready(db, request),
+            commerce=commerce, file_ready=lambda row: _resource_has_bytes(request, row),
+        )
+        return recordings_mod.recording_admin_view(
+            recording,
+            sessions=[recordings_mod.session_admin_view(s, resource_count=per_session.get(s.id, 0)) for s in sessions],
+            blockers=blockers, counts=_recording_admin_counts(db, recording.id),
+            event_title=_recording_event_title(db, event_id), commerce=commerce,
+        )
+
+    # ── عمومی ──
+
+    @app.get("/api/public/recordings")
+    def public_recordings_shelf(
+        response: Response,
+        limit: int = Query(default=50, ge=1, le=100),
+        offset: int = Query(default=0, ge=0, le=100_000),
+        db: Session = Depends(get_db),
+    ):
+        """Published/paused recorded products of published events (store shelf)."""
+        response.headers["Cache-Control"] = "private, no-store"
+        record = db.get(SiteContentRecord, "public")
+        events = {
+            str(row.get("id")): row
+            for row in (public_site_content({"events": _content_rows(record, "events")}).get("events") or [])
+            if isinstance(row, dict) and row.get("id")
+        }
+        rows = db.scalars(
+            select(EventRecordingRecord)
+            .where(EventRecordingRecord.status.in_(recordings_mod.SHELF_STATUSES))
+            .order_by(EventRecordingRecord.published_at.desc().nullslast(), EventRecordingRecord.updated_at.desc())
+        ).all()
+        visible = [row for row in rows if row.event_id in events]
+        stats = recordings_mod.session_stats(db, [row.id for row in visible])
+        forms = recordings_mod.purchase_forms_for(db, [row.id for row in visible])
+        items: list[dict[str, Any]] = []
+        for row in visible[offset:offset + limit]:
+            count, minutes = stats.get(row.id, (0, 0))
+            card = recordings_mod.recording_card_view(
+                row, session_count=count, total_minutes=minutes,
+                commerce=recordings_mod.commerce_for(row, forms.get(row.id), wallet_ready=False),
+            )
+            event = events[row.event_id]
+            card["event"] = {
+                "id": row.event_id, "t": event.get("t"), "kind": event.get("kind"), "when": event.get("when"),
+                "on": event.get("on"), "img": event.get("img"), "instructor": event.get("by") or event.get("instructor") or "",
+                "cat": event.get("cat") or "",
+            }
+            items.append(card)
+        return {
+            "source": "shared_server_database", "server_time": event_time.to_iso(_utc_now()),
+            "items": items, "total": len(visible), "limit": limit, "offset": offset,
+        }
+
+    @app.get("/api/public/events/{event_id}/recording")
+    def public_event_recording(event_id: str, request: Request, response: Response, db: Session = Depends(get_db)):
+        """The recorded product of one event for the current viewer, with the single server-decided CTA."""
+        response.headers["Cache-Control"] = "private, no-store"
+        response.headers["Vary"] = "Cookie"
+        try:
+            event_id = interaction_mod.parse_event_id(event_id)
+        except interaction_mod.InteractionError as error:
+            raise _interaction_error(error) from None
+        staff = _interaction_staff(request, db)
+        account = staff if isinstance(staff, AccountIdentity) else (
+            account_identity_from_request(request, db) if staff is None else None
+        )
+        public_event, stored = _interaction_event(db, event_id)
+        if stored is None or (public_event is None and staff is None):
+            raise HTTPException(404, "event_not_found")
+        now = _utc_now()
+        payload = _recording_public_payload(
+            db, request, event_id=event_id, public_event=public_event, account=account, staff=staff is not None, now=now,
+        )
+        if payload is None:
+            raise HTTPException(404, "recording_not_found")
+        source = public_event or {}
+        return {
+            "source": "shared_server_database",
+            "server_time": event_time.to_iso(now),
+            "event": {
+                "id": event_id,
+                "title": str(source.get("t") or stored.get("t") or "")[:240],
+                "published": public_event is not None,
+                "held": recordings_mod.event_held(source, now) if public_event else False,
+                "lifecycle": str(source.get("lifecycle") or stored.get("lifecycle") or "scheduled"),
+            },
+            "recording": payload,
+        }
+
+    # ── حساب کاربری: دریافت رایگان، سفارش، رسید، کتابخانه ──
+
+    def _account_recording(db: Session, recording_id: str, *, for_update: bool = False) -> EventRecordingRecord:
+        parsed = interaction_mod.parse_row_id(recording_id)
+        if parsed is None:
+            raise HTTPException(404, "recording_not_found")
+        query = select(EventRecordingRecord).where(EventRecordingRecord.id == parsed)
+        if for_update:
+            query = query.with_for_update()
+        record = db.scalar(query)
+        if record is None:
+            raise HTTPException(404, "recording_not_found")
+        public_event, _stored = _interaction_event(db, record.event_id)
+        if public_event is None:
+            raise HTTPException(404, "recording_not_found")
+        return record
+
+    def _account_order(db: Session, identity: AccountIdentity, order_id: str, *, for_update: bool = False) -> RecordingOrderRecord:
+        parsed = interaction_mod.parse_row_id(order_id)
+        if parsed is None:
+            raise HTTPException(404, "order_not_found")
+        query = select(RecordingOrderRecord).where(RecordingOrderRecord.id == parsed)
+        if for_update:
+            query = query.with_for_update()
+        record = db.scalar(query)
+        # Another account's order is a 404, never a 403 (no existence leak).
+        if record is None or record.account_id != identity.account_id:
+            raise HTTPException(404, "order_not_found")
+        return record
+
+    @app.post("/api/account/recordings/{recording_id}/claim", status_code=201)
+    def account_claim_free_recording(
+        recording_id: str,
+        request: Request,
+        identity: AccountIdentity = Depends(require_account_write),
+        db: Session = Depends(get_db),
+    ):
+        """Free product → access row directly; no order, no fake transaction."""
+        recording = _account_recording(db, recording_id, for_update=True)
+        if recording.status != "published":
+            raise HTTPException(409, {"code": "recording_not_on_sale", "status": recording.status})
+        commerce = recordings_mod.commerce_for(
+            recording, recordings_mod.purchase_form_for(db, recording.id), wallet_ready=False,
+        )
+        if not commerce.free:
+            raise HTTPException(409, {"code": "recording_not_free"})
+        now = _utc_now()
+        existing = recordings_mod.access_for(db, recording.id, identity.account_id)
+        if existing is not None and recordings_mod.access_state(existing, now) == "active":
+            return {"claimed": True, "created": False, "access": recordings_mod.access_view(existing, now)}
+        if existing is not None and existing.status == "revoked":
+            raise HTTPException(409, {"code": "access_revoked"})
+        cfg: Settings = request.app.state.settings
+        _enforce_owner_upload_limit(request, db, cfg, identity, limit=30, scope="recording-claim")
+        row, created = _grant_recording_access(
+            db, recording, identity.account_id, source="free", now=now, actor=("account", identity.account_id),
+            reason="free_claim",
+        )
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            existing_row = recordings_mod.access_for(db, recording.id, identity.account_id)
+            if existing_row is None:
+                raise HTTPException(409, {"code": "access_conflict"}) from None
+            row, created = existing_row, False
+        return {"claimed": True, "created": created, "access": recordings_mod.access_view(row, now)}
+
+    async def _ensure_bale_payment_webhook(cfg: Settings) -> None:
+        """Make sure Bale posts payment updates to our dedicated webhook path (idempotent)."""
+        webhook_info = await asyncio.to_thread(call_bale_payment_api, cfg, "getWebhookInfo", {})
+        webhook_result = webhook_info.get("result")
+        configured_webhook = webhook_result.get("url", "") if isinstance(webhook_result, dict) else ""
+        registered_webhook_url = _form_payment_registered_webhook_url(cfg)
+        current_webhook_url = configured_webhook.rstrip("/")
+        base_webhook_url = cfg.form_payment_webhook_url.rstrip("/")
+        if current_webhook_url == registered_webhook_url:
+            return
+        if current_webhook_url not in {"", base_webhook_url}:
+            raise HTTPException(503, detail={"code": "bale_payment_webhook_conflict"})
+        await asyncio.to_thread(call_bale_payment_api, cfg, "setWebhook", {"url": registered_webhook_url})
+        verified_webhook_info = await asyncio.to_thread(call_bale_payment_api, cfg, "getWebhookInfo", {})
+        verified_result = verified_webhook_info.get("result")
+        verified_url = verified_result.get("url", "") if isinstance(verified_result, dict) else ""
+        if verified_url.rstrip("/") != registered_webhook_url:
+            raise HTTPException(503, detail={"code": "bale_payment_webhook_registration_failed"})
+
+    # Phase 9.1: orders are no longer opened here. A purchase starts from the product's
+    # purchase form (form.html?fid=…); the ledger row is created by the server from that
+    # form's response/payment. The retired routes answer 410 so old clients fail loudly.
+    @app.post("/api/account/recordings/{recording_id}/orders")
+    def account_create_recording_order_retired(
+        recording_id: str, identity: AccountIdentity = Depends(require_account_write), db: Session = Depends(get_db),
+    ):
+        recording = _account_recording(db, recording_id)
+        form = recordings_mod.purchase_form_for(db, recording.id)
+        raise HTTPException(410, {
+            "code": "use_purchase_form",
+            "form_id": form.id if form is not None and form.status == "published" else None,
+        })
+
+    @app.get("/api/account/recording-orders")
+    def account_list_recording_orders(
+        response: Response,
+        limit: int = Query(default=50, ge=1, le=100),
+        offset: int = Query(default=0, ge=0, le=100_000),
+        identity: AccountIdentity = Depends(require_account),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        response.headers["Vary"] = "Cookie"
+        now = _utc_now()
+        rows = db.scalars(
+            select(RecordingOrderRecord)
+            .where(RecordingOrderRecord.account_id == identity.account_id)
+            .order_by(RecordingOrderRecord.created_at.desc(), RecordingOrderRecord.id.desc())
+        ).all()
+        changed = False
+        for row in rows:
+            changed = recordings_mod.expire_open_order(row, now) or changed
+        if changed:
+            db.commit()
+        products = {
+            row.id: row for row in db.scalars(
+                select(EventRecordingRecord).where(EventRecordingRecord.id.in_({r.recording_id for r in rows} or {""}))
+            ).all()
+        }
+        titles = _interaction_event_titles(db, {p.event_id for p in products.values()})
+        purchase_forms = recordings_mod.purchase_forms_for(db, list(products))
+        items = []
+        for row in rows[offset:offset + limit]:
+            view = recordings_mod.order_account_view(row, products.get(row.recording_id))
+            product = products.get(row.recording_id)
+            view["event_title"] = titles.get(product.event_id, "") if product else ""
+            purchase_form = purchase_forms.get(row.recording_id)
+            # Phase 9.1: the account page continues/retries a purchase only through the builder's form.
+            view["purchase_form_id"] = purchase_form.id if purchase_form is not None and purchase_form.status == "published" else None
+            items.append(view)
+        return {"source": "shared_server_database", "items": items, "total": len(rows), "limit": limit, "offset": offset}
+
+    @app.get("/api/account/recording-orders/{order_id}")
+    def account_get_recording_order(
+        order_id: str, response: Response,
+        identity: AccountIdentity = Depends(require_account), db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        order = _account_order(db, identity, order_id)
+        if recordings_mod.expire_open_order(order, _utc_now()):
+            db.commit()
+        recording = db.get(EventRecordingRecord, order.recording_id)
+        view = recordings_mod.order_account_view(order, recording)
+        view["event_title"] = _recording_event_title(db, recording.event_id) if recording else ""
+        purchase_form = recordings_mod.purchase_form_for(db, order.recording_id)
+        view["purchase_form_id"] = purchase_form.id if purchase_form is not None and purchase_form.status == "published" else None
+        return view
+
+    @app.put("/api/account/recording-orders/{order_id}/receipt")
+    def account_upload_recording_receipt_retired(
+        order_id: str, identity: AccountIdentity = Depends(require_account_write), db: Session = Depends(get_db),
+    ):
+        order = _account_order(db, identity, order_id)
+        recording = db.get(EventRecordingRecord, order.recording_id)
+        form = recordings_mod.purchase_form_for(db, recording.id) if recording is not None else None
+        raise HTTPException(410, {
+            "code": "use_purchase_form",
+            "form_id": form.id if form is not None and form.status == "published" else None,
+        })
+
+    @app.post("/api/account/recording-orders/{order_id}/cancel")
+    def account_cancel_recording_order(
+        order_id: str,
+        identity: AccountIdentity = Depends(require_account_write),
+        db: Session = Depends(get_db),
+    ):
+        """Only legacy (pre-9.1) open orders can be cancelled here; form-backed rows follow the form payment."""
+        order = _account_order(db, identity, order_id, for_update=True)
+        now = _utc_now()
+        if order.form_response_id is not None or order.form_payment_id is not None:
+            raise HTTPException(409, {"code": "order_follows_form_payment", "status": order.status})
+        if order.status not in {"pending", "awaiting_receipt"}:
+            raise HTTPException(409, {"code": "order_not_cancellable", "status": order.status})
+        order.status = "cancelled"
+        order.updated_at = now
+        db.commit()
+        db.refresh(order)
+        return recordings_mod.order_account_view(order, db.get(EventRecordingRecord, order.recording_id))
+
+    @app.get("/api/account/recordings")
+    def account_recording_library(
+        response: Response,
+        identity: AccountIdentity = Depends(require_account),
+        db: Session = Depends(get_db),
+    ):
+        """«محتوای من»: every access row of the account with its real state (active/expired/revoked)."""
+        response.headers["Cache-Control"] = "private, no-store"
+        response.headers["Vary"] = "Cookie"
+        now = _utc_now()
+        rows = db.execute(
+            select(RecordingAccessRecord, EventRecordingRecord)
+            .join(EventRecordingRecord, EventRecordingRecord.id == RecordingAccessRecord.recording_id)
+            .where(RecordingAccessRecord.account_id == identity.account_id)
+            .order_by(RecordingAccessRecord.created_at.desc())
+        ).all()
+        # Phase 9.3: products opened to checked-in attendees (``attendee_access``) are part of the
+        # member's library too — derived with the same server rule as the product page
+        # (``has_content_access`` → ``attended``), never by creating an access row.
+        checked_in_event_ids = {
+            str(event_id) for (event_id,) in db.execute(
+                select(FormRecord.event_id)
+                .join(FormResponseRecord, FormResponseRecord.form_id == FormRecord.id)
+                .join(FormResponseDraftRecord, FormResponseDraftRecord.id == FormResponseRecord.draft_id)
+                .where(
+                    account_form_record_scope(db, identity.account_id),
+                    FormResponseRecord.added_by_response_id.is_(None),
+                    FormResponseRecord.ticket_checked_in_at.is_not(None),
+                    FormRecord.model == "registration",
+                    FormRecord.purpose == "registration",
+                    FormRecord.event_id.is_not(None),
+                )
+                .distinct()
+            ).all()
+            if event_id
+        }
+        active_purchased = {
+            recording.id for access, recording in rows if recordings_mod.access_state(access, now) == "active"
+        }
+        courtesy = [
+            recording for recording in recordings_mod.attendee_courtesy_candidates(
+                db, event_ids=checked_in_event_ids, exclude_recording_ids=active_purchased,
+            )
+            if _interaction_participation(db, identity.account_id, recording.event_id).attended
+        ]
+        courtesy_ids = {recording.id for recording in courtesy}
+        all_recordings = [recording for _access, recording in rows] + courtesy
+        stats = recordings_mod.session_stats(db, [recording.id for recording in all_recordings])
+        titles = _interaction_event_titles(db, {recording.event_id for recording in all_recordings})
+        items = []
+        for access, recording in rows:
+            if recording.id in courtesy_ids:
+                continue  # an expired/revoked purchase of an attendee: the page grants «attended», so does the library
+            count, minutes = stats.get(recording.id, (0, 0))
+            items.append(recordings_mod.library_item_view(
+                access, recording, now=now, session_count=count, total_minutes=minutes,
+                event_title=titles.get(recording.event_id, ""),
+            ))
+        for recording in courtesy:
+            count, minutes = stats.get(recording.id, (0, 0))
+            items.append(recordings_mod.courtesy_library_item_view(
+                recording, session_count=count, total_minutes=minutes, event_title=titles.get(recording.event_id, ""),
+            ))
+        return {"source": "shared_server_database", "server_time": event_time.to_iso(now), "items": items, "total": len(items)}
+
+    # Phase 9.1: the dedicated ``norac_`` wallet branch is gone; recorded-content wallet
+    # payments are ordinary purchase-form payments (``nora_`` invoices) and are finalized
+    # by ``_finalize_purchase`` inside the shared webhook transaction.
+
+    # ── پنل: محصول، جلسات، وضعیت ──
+
+    def _admin_recording_or_404(db: Session, event_id: str, *, for_update: bool = False) -> EventRecordingRecord:
+        record = _recording_for_event(db, event_id, for_update=for_update)
+        if record is None:
+            raise HTTPException(404, "recording_not_found")
+        return record
+
+    @app.get("/api/admin/events/{event_id}/recording")
+    def admin_get_event_recording(
+        event_id: str, request: Request, response: Response,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_INTERACTION_READ_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        event_id = _admin_event_id(db, event_id)
+        record = _recording_for_event(db, event_id)
+        public_event, _stored = _interaction_event(db, event_id)
+        now = _utc_now()
+        base = {
+            "source": "shared_server_database",
+            "event_id": event_id,
+            "event_held": bool(public_event) and recordings_mod.event_held(public_event or {}, now),
+            "event_published": public_event is not None,
+            "wallet_ready": _wallet_ready(db, request),
+            "limits": {
+                **_resource_limits(request),
+                "max_price": recordings_mod.MAX_PRICE, "max_access_days": recordings_mod.MAX_ACCESS_DAYS,
+                "max_sessions": recordings_mod.MAX_SESSIONS,
+                # Files are served as stored (chunked, with HTTP Range); no CDN/DRM/transcoding exists.
+                "streaming": "range_file" if _private_storage(request) is not None else "none",
+            },
+        }
+        if record is None:
+            return {**base, "recording": None}
+        return {**base, "recording": _recording_admin_payload(db, request, record, event_id=event_id)}
+
+    @app.put("/api/admin/events/{event_id}/recording")
+    async def admin_upsert_event_recording(
+        event_id: str, request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_RECORDING_EDIT_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """Create or edit the product fields (never the status)."""
+        event_id = _admin_event_id(db, event_id)
+        payload = await _read_json_object(request, 64_000)
+        record = _recording_for_event(db, event_id, for_update=True)
+        try:
+            fields = recordings_mod.validate_recording_fields(payload, existing=record)
+        except interaction_mod.InteractionError as error:
+            raise _recording_error(error) from None
+        actor_kind, actor_id = _interaction_actor(identity)
+        expected = payload.get("expected_version")
+        if record is None:
+            record = EventRecordingRecord(
+                id=interaction_mod.new_id(), event_id=event_id, status="draft", created_by_kind=actor_kind,
+                created_by_id=actor_id, updated_by_kind=actor_kind, updated_by_id=actor_id,
+                **{"faq": [], **fields},
+            )
+            db.add(record)
+            record_audit(
+                db, identity, "recording.create", target_type="event_recording", target_id=record.id,
+                details={"event_id": event_id, "price": record.price},
+            )
+            try:
+                db.commit()
+            except IntegrityError:
+                db.rollback()
+                raise HTTPException(409, {"code": "recording_exists"}) from None
+            db.refresh(record)
+            return _recording_admin_payload(db, request, record, event_id=event_id)
+        if expected is not None and (isinstance(expected, bool) or not isinstance(expected, int) or expected != record.version):
+            raise HTTPException(409, {"code": "version_conflict", "version": record.version})
+        purchase_form = recordings_mod.purchase_form_for(db, record.id)
+        if purchase_form is not None:
+            locked = recordings_mod.commercial_fields_changed(fields, record)
+            if locked:
+                # Price / card / wallet switch live in the purchase form once one is linked.
+                raise HTTPException(409, {
+                    "code": "commercial_settings_in_form", "fields": locked, "form_id": purchase_form.id,
+                })
+        if "price" in fields and fields["price"] != record.price:
+            open_orders = int(db.scalar(
+                select(func.count(RecordingOrderRecord.id)).where(
+                    RecordingOrderRecord.recording_id == record.id,
+                    RecordingOrderRecord.status.in_(recordings_mod.OPEN_ORDER_STATUSES),
+                )
+            ) or 0)
+            if open_orders:
+                raise HTTPException(409, {"code": "open_orders_block_price_change", "open_orders": open_orders})
+        changed = sorted(key for key, value in fields.items() if getattr(record, key) != value)
+        details: dict[str, Any] = {"event_id": event_id, "changed": ",".join(changed)[:200]}
+        for key in ("price", "access_days", "attendee_access", "certificate_policy"):
+            if key in changed:
+                details[f"{key}_before"] = getattr(record, key)
+                details[f"{key}_after"] = fields[key]
+        if "payment_card" in changed:
+            details["payment_card_changed"] = True
+        for key, value in fields.items():
+            setattr(record, key, value)
+        if changed:
+            record.version += 1
+            record.updated_by_kind, record.updated_by_id = actor_kind, actor_id
+            record_audit(db, identity, "recording.update", target_type="event_recording", target_id=record.id, details=details)
+        db.commit()
+        db.refresh(record)
+        return _recording_admin_payload(db, request, record, event_id=event_id)
+
+    @app.post("/api/admin/events/{event_id}/recording/status")
+    async def admin_set_event_recording_status(
+        event_id: str, request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_RECORDING_STATUS_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        event_id = _admin_event_id(db, event_id)
+        record = _admin_recording_or_404(db, event_id, for_update=True)
+        payload = await _read_json_object(request, 4096)
+        if set(payload) - {"status", "reason"}:
+            raise HTTPException(400, "invalid_status_change")
+        try:
+            target = interaction_mod.choice(payload.get("status"), recordings_mod.STATUSES, field="status")
+            reason = recordings_mod.validate_reason(
+                payload.get("reason"), required=target in recordings_mod.REASON_REQUIRED_STATUSES,
+            )
+        except interaction_mod.InteractionError as error:
+            raise _recording_error(error) from None
+        if not recordings_mod.can_transition(record.status, target):
+            raise HTTPException(409, {"code": "invalid_transition", "from": record.status, "to": target})
+        now = _utc_now()
+        if target == "published":
+            public_event, _stored = _interaction_event(db, event_id)
+            blockers = recordings_mod.publish_blockers(
+                record, public_event, _recording_sessions(db, record.id), _recording_resources(db, event_id),
+                now=now, wallet_ready=_wallet_ready(db, request),
+                commerce=recordings_mod.commerce_for(
+                    record, recordings_mod.purchase_form_for(db, record.id), wallet_ready=_wallet_ready(db, request),
+                ),
+                file_ready=lambda row: _resource_has_bytes(request, row),
+            )
+            if blockers:
+                raise HTTPException(409, {"code": "publish_blocked", "blockers": blockers})
+            if record.published_at is None:
+                record.published_at = now
+        before = record.status
+        record.status = target
+        record.status_reason = reason
+        record.version += 1
+        record.updated_by_kind, record.updated_by_id = _interaction_actor(identity)
+        record_audit(
+            db, identity, "recording.status", target_type="event_recording", target_id=record.id,
+            details={"event_id": event_id, "status_before": before, "status_after": target, "reason": reason},
+        )
+        db.commit()
+        db.refresh(record)
+        return _recording_admin_payload(db, request, record, event_id=event_id)
+
+    def _admin_session(db: Session, recording: EventRecordingRecord, session_id: str) -> RecordingSessionRecord:
+        parsed = interaction_mod.parse_row_id(session_id)
+        record = db.get(RecordingSessionRecord, parsed) if parsed else None
+        if record is None or record.recording_id != recording.id:
+            raise HTTPException(404, "session_not_found")
+        return record
+
+    @app.post("/api/admin/events/{event_id}/recording/sessions", status_code=201)
+    async def admin_create_recording_session(
+        event_id: str, request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_RECORDING_EDIT_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        event_id = _admin_event_id(db, event_id)
+        recording = _admin_recording_or_404(db, event_id)
+        payload = await _read_json_object(request, 16_384)
+        try:
+            fields = recordings_mod.validate_session_fields(payload, existing=None)
+        except interaction_mod.InteractionError as error:
+            raise _recording_error(error) from None
+        count = int(db.scalar(
+            select(func.count(RecordingSessionRecord.id)).where(RecordingSessionRecord.recording_id == recording.id)
+        ) or 0)
+        if count >= recordings_mod.MAX_SESSIONS:
+            raise HTTPException(409, {"code": "too_many_sessions", "limit": recordings_mod.MAX_SESSIONS})
+        if "sort_order" not in fields:
+            fields["sort_order"] = count + 1
+        session = RecordingSessionRecord(id=interaction_mod.new_id(), recording_id=recording.id, **fields)
+        db.add(session)
+        record_audit(
+            db, identity, "recording.session.create", target_type="recording_session", target_id=session.id,
+            details={"event_id": event_id, "recording_id": recording.id, "title": session.title[:120]},
+        )
+        db.commit()
+        db.refresh(session)
+        return recordings_mod.session_admin_view(session)
+
+    @app.put("/api/admin/events/{event_id}/recording/sessions/{session_id}")
+    async def admin_update_recording_session(
+        event_id: str, session_id: str, request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_RECORDING_EDIT_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        event_id = _admin_event_id(db, event_id)
+        recording = _admin_recording_or_404(db, event_id)
+        session = _admin_session(db, recording, session_id)
+        payload = await _read_json_object(request, 16_384)
+        try:
+            fields = recordings_mod.validate_session_fields(payload, existing=session)
+        except interaction_mod.InteractionError as error:
+            raise _recording_error(error) from None
+        before = {"status": session.status, "preview": session.preview}
+        for key, value in fields.items():
+            setattr(session, key, value)
+        details: dict[str, Any] = {"event_id": event_id, "changed": ",".join(sorted(fields))[:200]}
+        if before["status"] != session.status:
+            details["status_before"], details["status_after"] = before["status"], session.status
+        if before["preview"] != session.preview:
+            details["preview_after"] = session.preview
+        if before["status"] != "published" and session.status == "published":
+            details["notified_holders"] = _notify_content_published(
+                db, recording, what="session", target_id=session.id, title_text=session.title, now=_utc_now(),
+            )
+        record_audit(db, identity, "recording.session.update", target_type="recording_session", target_id=session.id, details=details)
+        db.commit()
+        db.refresh(session)
+        resource_count = int(db.scalar(
+            select(func.count(EventResourceRecord.id)).where(
+                EventResourceRecord.session_id == session.id, EventResourceRecord.status != "removed",
+            )
+        ) or 0)
+        return recordings_mod.session_admin_view(session, resource_count=resource_count)
+
+    @app.delete("/api/admin/events/{event_id}/recording/sessions/{session_id}")
+    def admin_delete_recording_session(
+        event_id: str, session_id: str,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_RECORDING_EDIT_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        event_id = _admin_event_id(db, event_id)
+        recording = _admin_recording_or_404(db, event_id)
+        session = _admin_session(db, recording, session_id)
+        attached = int(db.scalar(
+            select(func.count(EventResourceRecord.id)).where(
+                EventResourceRecord.session_id == session.id, EventResourceRecord.status != "removed",
+            )
+        ) or 0)
+        if attached:
+            raise HTTPException(409, {"code": "session_has_resources", "resources": attached})
+        record_audit(
+            db, identity, "recording.session.delete", target_type="recording_session", target_id=session.id,
+            details={"event_id": event_id, "title": session.title[:120]},
+        )
+        db.delete(session)
+        db.commit()
+        return {"deleted": True, "id": session.id}
+
+    # ── پنل: سفارش‌ها و دسترسی‌ها ──
+
+    def _admin_order(db: Session, order_id: str, *, for_update: bool = False) -> RecordingOrderRecord:
+        parsed = interaction_mod.parse_row_id(order_id)
+        if parsed is None:
+            raise HTTPException(404, "order_not_found")
+        query = select(RecordingOrderRecord).where(RecordingOrderRecord.id == parsed)
+        if for_update:
+            query = query.with_for_update()
+        record = db.scalar(query)
+        if record is None:
+            raise HTTPException(404, "order_not_found")
+        return record
+
+    def _order_duplicates(db: Session, orders: Sequence[RecordingOrderRecord]) -> dict[str, int]:
+        """Other orders of the same account for the same product (duplicate payments to review)."""
+        if not orders:
+            return {}
+        keys = {(row.recording_id, row.account_id) for row in orders}
+        counts: dict[tuple[str, str], int] = {}
+        for recording_id, account_id, count in db.execute(
+            select(RecordingOrderRecord.recording_id, RecordingOrderRecord.account_id, func.count(RecordingOrderRecord.id))
+            .where(RecordingOrderRecord.recording_id.in_({k[0] for k in keys}))
+            .group_by(RecordingOrderRecord.recording_id, RecordingOrderRecord.account_id)
+        ).all():
+            counts[(str(recording_id), str(account_id))] = int(count)
+        return {row.id: max(0, counts.get((row.recording_id, row.account_id), 1) - 1) for row in orders}
+
+    def _admin_order_rows(db: Session, orders: Sequence[RecordingOrderRecord]) -> list[dict[str, Any]]:
+        products = {
+            row.id: row for row in db.scalars(
+                select(EventRecordingRecord).where(EventRecordingRecord.id.in_({o.recording_id for o in orders} or {""}))
+            ).all()
+        }
+        titles = _interaction_event_titles(db, {p.event_id for p in products.values()})
+        access_rows = {
+            (row.recording_id, row.account_id): row for row in db.scalars(
+                select(RecordingAccessRecord).where(RecordingAccessRecord.recording_id.in_({o.recording_id for o in orders} or {""}))
+            ).all()
+        }
+        duplicates = _order_duplicates(db, orders)
+        now = _utc_now()
+        out = []
+        for order in orders:
+            product = products.get(order.recording_id)
+            out.append(recordings_mod.order_admin_view(
+                order, recording=product, event_title=titles.get(product.event_id, "") if product else "",
+                access=access_rows.get((order.recording_id, order.account_id)), duplicates=duplicates.get(order.id, 0),
+                account_label=_interaction_display_name(db, order.account_id), now=now,
+            ))
+        return out
+
+    @app.get("/api/admin/recording-orders")
+    def admin_list_recording_orders(
+        request: Request,
+        response: Response,
+        status: str = Query(default=""),
+        event_id: str = Query(default=""),
+        q: str = Query(default="", max_length=120),
+        format: str = Query(default=""),
+        limit: int = Query(default=50, ge=1, le=200),
+        offset: int = Query(default=0, ge=0, le=100_000),
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_RECORDING_ORDER_READ_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        filters: list[ColumnElement[bool]] = []
+        if status:
+            try:
+                filters.append(RecordingOrderRecord.status.in_(recordings_mod.order_filters(status)))
+            except interaction_mod.InteractionError as error:
+                raise _recording_error(error) from None
+        if event_id:
+            try:
+                parsed_event = interaction_mod.parse_event_id(event_id)
+            except interaction_mod.InteractionError as error:
+                raise _interaction_error(error) from None
+            filters.append(RecordingOrderRecord.recording_id.in_(
+                select(EventRecordingRecord.id).where(EventRecordingRecord.event_id == parsed_event)
+            ))
+        needle = q.strip()
+        if needle:
+            like = f"%{needle}%"
+            filters.append(
+                RecordingOrderRecord.id.like(like)
+                | RecordingOrderRecord.account_id.like(like)
+                | RecordingOrderRecord.transaction_id.like(like)
+                | RecordingOrderRecord.recording_id.in_(select(EventRecordingRecord.id).where(EventRecordingRecord.title.like(like)))
+            )
+        now = _utc_now()
+        query = select(RecordingOrderRecord).where(*filters).order_by(
+            RecordingOrderRecord.created_at.desc(), RecordingOrderRecord.id.desc()
+        )
+        if format == "csv":
+            # Export is finance-only: it carries account ids and transaction ids.
+            require_any_permission(*_RECORDING_REFUND_PERMS)(request, db)
+            rows = db.scalars(query.limit(5000)).all()
+            buffer = io.StringIO()
+            writer = csv.writer(buffer)
+            writer.writerow(["order_id", "event_id", "product", "account_id", "method", "status", "amount", "currency",
+                             "created_at", "paid_at", "decided_at", "decision_reason", "refund_reference", "transaction_id"])
+            for row in _admin_order_rows(db, rows):
+                writer.writerow([row["id"], row["event_id"], row["product_title"], row["account_id"], row["method"], row["status"],
+                                 row["amount"], row["currency"], row["created_at"], row["paid_at"], row["decided_at"],
+                                 row["decision_reason"], row["refund_reference"], row["transaction_id"]])
+            record_audit(db, identity, "recording.orders.export", target_type="recording_orders", details={"rows": len(rows), "status": status})
+            db.commit()
+            return Response(
+                content="\ufeff" + buffer.getvalue(), media_type="text/csv; charset=utf-8",
+                headers={"Content-Disposition": 'attachment; filename="recording-orders.csv"', "Cache-Control": "private, no-store"},
+            )
+        total = int(db.scalar(select(func.count(RecordingOrderRecord.id)).where(*filters)) or 0)
+        page = db.scalars(query.limit(limit).offset(offset)).all()
+        changed = False
+        for order in page:
+            changed = recordings_mod.expire_open_order(order, now) or changed
+        if changed:
+            db.commit()
+        return {"source": "shared_server_database", "items": _admin_order_rows(db, page), "total": total, "limit": limit, "offset": offset}
+
+    @app.get("/api/admin/recording-orders/{order_id}")
+    def admin_get_recording_order(
+        order_id: str, response: Response,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_RECORDING_ORDER_READ_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        order = _admin_order(db, order_id)
+        if recordings_mod.expire_open_order(order, _utc_now()):
+            db.commit()
+        view = _admin_order_rows(db, [order])[0]
+        history = db.scalars(
+            select(AdminAuditEventRecord)
+            .where(AdminAuditEventRecord.target_type == "recording_order", AdminAuditEventRecord.target_id == order.id)
+            .order_by(AdminAuditEventRecord.created_at.asc())
+        ).all()
+        view["history"] = [
+            {
+                "action": row.action, "actor_kind": row.actor_kind, "actor_role": row.actor_role, "outcome": row.outcome,
+                "details": row.details, "at": _as_utc(row.created_at).isoformat(),
+            }
+            for row in history
+        ]
+        return view
+
+    @app.get("/api/admin/recording-orders/{order_id}/receipt")
+    def admin_get_recording_receipt(
+        order_id: str,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_RECORDING_ORDER_READ_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        order = _admin_order(db, order_id)
+        if order.receipt_content is None:
+            raise HTTPException(404, "receipt_not_found")
+        headers = {
+            "Cache-Control": "private, no-store",
+            "X-Content-Type-Options": "nosniff",
+            "Content-Security-Policy": "default-src 'none'; sandbox",
+            "Content-Disposition": interaction_mod.content_disposition(order.receipt_file_name or "receipt.bin").replace("attachment", "inline", 1),
+        }
+        return Response(content=order.receipt_content, media_type=order.receipt_content_type or "application/octet-stream", headers=headers)
+
+    @app.post("/api/admin/recording-orders/{order_id}/decision")
+    async def admin_decide_recording_order(
+        order_id: str, request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_RECORDING_DECISION_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """Approve (→ paid_manual + access) or reject a submitted receipt / flagged order. Reason required."""
+        order = _admin_order(db, order_id, for_update=True)
+        payload = await _read_json_object(request, 4096)
+        if set(payload) - {"decision", "reason"}:
+            raise HTTPException(400, "invalid_decision")
+        try:
+            decision = interaction_mod.choice(payload.get("decision"), ("approve", "reject"), field="decision")
+            reason = recordings_mod.validate_reason(payload.get("reason"), required=True)
+        except interaction_mod.InteractionError as error:
+            raise _recording_error(error) from None
+        now = _utc_now()
+        if recordings_mod.expire_open_order(order, now):
+            db.commit()
+        if order.status not in recordings_mod.REVIEWABLE_ORDER_STATUSES:
+            raise HTTPException(409, {"code": "order_not_reviewable", "status": order.status})
+        if order.form_response_id is not None or order.form_payment_id is not None:
+            # Form-backed purchases are decided once, in the shared inbox (receipt_review task).
+            response = db.get(FormResponseRecord, order.form_response_id) if order.form_response_id else None
+            raise HTTPException(409, {
+                "code": "decide_in_inbox",
+                "task_id": response.receipt_review_task_id if response is not None else None,
+            })
+        recording = db.scalar(
+            select(EventRecordingRecord).where(EventRecordingRecord.id == order.recording_id).with_for_update()
+        )
+        if recording is None:
+            raise HTTPException(404, "recording_not_found")
+        actor = _interaction_actor(identity)
+        before = order.status
+        order.decided_at = now
+        order.decided_by_kind, order.decided_by_id = actor
+        order.decision_reason = reason
+        order.updated_at = now
+        if decision == "approve":
+            if order.amount != recording.price and order.method == "card_transfer":
+                # Price changed since the order was opened: the reviewer must see the mismatch, never auto-approve.
+                order.review_note = f"amount {order.amount} differs from current price {recording.price}"[:300]
+            order.status = "paid_manual"
+            order.paid_at = now
+            _grant_recording_access(
+                db, recording, order.account_id, source="purchase", now=now, order=order, actor=actor, reason=reason,
+            )
+            action = "recording.order.approve"
+        else:
+            order.status = "rejected"
+            action = "recording.order.reject"
+            product_title = recording.title or _recording_event_title(db, recording.event_id) or "محتوای ضبط‌شده"
+            _queue_recording_order_notification(
+                db, order, title="نتیجهٔ بررسی سفارش محتوای ضبط‌شده",
+                body=(f"سفارش شما برای «{product_title}» تأیید نشد.\nدلیل: {reason}\n"
+                      "در صورت نیاز می‌توانید از صفحهٔ همان رویداد سفارش تازه ثبت کنید؛ جزئیات در بخش «سفارش‌ها و پرداخت‌ها» حساب شماست."),
+            )
+        record_audit(
+            db, identity, action, target_type="recording_order", target_id=order.id,
+            details={"recording_id": recording.id, "account_id": order.account_id, "amount": order.amount,
+                     "status_before": before, "status_after": order.status, "reason": reason},
+        )
+        db.commit()
+        return _admin_order_rows(db, [order])[0]
+
+    @app.post("/api/admin/recording-orders/{order_id}/refund")
+    async def admin_refund_recording_order(
+        order_id: str, request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_RECORDING_REFUND_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """Record a refund that was really executed (reference required) and revoke the access."""
+        order = _admin_order(db, order_id, for_update=True)
+        payload = await _read_json_object(request, 4096)
+        if set(payload) - {"reference", "reason"}:
+            raise HTTPException(400, "invalid_refund")
+        try:
+            reference = interaction_mod.clean_text(payload.get("reference"), 120, field="reference", required=True, minimum=3)
+            reason = recordings_mod.validate_reason(payload.get("reason"), required=True)
+        except interaction_mod.InteractionError as error:
+            raise _recording_error(error) from None
+        if order.status not in recordings_mod.PAID_ORDER_STATUSES:
+            raise HTTPException(409, {"code": "order_not_refundable", "status": order.status})
+        now = _utc_now()
+        actor = _interaction_actor(identity)
+        before = order.status
+        order.status = "refunded"
+        order.refund_reference = reference
+        order.refunded_at = now
+        order.decision_reason = reason
+        order.decided_at = now
+        order.decided_by_kind, order.decided_by_id = actor
+        order.updated_at = now
+        access = recordings_mod.access_for(db, order.recording_id, order.account_id)
+        if access is not None and access.status != "revoked":
+            access.status = "revoked"
+            access.revoked_at = now
+            access.revoked_by_kind, access.revoked_by_id = actor
+            access.revoke_reason = f"refund:{reference}"[:300]
+        refunded_product = db.get(EventRecordingRecord, order.recording_id)
+        product_title = (
+            (refunded_product.title or _recording_event_title(db, refunded_product.event_id)) if refunded_product else ""
+        ) or "محتوای ضبط‌شده"
+        _queue_recording_order_notification(
+            db, order, title="بازپرداخت سفارش محتوای ضبط‌شده",
+            body=(f"بازپرداخت سفارش شما برای «{product_title}» ثبت شد (شمارهٔ پیگیری: {reference}).\n"
+                  f"دلیل: {reason}\nدسترسی این سفارش از این پس فعال نیست."),
+        )
+        record_audit(
+            db, identity, "recording.order.refund", target_type="recording_order", target_id=order.id,
+            details={"recording_id": order.recording_id, "account_id": order.account_id, "amount": order.amount,
+                     "status_before": before, "reference": reference, "reason": reason, "access_revoked": access is not None},
+        )
+        db.commit()
+        return _admin_order_rows(db, [order])[0]
+
+    @app.get("/api/admin/events/{event_id}/recording/access")
+    def admin_list_recording_access(
+        event_id: str, response: Response,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_INTERACTION_READ_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        response.headers["Cache-Control"] = "private, no-store"
+        event_id = _admin_event_id(db, event_id)
+        recording = _admin_recording_or_404(db, event_id)
+        now = _utc_now()
+        rows = db.scalars(
+            select(RecordingAccessRecord)
+            .where(RecordingAccessRecord.recording_id == recording.id)
+            .order_by(RecordingAccessRecord.created_at.desc())
+        ).all()
+        return {
+            "source": "shared_server_database", "recording_id": recording.id,
+            "items": [recordings_mod.access_view(row, now, account_label=_interaction_display_name(db, row.account_id)) for row in rows],
+            "total": len(rows),
+        }
+
+    @app.post("/api/admin/events/{event_id}/recording/access", status_code=201)
+    async def admin_grant_recording_access(
+        event_id: str, request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_RECORDING_STATUS_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """Manual grant: existing account id (server-verified), reason, optional scope in days."""
+        event_id = _admin_event_id(db, event_id)
+        recording = _admin_recording_or_404(db, event_id, for_update=True)
+        payload = await _read_json_object(request, 4096)
+        if set(payload) - {"account_id", "reason", "access_days"}:
+            raise HTTPException(400, "invalid_grant")
+        account_id = interaction_mod.parse_row_id(payload.get("account_id"))
+        if account_id is None or db.get(AccountRecord, account_id) is None:
+            raise HTTPException(404, "account_not_found")
+        try:
+            reason = recordings_mod.validate_reason(payload.get("reason"), required=True)
+            days = payload.get("access_days")
+            access_days = None
+            if days not in (None, "", 0):
+                if isinstance(days, bool) or not isinstance(days, int) or not 1 <= days <= recordings_mod.MAX_ACCESS_DAYS:
+                    raise interaction_mod.InteractionError("invalid_number", field="access_days")
+                access_days = days
+        except interaction_mod.InteractionError as error:
+            raise _recording_error(error) from None
+        now = _utc_now()
+        row, created = _grant_recording_access(
+            db, recording, account_id, source="granted", now=now, actor=_interaction_actor(identity), reason=reason,
+            access_days=access_days,
+        )
+        record_audit(
+            db, identity, "recording.access.grant", target_type="recording_access", target_id=row.id,
+            details={"recording_id": recording.id, "account_id": account_id, "reason": reason,
+                     "access_days": access_days if access_days is not None else (recording.access_days or 0), "created": created},
+        )
+        db.commit()
+        db.refresh(row)
+        return {"granted": True, "created": created, "access": recordings_mod.access_view(row, now)}
+
+    @app.post("/api/admin/events/{event_id}/recording/access/{access_id}/revoke")
+    async def admin_revoke_recording_access(
+        event_id: str, access_id: str, request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write(*_RECORDING_STATUS_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        event_id = _admin_event_id(db, event_id)
+        recording = _admin_recording_or_404(db, event_id)
+        parsed = interaction_mod.parse_row_id(access_id)
+        row = db.get(RecordingAccessRecord, parsed) if parsed else None
+        if row is None or row.recording_id != recording.id:
+            raise HTTPException(404, "access_not_found")
+        payload = await _read_json_object(request, 4096)
+        if set(payload) - {"reason"}:
+            raise HTTPException(400, "invalid_revoke")
+        try:
+            reason = recordings_mod.validate_reason(payload.get("reason"), required=True)
+        except interaction_mod.InteractionError as error:
+            raise _recording_error(error) from None
+        now = _utc_now()
+        if row.status != "revoked":
+            row.status = "revoked"
+            row.revoked_at = now
+            row.revoked_by_kind, row.revoked_by_id = _interaction_actor(identity)
+            row.revoke_reason = reason
+            record_audit(
+                db, identity, "recording.access.revoke", target_type="recording_access", target_id=row.id,
+                details={"recording_id": recording.id, "account_id": row.account_id, "reason": reason},
+            )
+            db.commit()
+            db.refresh(row)
+        return recordings_mod.access_view(row, now)
+
+    @app.get("/api/admin/recordings/summary")
+    def admin_recordings_summary(
+        response: Response,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission(*_INTERACTION_READ_PERMS)),
+        db: Session = Depends(get_db),
+    ):
+        """Real counts for the panel badges; zero when nothing needs action."""
+        response.headers["Cache-Control"] = "private, no-store"
+        by_status = {
+            str(status): int(count) for status, count in db.execute(
+                select(EventRecordingRecord.status, func.count(EventRecordingRecord.id)).group_by(EventRecordingRecord.status)
+            ).all()
+        }
+        orders = {
+            str(status): int(count) for status, count in db.execute(
+                select(RecordingOrderRecord.status, func.count(RecordingOrderRecord.id)).group_by(RecordingOrderRecord.status)
+            ).all()
+        }
+        now = _utc_now()
+        active_access = sum(
+            1 for row in db.scalars(select(RecordingAccessRecord).where(RecordingAccessRecord.status == "active")).all()
+            if recordings_mod.access_state(row, now) == "active"
+        )
+        per_event: dict[str, dict[str, Any]] = {}
+        for row in db.scalars(select(EventRecordingRecord)).all():
+            per_event[row.event_id] = {"status": row.status, "price": row.price}
+        for recording_id, event_id, count in db.execute(
+            select(RecordingOrderRecord.recording_id, EventRecordingRecord.event_id, func.count(RecordingOrderRecord.id))
+            .join(EventRecordingRecord, EventRecordingRecord.id == RecordingOrderRecord.recording_id)
+            .where(RecordingOrderRecord.status.in_(recordings_mod.REVIEWABLE_ORDER_STATUSES))
+            .group_by(RecordingOrderRecord.recording_id, EventRecordingRecord.event_id)
+        ).all():
+            per_event.setdefault(str(event_id), {})["orders_review"] = int(count)
+        return {
+            "source": "shared_server_database",
+            "recordings": by_status,
+            "orders_review": sum(orders.get(s, 0) for s in recordings_mod.REVIEWABLE_ORDER_STATUSES),
+            "orders_open": sum(orders.get(s, 0) for s in recordings_mod.OPEN_ORDER_STATUSES),
+            "orders_paid": sum(orders.get(s, 0) for s in recordings_mod.PAID_ORDER_STATUSES),
+            "orders_refunded": orders.get("refunded", 0),
+            "active_access": active_access,
+            "per_event": per_event,
+        }
+
+    @app.get("/api/owner/data/status")
+    def get_owner_data_status(
+        request: Request,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_permission("sys_backup")),
+        db: Session = Depends(get_db),
+    ):
+        """وضعیت فقط-خواندنی پایگاه عملیاتی و staging؛ هیچ مسیر یا رمزی برنمی‌گردد."""
+        cfg: Settings = request.app.state.settings
+        store = _data_store(cfg)
+        bind = db.get_bind()
+        dialect = getattr(getattr(bind, "dialect", None), "name", "") or "unknown"
+        try:
+            schema_version = str(db.scalar(text("SELECT version_num FROM alembic_version")) or "")
+        except SQLAlchemyError:
+            schema_version = ""
+        response = JSONResponse({
+            "database": {"engine": dialect, "schema_version": schema_version},
+            "staging": {
+                "retention_hours": cfg.data_staging_retention_hours,
+                "max_bytes": cfg.data_upload_max_bytes,
+                "used_bytes": store.usage_bytes(),
+                "outside_webroot": True,
+            },
+            "audit_tool_available": _audit_script(cfg).is_file(),
+            "operational_writes": 0,
+        })
+        response.headers["Cache-Control"] = "private, no-store"
+        return response
+
+    @app.get("/api/owner/data/uploads")
+    def list_owner_data_uploads(
+        request: Request,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_permission("sys_backup")),
+    ):
+        cfg: Settings = request.app.state.settings
+        store = _data_store(cfg)
+        response = JSONResponse({
+            "uploads": store.list_uploads(),
+            "limits": {
+                "max_bytes": cfg.data_upload_max_bytes,
+                "retention_hours": cfg.data_staging_retention_hours,
+            },
+            "audit_tool_available": _audit_script(cfg).is_file(),
+        })
+        response.headers["Cache-Control"] = "private, no-store"
+        return response
+
+    @app.post("/api/owner/data/uploads", status_code=201)
+    async def create_owner_data_upload(
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_permission_write("sys_backup")),
+        db: Session = Depends(get_db),
+    ):
+        cfg: Settings = request.app.state.settings
+        _enforce_owner_upload_limit(request, db, cfg, identity)
+        declared = request.headers.get("x-file-name", "backup.db")
+        content_type = request.headers.get("content-type", "").split(";", 1)[0].strip().lower()
+        if content_type not in (
+            "", "application/octet-stream", "application/x-sqlite3", "application/vnd.sqlite3",
+            "application/x-sqlite", "binary/octet-stream",
+        ):
+            raise HTTPException(415, "unsupported_backup_content_type")
+
+        store = _data_store(cfg)
+        store.ensure_root()
+        spool_dir = store.root / "tmp"
+        spool_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+        spool = spool_dir / f"{uuid.uuid4().hex}.upload"
+        size = 0
+        try:
+            with spool.open("wb") as handle:
+                async for chunk in request.stream():
+                    if not chunk:
+                        continue
+                    size += len(chunk)
+                    if size > cfg.data_upload_max_bytes:
+                        raise HTTPException(413, "backup_too_large")
+                    handle.write(chunk)
+            if size == 0:
+                raise HTTPException(422, "empty_backup_file")
+
+            def _chunks():
+                with spool.open("rb") as reader:
+                    for part in iter(lambda: reader.read(1024 * 1024), b""):
+                        yield part
+
+            meta = store.create_upload(_chunks(), declared)
+        except data_staging_mod.StagingError as error:
+            data_logger.info("backup upload rejected actor=%s code=%s", _owner_upload_actor(identity), error.code)
+            status = 413 if error.code in {"backup_too_large", "staging_quota_exceeded"} else 422
+            raise HTTPException(status, error.code) from None
+        finally:
+            spool.unlink(missing_ok=True)
+        data_logger.info(
+            "backup uploaded id=%s actor=%s sha256=%s size=%s tables=%s",
+            meta["id"], _owner_upload_actor(identity), meta["sha256"][:16],
+            meta["size_bytes"], meta["structure"].get("table_count"),
+        )
+        record_audit(
+            db, identity, "backup.upload", target_type="backup_upload", target_id=str(meta["id"]),
+            details={"size_bytes": int(meta["size_bytes"]), "table_count": meta["structure"].get("table_count")},
+        )
+        db.commit()
+        return {"upload": store.get_upload(meta["id"])}
+
+    @app.get("/api/owner/data/uploads/{upload_id}")
+    def get_owner_data_upload(
+        upload_id: str,
+        request: Request,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_permission("sys_backup")),
+    ):
+        cfg: Settings = request.app.state.settings
+        store = _data_store(cfg)
+        try:
+            return {"upload": store.get_upload(upload_id), "audit_tool_available": _audit_script(cfg).is_file()}
+        except data_staging_mod.StagingError as error:
+            raise HTTPException(404, error.code) from None
+
+    @app.post("/api/owner/data/uploads/{upload_id}/audit")
+    def audit_owner_data_upload(
+        upload_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_permission_write("sys_backup")),
+        db: Session = Depends(get_db),
+    ):
+        cfg: Settings = request.app.state.settings
+        store = _data_store(cfg)
+        script = _audit_script(cfg)
+        if not script.is_file():
+            raise HTTPException(503, "audit_tool_not_available")
+        try:
+            meta = store.run_audit(upload_id, script)
+        except data_staging_mod.StagingError as error:
+            raise HTTPException(404, error.code) from None
+        data_logger.info(
+            "backup audit id=%s actor=%s state=%s unchanged=%s",
+            upload_id, _owner_upload_actor(identity), meta.get("state"),
+            (meta.get("audit") or {}).get("unchanged"),
+        )
+        record_audit(
+            db, identity, "backup.audit", target_type="backup_upload", target_id=upload_id,
+            outcome=str(meta.get("state") or "ok"),
+            details={"unchanged": (meta.get("audit") or {}).get("unchanged")},
+        )
+        db.commit()
+        return {
+            "upload": store.get_upload(upload_id),
+            "unchanged": (meta.get("audit") or {}).get("unchanged"),
+        }
+
+    @app.delete("/api/owner/data/uploads/{upload_id}")
+    def delete_owner_data_upload(
+        upload_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_permission_write("sys_backup")),
+        db: Session = Depends(get_db),
+    ):
+        cfg: Settings = request.app.state.settings
+        store = _data_store(cfg)
+        try:
+            removed = store.delete_upload(upload_id)
+        except data_staging_mod.StagingError as error:
+            raise HTTPException(404, error.code) from None
+        data_logger.info("backup deleted id=%s actor=%s removed=%s", upload_id, _owner_upload_actor(identity), removed)
+        if not removed:
+            raise HTTPException(404, "upload_not_found")
+        record_audit(db, identity, "backup.delete", target_type="backup_upload", target_id=upload_id)
+        db.commit()
+        return {"deleted": True}
+
+    # ── اتصال سرویس‌ها: تنظیمات متمرکز اعتبارنامه‌ها ────────────────────────
+    # فقط مالک/مدیر دارای مجوز sys_settings. مقدار محرمانه هرگز برنمی‌گردد؛
+    # فقط «سایه» (hint)، منبع (پایگاه/محیط) و زمان آخرین تغییر.
+
+    settings_logger = logging.getLogger("nora.service_settings")
+
+    def _settings_secret_or_404(storage_id: str):
+        spec = service_settings_mod.SECRETS_BY_ID.get(storage_id)
+        if spec is None:
+            raise HTTPException(404, "unknown_service_secret")
+        return spec
+
+    # ── پنل «تنظیمات» (۱۴۰۵/۰۸/۰۱): کلیدهای allowlist با مصرف‌کنندهٔ واقعی سمت سرور ──
+    @app.get("/api/owner/settings")
+    def get_owner_system_settings(
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_permission("sys_settings")),
+        db: Session = Depends(get_db),
+    ):
+        response = JSONResponse(system_settings_mod.payload(db))
+        response.headers["Cache-Control"] = "private, no-store"
+        return response
+
+    @app.put("/api/owner/settings")
+    async def put_owner_system_settings(
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_permission_write("sys_settings")),
+        db: Session = Depends(get_db),
+    ):
+        payload = await _read_json_object(request, 16 * 1024)
+        if set(payload) != {"changes"} or not isinstance(payload.get("changes"), dict):
+            raise HTTPException(400, detail={"code": "invalid_settings_payload", "message": "بدنه باید فقط «changes» باشد."})
+        actor = getattr(identity, "owner_id", "") or getattr(identity, "account_id", "")
+        try:
+            written = system_settings_mod.apply(db, payload["changes"], actor=str(actor))
+        except system_settings_mod.SettingError as error:
+            raise HTTPException(422, detail={"code": error.code, "message": error.message}) from None
+        if written:
+            record_audit(
+                db, identity, "system_settings.update", target_type="system_settings",
+                target_id=",".join(sorted(written))[:120], details={"changed": ",".join(sorted(written))},
+            )
+        db.commit()
+        response = JSONResponse(system_settings_mod.payload(db))
+        response.headers["Cache-Control"] = "private, no-store"
+        return response
+
+    @app.get("/api/owner/service-settings")
+    def get_owner_service_settings(
+        request: Request,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_permission("sys_settings")),
+        db: Session = Depends(get_db),
+    ):
+        response = JSONResponse(service_settings_mod.status_payload(db, request.app.state.settings))
+        response.headers["Cache-Control"] = "private, no-store"
+        return response
+
+    @app.put("/api/owner/service-settings/{storage_id}")
+    async def put_owner_service_secret(
+        storage_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(
+            require_permission_write("sys_settings")
+        ),
+        db: Session = Depends(get_db),
+    ):
+        spec = _settings_secret_or_404(storage_id)
+        if not spec.editable:
+            raise HTTPException(403, "secret_is_read_only")
+        payload = await _read_json_object(request, 4 * 1024)
+        if set(payload) - {"value", "acknowledge_restart"} or not isinstance(payload.get("value"), str):
+            raise HTTPException(400, "invalid_service_secret_payload")
+        if spec.acknowledge_restart and payload.get("acknowledge_restart") is not True:
+            raise HTTPException(409, "restart_acknowledgement_required")
+        try:
+            service_settings_mod.set_secret(
+                db, spec, payload["value"], request.app.state.settings
+            )
+        except ValueError as error:
+            code = str(error) or "invalid_service_secret"
+            status = 503 if code == "settings_encryption_not_configured" else (
+                409 if code in {"otp_pepper_required"} else 422
+            )
+            settings_logger.info(
+                "service secret rejected service=%s actor=%s code=%s",
+                spec.storage_id,
+                getattr(identity, "owner_id", "") or getattr(identity, "account_id", ""),
+                code,
+            )
+            raise HTTPException(status, code) from None
+        settings_logger.info(
+            "service secret stored service=%s actor=%s", spec.storage_id,
+            getattr(identity, "owner_id", "") or getattr(identity, "account_id", ""),
+        )
+        record_audit(
+            db, identity, "service_secret.store", target_type="service_secret", target_id=spec.storage_id,
+        )
+        db.commit()
+        return JSONResponse(service_settings_mod.status_payload(db, request.app.state.settings))
+
+    @app.delete("/api/owner/service-settings/{storage_id}")
+    def delete_owner_service_secret(
+        storage_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(
+            require_permission_write("sys_settings")
+        ),
+        db: Session = Depends(get_db),
+    ):
+        spec = _settings_secret_or_404(storage_id)
+        if not spec.editable:
+            raise HTTPException(403, "secret_is_read_only")
+        removed = service_settings_mod.clear_secret(db, spec)
+        settings_logger.info(
+            "service secret cleared service=%s actor=%s removed=%s",
+            spec.storage_id,
+            getattr(identity, "owner_id", "") or getattr(identity, "account_id", ""),
+            removed,
+        )
+        record_audit(
+            db, identity, "service_secret.clear", target_type="service_secret", target_id=spec.storage_id,
+            details={"removed": bool(removed)},
+        )
+        db.commit()
+        return JSONResponse(service_settings_mod.status_payload(db, request.app.state.settings))
+
+    @app.post("/api/owner/service-settings/{storage_id}/test")
+    def test_owner_service_secret(
+        storage_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(
+            require_permission_write("sys_settings")
+        ),
+        db: Session = Depends(get_db),
+    ):
+        spec = _settings_secret_or_404(storage_id)
+        if spec.probe != "bale_get_me":
+            raise HTTPException(409, "connection_test_not_supported")
+        cfg = service_settings_mod.effective_settings(db, request.app.state.settings)
+        token = str(getattr(cfg, spec.attribute, ""))
+        ok, code = probe_bale_bot(token)
+        check = service_settings_mod.record_check(db, spec.storage_id, ok, code)
+        settings_logger.info("service probe service=%s ok=%s code=%s", spec.storage_id, ok, code)
+        record_audit(
+            db, identity, "service_secret.test", target_type="service_secret", target_id=spec.storage_id,
+            outcome="ok" if ok else "failed", details={"code": code},
+        )
+        db.commit()
+        return {"ok": ok, "code": code, "check": check}
 
     @app.post("/api/public/cooperation-requests", status_code=201)
     async def submit_cooperation_request(request: Request, db: Session = Depends(get_db)):
@@ -2019,7 +8301,7 @@ def create_app(
         db.commit()
         cookie_options: _CookieOptions = {
             "secure": cfg.cookie_secure,
-            "samesite": "strict",
+            "samesite": _samesite(cfg),
             "path": "/",
             "max_age": cfg.session_ttl_seconds,
         }
@@ -2092,6 +8374,9 @@ def create_app(
             raise HTTPException(401, "invalid_credentials")
 
         assert credential is not None  # established by the authenticated predicate
+        if _account_is_blocked(db, credential.account_id):
+            db.commit()
+            raise HTTPException(403, ACCOUNT_BLOCKED_DETAIL)
         for throttle_key in (ip_key, user_key):
             throttle = db.get(LoginThrottleRecord, throttle_key)
             if throttle is not None:
@@ -2114,7 +8399,7 @@ def create_app(
             raise HTTPException(503, "account_session_unavailable") from None
         cookie_options: _CookieOptions = {
             "secure": cfg.cookie_secure,
-            "samesite": "strict",
+            "samesite": _samesite(cfg),
             "path": "/",
             "max_age": cfg.session_ttl_seconds,
         }
@@ -2192,7 +8477,7 @@ def create_app(
 
         cookie_options: _CookieOptions = {
             "secure": cfg.cookie_secure,
-            "samesite": "strict",
+            "samesite": _samesite(cfg),
             "path": "/",
             "max_age": cfg.session_ttl_seconds,
         }
@@ -2223,6 +8508,9 @@ def create_app(
             }
 
         assert credential is not None  # successful manager branch
+        if _account_is_blocked(db, credential.account_id):
+            db.commit()
+            raise HTTPException(403, ACCOUNT_BLOCKED_DETAIL)
         db.add(
             AccountSessionRecord(
                 id=str(uuid.uuid4()),
@@ -2267,8 +8555,8 @@ def create_app(
             record.revoked_at = _utc_now()
             db.commit()
         cfg: Settings = request.app.state.settings
-        response.delete_cookie(cfg.cookie_name, path="/", secure=cfg.cookie_secure, httponly=True, samesite="strict")
-        response.delete_cookie(cfg.csrf_cookie_name, path="/", secure=cfg.cookie_secure, httponly=False, samesite="strict")
+        response.delete_cookie(cfg.cookie_name, path="/", secure=cfg.cookie_secure, httponly=True, samesite=_samesite(cfg))
+        response.delete_cookie(cfg.csrf_cookie_name, path="/", secure=cfg.cookie_secure, httponly=False, samesite=_samesite(cfg))
         return {"authenticated": False}
 
     @app.post("/api/auth/bale-mini-app")
@@ -2278,7 +8566,7 @@ def create_app(
         db: Session = Depends(get_db),
     ):
         _same_origin(request)
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         if not cfg.bale_bot_token:
             raise HTTPException(503, "bale_auth_not_configured")
         payload = await _read_json_object(request, min(cfg.max_request_bytes, 12 * 1024))
@@ -2327,6 +8615,9 @@ def create_app(
             raise HTTPException(409, "bale_init_data_replayed")
 
         account = get_or_create_bale_account(db, verified.user_id)
+        if account.status == ACCOUNT_STATUS_BLOCKED:
+            db.rollback()
+            raise HTTPException(403, ACCOUNT_BLOCKED_DETAIL)
         raw_session, raw_csrf = new_token(), new_token()
         expires = now + timedelta(seconds=cfg.session_ttl_seconds)
         db.add(
@@ -2354,7 +8645,7 @@ def create_app(
 
         cookie_options: _CookieOptions = {
             "secure": cfg.cookie_secure,
-            "samesite": "strict",
+            "samesite": _samesite(cfg),
             "path": "/",
             "max_age": cfg.session_ttl_seconds,
         }
@@ -2374,7 +8665,7 @@ def create_app(
     @app.post("/api/auth/phone-otp/request")
     async def request_phone_otp(request: Request, db: Session = Depends(get_db)):
         _same_origin(request)
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         if not cfg.safir_api_key or not cfg.safir_bot_id or not cfg.otp_pepper:
             raise HTTPException(503, "phone_otp_not_configured")
         payload = await _read_json_object(request, 2048)
@@ -2405,6 +8696,14 @@ def create_app(
 
         # کپچا بعد از محدودیت نرخ بررسی می‌شود: هر حدس تصویر هم در سقف IP/شماره می‌نشیند.
         if not verify_captcha(cfg.otp_pepper, payload.get("captcha_token"), payload.get("captcha_answer"), now=now.timestamp()):
+            db.commit()
+            raise HTTPException(422, "invalid_captcha")
+        # هر کپچای حل‌شده فقط یک بار پذیرفته می‌شود؛ nonce آن تا پایان عمر توکن در همان جدول محدودیت ورود علامت می‌خورد.
+        nonce = captcha_nonce(payload.get("captcha_token"))
+        captcha_key = throttle_digest(cfg.otp_pepper, "phone-otp-captcha-nonce\0" + (nonce or ""))
+        if nonce is None or _touch_login_rate_limit(
+            db, captcha_key, now, limit=1, window=timedelta(seconds=CAPTCHA_TTL_SECONDS)
+        ):
             db.commit()
             raise HTTPException(422, "invalid_captcha")
 
@@ -2569,7 +8868,14 @@ def create_app(
             db.rollback()
             raise HTTPException(401, "invalid_or_expired_otp")
 
+        # Decided server-side, after the code is proven: returning member vs. first login.
+        existed = phone_account_exists(db, phone, pepper=cfg.otp_pepper)
         account = get_or_create_phone_account(db, phone, pepper=cfg.otp_pepper)
+        if account.status == ACCOUNT_STATUS_BLOCKED:
+            # The code is consumed (no replay); the session is simply not opened.
+            db.commit()
+            raise HTTPException(403, ACCOUNT_BLOCKED_DETAIL)
+        profile_saved = db.get(AccountProfileRecord, account.id) is not None
         raw_session, raw_csrf = new_token(), new_token()
         db.add(
             AccountSessionRecord(
@@ -2589,19 +8895,25 @@ def create_app(
 
         cookie_options: _CookieOptions = {
             "secure": cfg.cookie_secure,
-            "samesite": "strict",
+            "samesite": _samesite(cfg),
             "path": "/",
             "max_age": cfg.session_ttl_seconds,
         }
         response.set_cookie(cfg.account_cookie_name, raw_session, httponly=True, **cookie_options)
         response.set_cookie(cfg.account_csrf_cookie_name, raw_csrf, httponly=False, **cookie_options)
-        return {"authenticated": True, "account_id": account.id, "provider": "phone"}
+        return {
+            "authenticated": True,
+            "account_id": account.id,
+            "provider": "phone",
+            "created": not existed,
+            "profile_saved": profile_saved,
+        }
 
     @app.get("/api/account/me")
-    def account_me(identity: AccountIdentity = Depends(require_account)):
+    def account_me(identity: AccountIdentity = Depends(require_account), db: Session = Depends(get_db)):
         bot_username = app.state.settings.bale_bot_username
         delivery_bot_url = f"https://ble.ir/{bot_username}" if re.fullmatch(r"[A-Za-z0-9_]{3,64}", bot_username) else ""
-        return {
+        payload: dict[str, Any] = {
             "authenticated": True,
             "account_id": identity.account_id,
             "provider": identity.provider,
@@ -2609,6 +8921,163 @@ def create_app(
             "permissions": sorted(permissions_for_role(identity.role)),
             "delivery_bot_url": delivery_bot_url,
         }
+        if identity.provider == "manager-password":
+            # Staff sessions show their own login name in the panel header (never the hash).
+            credential = db.get(ManagerCredentialRecord, identity.account_id)
+            payload["manager_username"] = credential.username_key if credential is not None else None
+        return payload
+
+    ACCOUNT_IDENTITY_PROVIDERS = ("phone", "bale")
+
+    def _account_identities(db: Session, account_id: str) -> list[PlatformIdentityRecord]:
+        return list(
+            db.scalars(
+                select(PlatformIdentityRecord)
+                .where(PlatformIdentityRecord.account_id == account_id)
+                .order_by(PlatformIdentityRecord.created_at, PlatformIdentityRecord.provider)
+            ).all()
+        )
+
+    @app.get("/api/account/identities")
+    def account_identities_list(
+        response: Response,
+        identity: AccountIdentity = Depends(require_account),
+        db: Session = Depends(get_db),
+    ):
+        """هویت‌های تأییدشدهٔ همین حساب.
+
+        شناسهٔ خام هیچ‌وقت برنمی‌گردد؛ فقط نام سکو و زمان پیوند. همین شکل پاسخ
+        برای ربات و وب یکی است تا هر دو یک تصویر از حساب ببینند.
+        """
+        response.headers["Cache-Control"] = "private, no-store"
+        rows = _account_identities(db, identity.account_id)
+        return {
+            "account_id": identity.account_id,
+            "identities": [
+                {
+                    "provider": row.provider,
+                    "linked_at": _as_utc(row.created_at).isoformat() if row.created_at else None,
+                }
+                for row in rows
+            ],
+            "available_providers": list(ACCOUNT_IDENTITY_PROVIDERS),
+            "bale_link_available": bool(_runtime_settings(db, app.state.settings).bale_bot_token),
+        }
+
+    def _consume_mini_app_replay(
+        db: Session, verified: BaleMiniAppIdentity, max_age_seconds: int
+    ) -> None:
+        """اثر انگشت یک‌بارمصرف را ثبت می‌کند؛ استفادهٔ دوباره رد می‌شود."""
+        now = _utc_now()
+        db.execute(delete(MiniAppAuthReplayRecord).where(MiniAppAuthReplayRecord.expires_at <= now))
+        if db.get(MiniAppAuthReplayRecord, verified.replay_key) is not None:
+            raise HTTPException(409, "bale_init_data_replayed")
+        db.add(
+            MiniAppAuthReplayRecord(
+                replay_key=verified.replay_key,
+                expires_at=now + timedelta(seconds=max_age_seconds + 60),
+            )
+        )
+
+    @app.post("/api/account/identities/bale")
+    async def account_link_bale_identity(
+        request: Request,
+        identity: AccountIdentity = Depends(require_account_write),
+        db: Session = Depends(get_db),
+    ):
+        """پیوند یک هویت بلهِ اثبات‌شده به همین حساب.
+
+        اثبات مالکیت فقط از راه امضای `initData` انجام می‌شود؛ شناسه‌ای که
+        مرورگر بفرستد به‌تنهایی پذیرفته نمی‌شود و نقش از سمت کلاینت خوانده
+        نمی‌شود. اگر آن هویت بله از قبل به حساب دیگری وصل باشد، هیچ ادغام
+        خودکاری رخ نمی‌دهد و درخواست با ۴۰۹ رد می‌شود تا داده‌ای گم نشود.
+        """
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
+        if not cfg.bale_bot_token:
+            raise HTTPException(503, "bale_auth_not_configured")
+        payload = await _read_json_object(request, min(cfg.max_request_bytes, 12 * 1024))
+        if set(payload) != {"init_data"} or not isinstance(payload.get("init_data"), str):
+            raise HTTPException(400, "invalid_bale_auth_payload")
+
+        try:
+            verified = verify_bale_mini_app_init_data(
+                payload["init_data"],
+                cfg.bale_bot_token,
+                now=int(_utc_now().timestamp()),
+                max_age_seconds=cfg.bale_init_data_max_age_seconds,
+            )
+        except ValueError:
+            raise HTTPException(401, "invalid_bale_init_data") from None
+
+        subject = str(verified.user_id)
+        claimed = db.scalar(
+            select(PlatformIdentityRecord).where(
+                PlatformIdentityRecord.provider == "bale",
+                PlatformIdentityRecord.provider_user_id == subject,
+            )
+        )
+        if claimed is not None:
+            if claimed.account_id == identity.account_id:
+                return {"linked": True, "provider": "bale", "already_linked": True}
+            raise HTTPException(409, detail={"code": "bale_identity_already_linked"})
+        if any(row.provider == "bale" for row in _account_identities(db, identity.account_id)):
+            raise HTTPException(409, detail={"code": "account_already_has_bale_identity"})
+
+        _consume_mini_app_replay(db, verified, cfg.bale_init_data_max_age_seconds)
+        db.add(
+            PlatformIdentityRecord(
+                id=str(uuid.uuid4()),
+                account_id=identity.account_id,
+                provider="bale",
+                provider_user_id=subject,
+            )
+        )
+        try:
+            db.commit()
+        except IntegrityError:
+            # مسابقهٔ هم‌زمان با ورود/پیوند دیگر؛ همان هویت به حساب دیگری رسید.
+            db.rollback()
+            raise HTTPException(409, detail={"code": "bale_identity_already_linked"}) from None
+        return {"linked": True, "provider": "bale", "already_linked": False}
+
+    @app.delete("/api/account/identities/bale")
+    def account_unlink_bale_identity(
+        request: Request,
+        identity: AccountIdentity = Depends(require_account_write),
+        db: Session = Depends(get_db),
+    ):
+        """برداشتن پیوند بله؛ برگشت‌پذیر و بدون حذف هیچ سابقه‌ای.
+
+        اگر بله تنها هویت حساب باشد رد می‌شود، وگرنه حساب بی‌صاحب می‌ماند.
+        نشست‌های دیگری که با provider بله ساخته شده‌اند باطل می‌شوند تا نشست
+        کهنه از پیوندِ برداشته‌شده زنده نماند؛ نشست جاری دست‌نخورده می‌ماند.
+        """
+        record = db.scalar(
+            select(PlatformIdentityRecord).where(
+                PlatformIdentityRecord.account_id == identity.account_id,
+                PlatformIdentityRecord.provider == "bale",
+            )
+        )
+        if record is None:
+            raise HTTPException(404, detail={"code": "bale_identity_not_linked"})
+        remaining = [
+            row for row in _account_identities(db, identity.account_id) if row.id != record.id
+        ]
+        if not remaining:
+            raise HTTPException(409, detail={"code": "last_identity_cannot_be_removed"})
+        db.delete(record)
+        db.execute(
+            update(AccountSessionRecord)
+            .where(
+                AccountSessionRecord.account_id == identity.account_id,
+                AccountSessionRecord.auth_provider == "bale",
+                AccountSessionRecord.id != identity.session_id,
+                AccountSessionRecord.revoked_at.is_(None),
+            )
+            .values(revoked_at=_utc_now())
+        )
+        db.commit()
+        return {"linked": False, "provider": "bale"}
 
     PROFILE_FIELD_KEYS = ("fullName", "nationalId", "birthDate", "gender", "province", "city", "address", "email")
 
@@ -2671,9 +9140,10 @@ def create_app(
         response.headers["Cache-Control"] = "private, no-store"
         response.headers["Vary"] = "Cookie"
         filters = (
-            FormResponseDraftRecord.account_id == identity.account_id,
+            account_form_record_scope(db, identity.account_id),
             FormResponseRecord.added_by_response_id.is_(None),
             FormRecord.model == "registration",
+            FormRecord.purpose == "registration",
         )
         total = int(db.scalar(
             select(func.count(FormResponseRecord.id))
@@ -2682,7 +9152,7 @@ def create_app(
             .where(*filters)
         ) or 0)
         rows = db.execute(
-            select(FormResponseRecord, FormPaymentRecord)
+            select(FormResponseRecord, FormPaymentRecord, FormRecord.event_id)
             .join(FormResponseDraftRecord, FormResponseDraftRecord.id == FormResponseRecord.draft_id)
             .join(FormRecord, FormRecord.id == FormResponseRecord.form_id)
             .outerjoin(FormPaymentRecord, FormPaymentRecord.response_id == FormResponseRecord.id)
@@ -2691,17 +9161,44 @@ def create_app(
             .limit(limit + 1)
             .offset(offset)
         ).all()
+        # Phase 9.5 §9 (additive): the live event schedule for the shared countdown — computed with the
+        # server clock by the same ``registration_state`` rule the public pages use, so «رویدادهای من»
+        # never invents a deadline. Only lifecycle/state and the two ISO targets leave the server.
+        site = db.get(SiteContentRecord, "public")
+        now = _utc_now()
+        live_events: dict[str, dict[str, Any]] = {}
+        for live_event in public_site_content(site.content or {}).get("events", []) if site is not None else []:
+            if isinstance(live_event, dict) and live_event.get("id"):
+                live_events[str(live_event.get("id"))] = live_event
+
+        def _event_schedule(event_id: str) -> dict[str, Any] | None:
+            live_event = live_events.get(event_id)
+            if live_event is None:
+                return None
+            registration = event_time.registration_state(live_event, now=now, has_form=True)
+            return {
+                "state": registration["state"],
+                "lifecycle": registration["lifecycle"],
+                "startsAt": registration["startsAt"],
+                "startsIn": registration["startsIn"],
+                "ended": registration["state"] == "ended",
+            }
+
         items = []
-        for record, payment in rows[:limit]:
+        for record, payment, form_event_id in rows[:limit]:
             snapshot = record.form_snapshot if isinstance(record.form_snapshot, dict) else {}
             event = _json_dict_member(snapshot, "event")
             form_name = _ticket_text(snapshot.get("name") or "فرم ثبت‌نام", 160) or "فرم ثبت‌نام"
             items.append({
                 "id": record.id,
+                # Phase 9.3 (additive): lets «رویدادهای من» link a held event to the archive the member can
+                # already open (the library decides access; this is only the join key, never an access basis).
+                "event_id": str(form_event_id or "")[:120],
                 "form_name": form_name,
                 "event_title": _ticket_text(event.get("title") or form_name, 160) or form_name,
                 "event_date": _ticket_text(event.get("date") or "", 120),
                 "event_time": _ticket_text(event.get("time") or "", 120),
+                "event_schedule": _event_schedule(str(form_event_id or "")) if form_event_id else None,
                 "status": record.status,
                 "payment_status": payment.status if payment is not None else None,
                 "receipt_uploaded": (
@@ -2835,6 +9332,68 @@ def create_app(
             item = existing
             return {"id": item.id, "content_type": item.content_type, "size": item.content_size, "created": False}
         return {"id": item.id, "content_type": item.content_type, "size": item.content_size, "created": True}
+
+    @app.post("/api/bot/certificates")
+    async def submit_bot_certificate(
+        request: Request,
+        _service: None = Depends(require_bot_service),
+        db: Session = Depends(get_db),
+    ):
+        """Mirror one bot-issued certificate. Owner is resolved server-side; unmapped owners are not stored."""
+        payload = await _read_json_object(request, 16 * 1024)
+        try:
+            submission = certificates_mod.validate_submission(payload)
+            prior_status = db.scalar(
+                select(CertificateRecord.status).where(CertificateRecord.external_key == submission["external_key"])
+            )
+            record, created = certificates_mod.upsert(db, submission)
+        except certificates_mod.CertificateError as error:
+            raise _certificate_error(error) from None
+        # Issued / revoked notifications only on a real state change of the mirrored certificate
+        # (the bot center is the issuer; the server never issues). Keyed per certificate+status.
+        if record.status in {"issued", "revoked"} and record.status != prior_status:
+            label = record.title or record.event_title or "گواهی"
+            if record.status == "issued":
+                title, body = "گواهی شما صادر شد", f"گواهی «{label}» برای شما صادر شد و در بخش «گواهی‌ها» حساب کاربری قابل مشاهده است."
+            else:
+                title, body = "گواهی شما باطل شد", f"گواهی «{label}» باطل شد و دیگر معتبر نیست. برای پیگیری با برگزارکننده تماس بگیرید."
+            notifications_mod.queue(
+                db, account_id=record.account_id, kind=notifications_mod.KIND_CERTIFICATE, title=title, body=body,
+                key=notifications_mod.dedupe_key("certificate", record.external_key, record.status),
+                bale_ids=[record.bale_user_id] if record.bale_user_id else [],
+                link=notifications_mod.account_link("certificates"),
+            )
+        db.commit()
+        return {
+            "id": record.id,
+            "created": created,
+            "status": record.status,
+            "account_id": record.account_id,
+            "has_file": record.file_id is not None,
+            "has_preview": record.preview_file_id is not None,
+        }
+
+    @app.post("/api/bot/club/points")
+    async def submit_bot_club_points_entry(
+        request: Request,
+        _service: None = Depends(require_bot_service),
+        db: Session = Depends(get_db),
+    ):
+        """Mirror one immutable row of the bot's points ledger. Owner resolved server-side; unmapped owners are not stored."""
+        payload = await _read_json_object(request, 8 * 1024)
+        try:
+            submission = club_points_mod.validate_submission(payload)
+            record, created = club_points_mod.upsert(db, submission)
+        except club_points_mod.ClubPointsError as error:
+            raise HTTPException(error.status_code, error.code) from None
+        db.commit()
+        return {
+            "id": record.id,
+            "created": created,
+            "external_key": record.external_key,
+            "account_id": record.account_id,
+            "balance_after": record.balance_after,
+        }
 
     @app.get("/api/bot/files")
     def list_bot_private_files(
@@ -3243,7 +9802,11 @@ def create_app(
     ):
         items = db.scalars(
             select(UserNotificationRecord)
-            .where(UserNotificationRecord.delivery_status == "pending")
+            .where(
+                UserNotificationRecord.delivery_status == "pending",
+                # Rows without a Bale destination (web-only accounts) are never handed to the bot.
+                UserNotificationRecord.bale_user_id != "",
+            )
             .order_by(UserNotificationRecord.created_at.asc(), UserNotificationRecord.id)
             .limit(limit)
         ).all()
@@ -3403,6 +9966,21 @@ def create_app(
             "has_more": len(items) > limit,
         }
 
+    @app.get("/api/account/certificates")
+    def account_certificates(
+        response: Response,
+        identity: AccountIdentity = Depends(require_account),
+        db: Session = Depends(get_db),
+    ):
+        """«گواهینامه‌های من»: only rows the bot mirrored for this account; files come from the bot."""
+        response.headers["Cache-Control"] = "private, no-store"
+        response.headers["Vary"] = "Cookie"
+        result = certificates_mod.account_records(
+            db, identity.account_id, today_jalali=certificates_mod.today_jalali(),
+        )
+        result["source"] = certificates_mod.SOURCE
+        return result
+
     @app.get("/api/account/files/{file_id}")
     def account_private_file(
         file_id: str,
@@ -3427,6 +10005,169 @@ def create_app(
         role = ROLE_OWNER if isinstance(identity, OwnerIdentity) else identity.role
         response.headers["Cache-Control"] = "private, no-store"
         return admin_reports_summary_data(db, role, period)
+
+    @app.get("/api/admin/integrity/recordings")
+    def admin_recording_integrity(
+        response: Response,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_permission("rp_view")),
+        db: Session = Depends(get_db),
+    ):
+        """Phase 9.5 §3: read-only purchase-chain audit (form → response → payment → ledger → access).
+
+        Same report as ``tools/recording-access-audit.py``; ids only, never fixes anything.
+        """
+        response.headers["Cache-Control"] = "no-store"
+        return integrity_mod.run(db, _utc_now())
+
+    @app.get("/api/admin/notifications")
+    def admin_notifications(
+        response: Response,
+        state: str = Query(default=""),
+        kind: str = Query(default=""),
+        limit: int = Query(default=30, ge=1, le=100),
+        offset: int = Query(default=0, ge=0, le=1_000_000),
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_permission("rp_view")),
+        db: Session = Depends(get_db),
+    ):
+        """Phase 9.4 §8: global outbox view for the panel — queue / retrying / delivered / failed / no-Bale.
+
+        Read-only, ``rp_view`` (same permission as the reports tab). Shows what the server knows:
+        recorded ≠ sent ≠ delivered; ``no_bale_identity`` is a distinct, non-network state. Bodies
+        never contain private file URLs (enforced at write time), so nothing here leaks access.
+        """
+        response.headers["Cache-Control"] = "private, no-store"
+        if state not in {"", "queued", "retrying", "delivered", "failed", "no_bale_identity"}:
+            raise HTTPException(422, "invalid_notification_state")
+        if kind and not re.fullmatch(r"[a-z_]{1,40}", kind):
+            raise HTTPException(422, "invalid_notification_kind")
+        query = select(UserNotificationRecord)
+        if kind:
+            query = query.where(UserNotificationRecord.kind == kind)
+        if state == "queued":
+            query = query.where(UserNotificationRecord.delivery_status == "pending", UserNotificationRecord.delivery_attempts == 0)
+        elif state == "retrying":
+            query = query.where(UserNotificationRecord.delivery_status == "pending", UserNotificationRecord.delivery_attempts > 0)
+        elif state == "delivered":
+            query = query.where(UserNotificationRecord.delivery_status == "delivered")
+        elif state == "failed":
+            query = query.where(UserNotificationRecord.delivery_status == "failed", UserNotificationRecord.last_delivery_error != "no_bale_identity")
+        elif state == "no_bale_identity":
+            query = query.where(UserNotificationRecord.last_delivery_error == "no_bale_identity")
+        rows = db.scalars(
+            query.order_by(UserNotificationRecord.created_at.desc(), UserNotificationRecord.id).offset(offset).limit(limit + 1)
+        ).all()
+        counts_rows = db.execute(
+            select(UserNotificationRecord.delivery_status, UserNotificationRecord.last_delivery_error, func.count())
+            .group_by(UserNotificationRecord.delivery_status, UserNotificationRecord.last_delivery_error)
+        ).all()
+        counts = {"queued": 0, "retrying": 0, "delivered": 0, "failed": 0, "no_bale_identity": 0}
+        retrying = db.scalar(
+            select(func.count()).select_from(UserNotificationRecord).where(
+                UserNotificationRecord.delivery_status == "pending", UserNotificationRecord.delivery_attempts > 0,
+            )
+        ) or 0
+        for status, error, count in counts_rows:
+            if status == "pending":
+                counts["queued"] += int(count)
+            elif status == "delivered":
+                counts["delivered"] += int(count)
+            elif error == "no_bale_identity":
+                counts["no_bale_identity"] += int(count)
+            else:
+                counts["failed"] += int(count)
+        counts["queued"] -= int(retrying)
+        counts["retrying"] = int(retrying)
+        items = []
+        for row in rows[:limit]:
+            view = user_notification_view(row)
+            view["account_id"] = row.account_id
+            view["account_label"] = _interaction_display_name(db, row.account_id)
+            view["has_bale_identity"] = bool(row.bale_user_id)
+            view["dedupe_key"] = row.dedupe_key
+            view.pop("bale_user_id", None)  # the panel needs the state, not the raw Bale id
+            items.append(view)
+        return {"source": "shared_server_database", "items": items, "has_more": len(rows) > limit, "counts": counts,
+                "limit": limit, "offset": offset}
+
+    @app.post("/api/admin/notifications/{notification_id}/retry")
+    def admin_retry_notification(
+        notification_id: str,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write("ev_publish")),
+        db: Session = Depends(get_db),
+    ):
+        """Phase 9.5 §8: re-queue a *failed* outbox row — the same row, never a second one.
+
+        The Bale target is re-resolved from the server-side identity table, so a ``no_bale_identity``
+        row becomes deliverable only if the account has linked Bale since; otherwise 409 with the
+        same honest code. Delivered rows are never touched. Audited with actor and previous state.
+        """
+        if not re.fullmatch(r"[0-9a-fA-F-]{36}", notification_id):
+            raise HTTPException(404, {"code": "notification_not_found"})
+        item = db.get(UserNotificationRecord, notification_id)
+        if item is None:
+            raise HTTPException(404, {"code": "notification_not_found"})
+        if item.delivery_status == "delivered":
+            raise HTTPException(409, {"code": "already_delivered"})
+        if item.delivery_status != "failed":
+            raise HTTPException(409, {"code": "notification_not_failed", "state": interaction_mod.delivery_state(item.delivery_status, item.delivery_attempts)})
+        if item.kind == event_reminders_mod.KIND and item.last_delivery_error == event_reminders_mod.STALE_ERROR:
+            # B19: a reminder withdrawn because the event moved/was cancelled must never be sent later.
+            raise HTTPException(409, {"code": "reminder_superseded"})
+        bale_ids = verified_bale_ids_for_account(db, item.account_id)
+        if not bale_ids:
+            raise HTTPException(409, {"code": "no_bale_identity"})
+        previous_attempts, previous_error = item.delivery_attempts, (item.last_delivery_error or "")[:80]
+        item.bale_user_id = str(bale_ids[0])
+        item.delivery_status = "pending"
+        item.delivery_attempts = 0
+        item.last_delivery_error = None
+        record_audit(
+            db, identity, "notification.retry", target_type="user_notification", target_id=item.id,
+            details={"kind": item.kind, "previous_attempts": previous_attempts, "previous_error": previous_error},
+        )
+        db.commit()
+        db.refresh(item)
+        view = user_notification_view(item)
+        view.pop("bale_user_id", None)
+        view["has_bale_identity"] = True
+        view["account_id"] = item.account_id
+        return view
+
+    @app.get("/api/admin/scheduled-publish")
+    def admin_scheduled_publish_state(
+        response: Response,
+        _identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission("rp_view")),
+        db: Session = Depends(get_db),
+    ):
+        """Phase 9.5 §8.2: last scheduler run (marker) + how many scheduled rows wait. Read-only."""
+        response.headers["Cache-Control"] = "private, no-store"
+        now = _utc_now()
+        marker = db.get(SystemMarkerRecord, scheduled_publish_mod.MARKER_KEY)
+        return {
+            "now": now.isoformat(),
+            "last_run": ({"at": interaction_mod.iso(marker.updated_at), **(marker.value if isinstance(marker.value, dict) else {})}
+                         if marker is not None else None),
+            "pending": scheduled_publish_mod.pending_count(db, now),
+            "runner": "systemd timer or manual run; the web process does not run a background scheduler",
+        }
+
+    @app.post("/api/admin/scheduled-publish/run")
+    def admin_scheduled_publish_run(
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write("ev_publish")),
+        db: Session = Depends(get_db),
+    ):
+        """Run one announcement pass now (same function as the timer); idempotent; audited."""
+        actor_kind, actor_id = _interaction_actor(identity)
+        summary = scheduled_publish_mod.announce_due(db, _utc_now(), actor=f"{actor_kind}:{actor_id}"[:40])
+        record_audit(
+            db, identity, "scheduled_publish.run", target_type="system_marker", target_id=scheduled_publish_mod.MARKER_KEY,
+            details={"due": summary["due"], "announced": summary["announced"], "notified": summary["notified"],
+                     "skipped": summary["skipped"], "ok": summary["ok"],
+                     "reminders_queued": int((summary.get("reminders") or {}).get("queued") or 0),
+                     "reminders_withdrawn": int((summary.get("reminders") or {}).get("withdrawn") or 0)},
+        )
+        db.commit()
+        return summary
 
     @app.post("/api/bot/reports/summary")
     async def bot_admin_reports_summary(
@@ -3460,21 +10201,30 @@ def create_app(
     def admin_workflow_inbox(
         limit: int = Query(default=50, ge=1, le=100),
         offset: int = Query(default=0, ge=0, le=1_000_000),
+        status: str = Query(default="pending", pattern=r"^(pending|decided|approved|rejected)$"),
         identity: OwnerIdentity | AccountIdentity = Depends(
             require_any_permission("us_approve", "receipt_approve")
         ),
         db: Session = Depends(get_db),
     ):
+        """Shared review inbox. ``status=pending`` (default) lists open work; the
+        other values expose the decision history (who decided what, when)."""
         role = ROLE_OWNER if isinstance(identity, OwnerIdentity) else identity.role
         kinds = [kind for kind in ("profile_review", "receipt_review") if has_permission(role, workflow_permission(kind))]
-        tasks = db.scalars(
-            select(AdminTaskRecord)
-            .where(AdminTaskRecord.status == "pending", AdminTaskRecord.kind.in_(kinds))
-            .order_by(AdminTaskRecord.created_at.asc(), AdminTaskRecord.id)
-            .offset(offset)
-            .limit(limit + 1)
-        ).all()
-        return {"items": admin_inbox_task_views(db, tasks[:limit]), "has_more": len(tasks) > limit}
+        statuses = ("approved", "rejected") if status == "decided" else (status,)
+        query = select(AdminTaskRecord).where(
+            AdminTaskRecord.status.in_(statuses), AdminTaskRecord.kind.in_(kinds)
+        )
+        if status == "pending":
+            query = query.order_by(AdminTaskRecord.created_at.asc(), AdminTaskRecord.id)
+        else:
+            query = query.order_by(AdminTaskRecord.reviewed_at.desc(), AdminTaskRecord.id)
+        tasks = db.scalars(query.offset(offset).limit(limit + 1)).all()
+        return {
+            "items": admin_inbox_task_views(db, tasks[:limit]),
+            "has_more": len(tasks) > limit,
+            "status": status,
+        }
 
     @app.get("/api/admin/inbox/{task_id}/files/{file_id}")
     def admin_workflow_file(
@@ -3536,6 +10286,10 @@ def create_app(
             raise HTTPException(403, "permission_denied")
         if task.status != "pending" or task.version != expected_version:
             raise HTTPException(409, "workflow_version_conflict")
+        if task.kind == "receipt_review" and len(reason.strip()) < 2:
+            # A receipt decision moves money/access state; it is only accepted with a stated, audited reason
+            # (the panel asks for confirmation + reason, but the rule lives here).
+            raise HTTPException(422, "receipt_decision_reason_required")
         reviewer_id = identity.owner_id if isinstance(identity, OwnerIdentity) else identity.account_id
         reviewer_bale_id = None
         if isinstance(identity, AccountIdentity):
@@ -3546,26 +10300,96 @@ def create_app(
                 )
             )
         apply_admin_task_decision(db, task, decision, reason.strip(), reviewer_id, reviewer_bale_id)
+        record_audit(
+            db, identity, "workflow.decide", target_type="admin_task", target_id=task.id,
+            details={"kind": task.kind, "decision": decision, "has_reason": bool(reason.strip())},
+        )
         db.commit()
-        return {"task": admin_task_view(db.get(AdminTaskRecord, task.id)), "accepted": True}
+        refreshed = db.get(AdminTaskRecord, task.id)
+        if refreshed is None:
+            raise HTTPException(404, "admin_task_not_found")
+        return {"task": admin_inbox_task_views(db, [refreshed])[0], "accepted": True}
+
+    @app.get("/api/owner/audit")
+    def list_owner_audit_events(
+        limit: int = Query(default=50, ge=1, le=100),
+        offset: int = Query(default=0, ge=0, le=1_000_000),
+        action: str = Query(default="", max_length=64, pattern=r"^[a-z_.]*$"),
+        # ``content.events`` / ``content.people``: dotted target types are the per-record history
+        # (owner decision 1405/08/01); the dot was previously rejected, which hid them from the filter.
+        target_type: str = Query(default="", max_length=32, pattern=r"^[a-z_.]*$"),
+        target_id: str = Query(default="", max_length=120, pattern=r"^[A-Za-z0-9_.:-]*$"),
+        _identity: OwnerIdentity = Depends(require_owner),
+        db: Session = Depends(get_db),
+    ):
+        """Owner-only, read-only view of the administrative audit trail."""
+        rows, has_more = audit_mod.list_admin_events(
+            db, limit=limit, offset=offset, action=action, target_type=target_type, target_id=target_id
+        )
+        return {
+            "items": [audit_mod.audit_event_view(row) for row in rows],
+            "limit": limit,
+            "offset": offset,
+            "has_more": has_more,
+            "actions": sorted(audit_mod.ACTIONS),
+        }
 
     @app.get("/api/owner/accounts")
     def list_account_roles(
         limit: int = Query(default=50, ge=1, le=100),
         offset: int = Query(default=0, ge=0, le=1_000_000),
+        q: str = Query(default="", max_length=80),
+        role_filter: str = Query(default="", alias="role", pattern=r"^(|assigned|manager|club-supervisor|none)$"),
         _identity: OwnerIdentity = Depends(require_owner),
         db: Session = Depends(get_db),
     ):
-        records = db.execute(
-            select(AccountRecord, PlatformIdentityRecord, AccountRoleRecord, ManagerCredentialRecord)
+        """Verified accounts with their server role.
+
+        Phone numbers are stored only as a peppered digest, so the owner identifies
+        an account by the member's own profile name (``display_name``), the Bale id,
+        the manager username or the account id prefix. ``q`` matches those fields.
+        """
+        query = (
+            select(AccountRecord, PlatformIdentityRecord, AccountRoleRecord, ManagerCredentialRecord, AccountProfileRecord)
             .join(PlatformIdentityRecord, PlatformIdentityRecord.account_id == AccountRecord.id)
             .outerjoin(AccountRoleRecord, AccountRoleRecord.account_id == AccountRecord.id)
             .outerjoin(ManagerCredentialRecord, ManagerCredentialRecord.account_id == AccountRecord.id)
+            .outerjoin(AccountProfileRecord, AccountProfileRecord.account_id == AccountRecord.id)
             .where(PlatformIdentityRecord.provider.in_(("bale", "phone")))
-            .order_by(AccountRecord.created_at.desc(), AccountRecord.id)
-            .offset(offset)
-            .limit(limit + 1)
-        ).all()
+        )
+        if role_filter == "assigned":
+            query = query.where(AccountRoleRecord.role.is_not(None))
+        elif role_filter == "none":
+            query = query.where(AccountRoleRecord.role.is_(None))
+        elif role_filter:
+            query = query.where(AccountRoleRecord.role == role_filter)
+        needle = unicodedata.normalize("NFKC", q or "").strip().lower()
+        if needle:
+            # Profile names live inside JSON; filter in Python over a bounded window
+            # so the search stays dialect-agnostic (SQLite + PostgreSQL).
+            candidates = db.execute(
+                query.order_by(AccountRecord.created_at.desc(), AccountRecord.id).limit(2000)
+            ).all()
+            def _matches(row: Any) -> bool:
+                account, identity, role, credential, profile = row
+                name = str(((profile.fields if profile is not None else {}) or {}).get("fullName") or "")
+                haystack = " ".join(
+                    part for part in (
+                        unicodedata.normalize("NFKC", name).lower(),
+                        identity.provider_user_id.lower() if identity.provider == "bale" else "",
+                        (credential.username_key if credential is not None else ""),
+                        account.id.lower(),
+                    ) if part
+                )
+                return needle in haystack
+            filtered = [row for row in candidates if _matches(row)]
+            records = filtered[offset: offset + limit + 1]
+        else:
+            records = list(db.execute(
+                query.order_by(AccountRecord.created_at.desc(), AccountRecord.id)
+                .offset(offset)
+                .limit(limit + 1)
+            ).all())
         has_more = len(records) > limit
         items = [
             {
@@ -3576,15 +10400,16 @@ def create_app(
                     if identity.provider == "bale"
                     else "OTP-" + identity.provider_user_id[:8]
                 ),
+                "display_name": str(((profile.fields if profile is not None else {}) or {}).get("fullName") or "")[:120],
                 "role": role.role if role is not None else None,
                 "permissions": sorted(permissions_for_role(role.role if role is not None else None)),
                 "manager_username": credential.username_key if credential is not None else None,
                 "manager_login_enabled": credential is not None,
                 "created_at": _as_utc(account.created_at).isoformat(),
             }
-            for account, identity, role, credential in records[:limit]
+            for account, identity, role, credential, profile in records[:limit]
         ]
-        return {"items": items, "limit": limit, "offset": offset, "has_more": has_more}
+        return {"items": items, "limit": limit, "offset": offset, "has_more": has_more, "q": q}
 
     @app.put("/api/owner/accounts/{account_id}/role")
     async def set_account_role(
@@ -3603,6 +10428,7 @@ def create_app(
         if account is None:
             raise HTTPException(404, "account_not_found")
         current = db.get(AccountRoleRecord, account_id)
+        previous_role = current.role if current is not None else None
         if role is None:
             if current is not None:
                 db.delete(current)
@@ -3616,12 +10442,129 @@ def create_app(
             current.role = role
             current.assigned_by = _identity.owner_id
             current.updated_at = _utc_now()
+        record_audit(
+            db, _identity, "role.clear" if role is None else "role.set",
+            target_type="account", target_id=account_id,
+            details={"previous_role": previous_role, "role": role},
+        )
         db.commit()
         return {
             "account_id": account_id,
             "role": role,
             "permissions": sorted(permissions_for_role(role)),
         }
+
+    @app.put("/api/owner/accounts/{account_id}/status")
+    async def set_account_status(
+        account_id: str,
+        request: Request,
+        _identity: OwnerIdentity = Depends(require_owner_write),
+        db: Session = Depends(get_db),
+    ):
+        """Owner decision 1405/08/01: block (reason mandatory) / re-activate an account.
+
+        The owner's own account (the Bale identity configured as ``owner_bale_user_id``) can never
+        be blocked; blocking revokes every open session of the account; both directions are audited
+        with actor, time and reason.
+        """
+        payload = await _read_json_object(request, 4096)
+        if not set(payload) <= {"status", "reason"} or "status" not in payload:
+            raise HTTPException(400, "invalid_account_status_payload")
+        status = payload.get("status")
+        if status not in ACCOUNT_STATUSES:
+            raise HTTPException(422, {"code": "invalid_account_status", "field": "status"})
+        reason_raw = payload.get("reason", "")
+        if reason_raw is not None and not isinstance(reason_raw, str):
+            raise HTTPException(422, {"code": "invalid_block_reason", "field": "reason"})
+        reason = " ".join(str(reason_raw or "").split())
+        if status == ACCOUNT_STATUS_BLOCKED and len(reason) < _BLOCK_REASON_MIN:
+            raise HTTPException(422, {"code": "block_reason_required", "field": "reason", "min": _BLOCK_REASON_MIN})
+        if len(reason) > _BLOCK_REASON_MAX:
+            raise HTTPException(422, {"code": "block_reason_too_long", "field": "reason", "max": _BLOCK_REASON_MAX})
+        account = db.get(AccountRecord, account_id)
+        if account is None:
+            raise HTTPException(404, "account_not_found")
+        cfg: Settings = request.app.state.settings
+        if status == ACCOUNT_STATUS_BLOCKED and cfg.owner_bale_user_id and db.scalar(
+            select(PlatformIdentityRecord.id).where(
+                PlatformIdentityRecord.account_id == account_id,
+                PlatformIdentityRecord.provider == "bale",
+                PlatformIdentityRecord.provider_user_id == cfg.owner_bale_user_id,
+            )
+        ) is not None:
+            raise HTTPException(409, {"code": "owner_account_protected"})
+        previous = account.status or ACCOUNT_STATUS_ACTIVE
+        now = _utc_now()
+        revoked = 0
+        if previous != status:
+            if status == ACCOUNT_STATUS_BLOCKED:
+                account.status = ACCOUNT_STATUS_BLOCKED
+                account.blocked_reason = reason
+                account.blocked_at = now
+                account.blocked_by = _identity.owner_id
+                revoked = _revoke_all_account_sessions(db, account_id, now)
+                record_audit(
+                    db, _identity, "account.block", target_type="account", target_id=account_id,
+                    details={"previous_status": previous, "status": status, "reason": reason, "sessions_revoked": revoked},
+                )
+            else:
+                previous_reason = account.blocked_reason or ""
+                account.status = ACCOUNT_STATUS_ACTIVE
+                account.blocked_reason = ""
+                account.blocked_at = None
+                account.blocked_by = ""
+                record_audit(
+                    db, _identity, "account.unblock", target_type="account", target_id=account_id,
+                    details={"previous_status": previous, "status": status, "reason": reason, "previous_reason": previous_reason},
+                )
+            db.commit()
+            db.refresh(account)
+        return {"account_id": account_id, "changed": previous != status, "sessions_revoked": revoked, **_account_status_view(account)}
+
+    @app.put("/api/admin/users/{account_id}/note")
+    async def set_account_internal_note(
+        account_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_any_permission_write("us_notes")),
+        db: Session = Depends(get_db),
+    ):
+        """Staff-only internal note: read with ``us_view``, write with the catalogue's own
+        ``us_notes`` («یادداشت روی پرونده»); distinct from the block reason; never member-facing.
+
+        The audit row records only the note length, never its text.
+        """
+        payload = await _read_json_object(request, 16384)
+        if set(payload) != {"note"}:
+            raise HTTPException(400, "invalid_note_payload")
+        note_raw = payload.get("note")
+        if note_raw is not None and not isinstance(note_raw, str):
+            raise HTTPException(422, {"code": "invalid_note", "field": "note"})
+        note = str(note_raw or "").replace("\r\n", "\n").strip()
+        if len(note) > _INTERNAL_NOTE_MAX:
+            raise HTTPException(422, {"code": "note_too_long", "field": "note", "max": _INTERNAL_NOTE_MAX})
+        if not re.fullmatch(r"[0-9a-fA-F-]{36}", account_id or ""):
+            raise HTTPException(404, "user_not_found")
+        account = db.get(AccountRecord, account_id)
+        if account is None or not db.scalar(
+            select(PlatformIdentityRecord.id).where(
+                PlatformIdentityRecord.account_id == account_id,
+                PlatformIdentityRecord.provider.in_(("bale", "phone")),
+            )
+        ):
+            raise HTTPException(404, "user_not_found")
+        actor = identity.owner_id if isinstance(identity, OwnerIdentity) else identity.account_id
+        changed = (account.internal_note or "") != note
+        if changed:
+            account.internal_note = note
+            account.note_updated_at = _utc_now()
+            account.note_updated_by = actor
+            record_audit(
+                db, identity, "account.note", target_type="account", target_id=account_id,
+                details={"length": len(note), "cleared": not note},
+            )
+            db.commit()
+            db.refresh(account)
+        return {"account_id": account_id, "changed": changed, **_account_status_view(account)}
 
     @app.put("/api/owner/accounts/{account_id}/manager-credentials")
     async def set_manager_credentials(
@@ -3665,6 +10608,7 @@ def create_app(
             raise HTTPException(409, "manager_username_taken")
 
         credential = db.get(ManagerCredentialRecord, account_id)
+        replaced = credential is not None
         encoded_password = hash_password(password)
         if credential is None:
             credential = ManagerCredentialRecord(
@@ -3678,6 +10622,10 @@ def create_app(
             credential.password_hash = encoded_password
             credential.updated_at = _utc_now()
         _revoke_manager_password_sessions(db, account_id, _utc_now())
+        record_audit(
+            db, _identity, "manager_credentials.set", target_type="account", target_id=account_id,
+            details={"username": username_key, "replaced": replaced},
+        )
         try:
             db.commit()
         except IntegrityError:
@@ -3701,6 +10649,10 @@ def create_app(
         if credential is not None:
             db.delete(credential)
         _revoke_manager_password_sessions(db, account_id, _utc_now())
+        record_audit(
+            db, _identity, "manager_credentials.remove", target_type="account", target_id=account_id,
+            details={"had_login": credential is not None},
+        )
         db.commit()
         return {"account_id": account_id, "configured": False}
 
@@ -3721,14 +10673,14 @@ def create_app(
             path="/",
             secure=cfg.cookie_secure,
             httponly=True,
-            samesite="strict",
+            samesite=_samesite(cfg),
         )
         response.delete_cookie(
             cfg.account_csrf_cookie_name,
             path="/",
             secure=cfg.cookie_secure,
             httponly=False,
-            samesite="strict",
+            samesite=_samesite(cfg),
         )
         return {"authenticated": False}
 
@@ -3770,8 +10722,13 @@ def create_app(
         record = db.get(CooperationRequestRecord, request_id)
         if record is None:
             raise HTTPException(404, "cooperation_request_not_found")
+        previous_status = record.status
         record.status = payload["status"]
         record.updated_at = _utc_now()
+        record_audit(
+            db, _identity, "cooperation_request.update", target_type="cooperation_request",
+            target_id=record.id, details={"from_status": previous_status, "status": record.status},
+        )
         db.commit()
         return {"id": record.id, "status": record.status}
 
@@ -3827,12 +10784,17 @@ def create_app(
         create_key = request.headers.get("idempotency-key", "").strip()
         if not re.fullmatch(r"[A-Za-z0-9_-]{16,80}", create_key):
             raise HTTPException(428, "idempotency_key_required")
+        event_id = _resolve_purchase_link(db, normalized)
+        _require_known_form_event(db, normalized, event_id, previous=None)
+        _require_finance_for_commercial_change(identity, None, normalized.settings)
         canonical_payload = {
             "name": normalized.title,
             "model": normalized.model,
             "need": normalized.need,
             "slug": normalized.slug,
-            "event_id": normalized.event_id,
+            "event_id": event_id,
+            "purpose": normalized.purpose,
+            "recording_id": normalized.recording_id,
             "settings": normalized.settings,
             "fields": [
                 {"id": field.key, "t": field.field_type, "l": field.label, "config": field.config}
@@ -3865,7 +10827,9 @@ def create_app(
             model=normalized.model,
             need=normalized.need,
             slug=normalized.slug,
-            event_id=normalized.event_id,
+            event_id=event_id,
+            purpose=normalized.purpose,
+            recording_id=normalized.recording_id,
             status="draft",
             create_key=create_key,
             create_hash=payload_hash,
@@ -3907,6 +10871,91 @@ def create_app(
             raise HTTPException(404, "form_not_found")
         return record
 
+    _FINANCE_SETTING_KEYS = ("fin", "groups", "coupon", "methods", "enabledPaymentMethods", "receiptReviewRequired")
+
+    def _finance_view(settings: Mapping[str, Any] | None) -> dict[str, Any]:
+        """Canonical view of the commercial settings so unchanged payloads compare equal."""
+        source = settings if isinstance(settings, Mapping) else {}
+        raw_coupon = source.get("coupon")
+        coupon: Mapping[str, Any] = raw_coupon if isinstance(raw_coupon, Mapping) else {}
+        return {
+            "fin": source.get("fin") if isinstance(source.get("fin"), list) else [],
+            "groups": source.get("groups") if isinstance(source.get("groups"), list) else [],
+            "coupon": {"code": str(coupon.get("code") or ""), "off": coupon.get("off") or 0, "all": bool(coupon.get("all"))},
+            "methods": source.get("methods") if isinstance(source.get("methods"), list) else [],
+            "enabledPaymentMethods": source.get("enabledPaymentMethods") if isinstance(source.get("enabledPaymentMethods"), list) else [],
+            "receiptReviewRequired": source.get("receiptReviewRequired") is True,
+        }
+
+    def _require_finance_for_commercial_change(
+        identity: OwnerIdentity | AccountIdentity, previous: Mapping[str, Any] | None, new: Mapping[str, Any]
+    ) -> None:
+        """Stage C-1 (panel restore): money settings of a form are written only by the owner or a
+        role holding ``finance``. Hiding the finance cards in create.html is not access control, so
+        the server rejects any change to the commercial keys from other editors; an unchanged copy
+        (what create.html sends for non-finance editors) passes."""
+        role = ROLE_OWNER if isinstance(identity, OwnerIdentity) else identity.role
+        if has_permission(role, "finance"):
+            return
+        if _finance_view(previous) != _finance_view(new):
+            raise HTTPException(403, detail={
+                "code": "finance_permission_required",
+                "message": "تنظیم مبلغ، روش پرداخت و تخفیف فقط با مجوز مالی (مالک) ذخیره می‌شود.",
+            })
+
+    def _resolve_purchase_link(db: Session, normalized: Any) -> str | None:
+        """Validate ``purpose='recording_access'`` against a real product and fix ``event_id``.
+
+        Returns the event id the form must carry (the product's event). Ids are
+        looked up server-side; a client cannot point a form at a foreign event.
+        """
+        if normalized.purpose != "recording_access":
+            return normalized.event_id
+        recording = db.get(EventRecordingRecord, normalized.recording_id or "")
+        if recording is None:
+            raise HTTPException(422, detail={"code": "recording_not_found", "message": "محصول ضبط‌شده پیدا نشد."})
+        if normalized.event_id and normalized.event_id != recording.event_id:
+            raise HTTPException(
+                422,
+                detail={"code": "purchase_form_event_mismatch", "message": "رویداد فرم با رویداد محصول یکی نیست."},
+            )
+        return recording.event_id
+
+    def _require_known_form_event(db: Session, normalized: Any, event_id: str | None, *, previous: str | None) -> None:
+        """``forms.ev`` must name an event that exists in ``site_content.events`` (any status).
+
+        Checked only when the client sets a *new* non-empty id: a stale id already stored on the form
+        (event removed later) never blocks unrelated edits, and purchase forms are exempt because
+        their event id is derived from the recording record in :func:`_resolve_purchase_link`.
+        """
+        value = str(event_id or "").strip()
+        if not value or normalized.purpose == "recording_access" or value == str(previous or ""):
+            return
+        site = db.get(SiteContentRecord, "public")
+        content = site.content if site is not None and isinstance(site.content, dict) else {}
+        known = {
+            str(row.get("id") or "").strip()
+            for row in (content.get("events") or [])
+            if isinstance(row, dict)
+        }
+        if value not in known:
+            raise HTTPException(
+                422,
+                detail={"code": "unknown_reference", "field": "ev", "message": "رویدادی با این شناسه در محتوای سایت نیست؛ اول رویداد را بسازید."},
+            )
+
+    def _other_published_purchase_form(db: Session, record: FormRecord) -> FormRecord | None:
+        if not _form_is_purchase(record):
+            return None
+        return db.scalar(
+            select(FormRecord).where(
+                FormRecord.recording_id == record.recording_id,
+                FormRecord.purpose == "recording_access",
+                FormRecord.status == "published",
+                FormRecord.id != record.id,
+            )
+        )
+
     @app.get("/api/forms/{form_id}")
     def get_form(
         form_id: str,
@@ -3925,18 +10974,146 @@ def create_app(
         """Explain publish blockers without changing the form or its status."""
         record = get_owned_form(db, identity.owner_id, form_id)
         issues = publication_issues(
-            record, bale_ready=request.app.state.settings.form_bale_payments_ready
+            record, bale_ready=_runtime_settings(db, request.app.state.settings).form_bale_payments_ready
         )
+        purchase: dict[str, Any] | None = None
+        if _form_is_purchase(record):
+            recording = db.get(EventRecordingRecord, record.recording_id or "")
+            other = _other_published_purchase_form(db, record)
+            if recording is None:
+                issues.append({"code": "recording_not_found", "message": "محصول ضبط‌شدهٔ این فرم دیگر وجود ندارد."})
+            if other is not None and record.status != "published":
+                issues.append({
+                    "code": "purchase_form_already_published",
+                    "message": f"فرم خرید دیگری («{other.title}») برای این محصول منتشر است؛ ابتدا آن را متوقف کنید.",
+                })
+            settings_value = record.settings if isinstance(record.settings, dict) else {}
+            purchase = {
+                "recording_id": record.recording_id,
+                "recording_title": recording.title if recording is not None else "",
+                "recording_status": recording.status if recording is not None else "",
+                "event_id": recording.event_id if recording is not None else record.event_id,
+                "price": purchase_form_price(settings_value),
+                "other_published_form_id": other.id if other is not None else None,
+            }
         publishable_status = record.status in {"draft", "paused"}
         return {
             "source": "same_server_database",
             "form_id": record.id,
             "version": record.version,
             "status": record.status,
+            "purpose": record.purpose,
+            "purchase": purchase,
             "publishable": publishable_status and not issues,
             "status_issue": None if publishable_status else "فرم باید پیش‌نویس یا متوقف باشد تا منتشر شود.",
             "issues": issues,
         }
+
+    @app.post("/api/forms/{form_id}/duplicate", status_code=201)
+    async def duplicate_form(
+        form_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_permission_write("fm_create")),
+        db: Session = Depends(get_db),
+    ):
+        """«ساخت از روی این فرم»: a NEW draft copied from one of the caller's own forms.
+
+        The copy carries the structure only (model, purpose, event link, settings, fields) and is
+        always ``draft`` / version 1 with a fresh id; responses, payments, publication state and the
+        public link of the source are never copied, so a published form with responses stays
+        immutable and the safe path to change it is this duplicate. Ownership is resolved server-side
+        (``get_owned_form``); the body may carry an optional ``name``. Idempotent per
+        ``Idempotency-Key`` like ``POST /api/forms``.
+        """
+        cfg: Settings = request.app.state.settings
+        payload = await _read_json_object(request, cfg.max_request_bytes)
+        if set(payload) - {"name"}:
+            raise HTTPException(422, detail={"code": "unexpected_fields", "message": "فقط «name» پذیرفته می‌شود."})
+        create_key = request.headers.get("idempotency-key", "").strip()
+        if not re.fullmatch(r"[A-Za-z0-9_-]{16,80}", create_key):
+            raise HTTPException(428, "idempotency_key_required")
+        source = get_owned_form(db, identity.owner_id, form_id)
+        requested_name = payload.get("name")
+        if requested_name is not None and not isinstance(requested_name, str):
+            raise HTTPException(422, detail={"code": "invalid_name", "message": "نام فرم باید متن باشد."})
+        name = " ".join((requested_name or "").split()) or f"نسخهٔ جدید از {source.title}"[:160]
+        settings_copy = dict(source.settings) if isinstance(source.settings, dict) else {}
+        for key in ("status", "owner_id", "published", "is_published"):
+            settings_copy.pop(key, None)
+        settings_copy["source_form_id"] = source.id
+        settings_copy["source_form_version"] = int(source.version or 1)
+        slug_copy: str | None = None
+        if source.slug:
+            suffix = "-" + secrets.token_hex(2)
+            slug_copy = (source.slug[: 180 - len(suffix)]).rstrip("/-") + suffix
+        body = {
+            "name": name,
+            "model": source.model,
+            "need": source.need,
+            "slug": slug_copy,
+            "ev": source.event_id or "",
+            "purpose": source.purpose or "registration",
+            "recording_id": source.recording_id if source.purpose == "recording_access" else None,
+            "settings": settings_copy,
+            "fields": [_field_dict(field) for field in source.fields],
+        }
+        try:
+            normalized = normalize_form_payload(body, max_fields=cfg.max_fields_per_form, updating=False)
+        except PayloadError as err:
+            raise HTTPException(
+                422,
+                detail={"code": "source_not_copyable", "source_code": err.code, "message": "ساختار فرم مبدأ با قواعد فعلی سرور سازگار نیست؛ ابتدا آن را در فرم‌ساز اصلاح کنید."},
+            ) from None
+        event_id = _resolve_purchase_link(db, normalized)
+        _require_known_form_event(db, normalized, event_id, previous=source.event_id)
+        # Money settings are copied unchanged from a form that already holds them; a non-finance
+        # editor still cannot alter them afterwards (PUT keeps the same guard) nor publish the copy.
+        _require_finance_for_commercial_change(identity, source.settings if isinstance(source.settings, dict) else {}, normalized.settings)
+        payload_hash = hashlib.sha256(
+            json.dumps({"duplicate_of": source.id, "name": name}, ensure_ascii=False, sort_keys=True).encode("utf-8")
+        ).hexdigest()
+        existing = db.scalar(
+            select(FormRecord)
+            .options(selectinload(FormRecord.fields))
+            .where(FormRecord.owner_id == identity.owner_id, FormRecord.create_key == create_key)
+        )
+        if existing is not None:
+            if not constant_time_equal(existing.create_hash or "", payload_hash):
+                raise HTTPException(409, detail={"code": "idempotency_conflict"})
+            return JSONResponse(_form_dict(existing), status_code=200)
+        record = FormRecord(
+            id=str(uuid.uuid4()),
+            owner_id=identity.owner_id,
+            title=normalized.title,
+            model=normalized.model,
+            need=normalized.need,
+            slug=normalized.slug,
+            event_id=event_id,
+            purpose=normalized.purpose,
+            recording_id=normalized.recording_id,
+            status="draft",
+            create_key=create_key,
+            create_hash=payload_hash,
+            version=1,
+            settings=normalized.settings,
+        )
+        db.add(record)
+        db.flush()
+        _replace_fields(db, record.id, normalized)
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            existing = db.scalar(
+                select(FormRecord)
+                .options(selectinload(FormRecord.fields))
+                .where(FormRecord.owner_id == identity.owner_id, FormRecord.create_key == create_key)
+            )
+            if existing is not None and constant_time_equal(existing.create_hash or "", payload_hash):
+                return JSONResponse(_form_dict(existing), status_code=200)
+            raise HTTPException(409, "form_conflict") from None
+        db.expire_all()
+        return _form_dict(get_owned_form(db, identity.owner_id, record.id))
 
     @app.put("/api/forms/{form_id}")
     async def update_form(
@@ -3979,6 +11156,9 @@ def create_app(
                 409,
                 detail={"code": "version_conflict", "current_version": record.version},
             )
+        event_id = _resolve_purchase_link(db, normalized)
+        _require_known_form_event(db, normalized, event_id, previous=record.event_id)
+        _require_finance_for_commercial_change(identity, record.settings, normalized.settings)
 
         # Compare-and-swap at the database, not just in Python: two owners' tabs
         # cannot silently overwrite one another after both read the same version.
@@ -3994,7 +11174,9 @@ def create_app(
                 model=normalized.model,
                 need=normalized.need,
                 slug=normalized.slug,
-                event_id=normalized.event_id,
+                event_id=event_id,
+                purpose=normalized.purpose,
+                recording_id=normalized.recording_id,
                 settings=normalized.settings,
                 version=FormRecord.version + 1,
                 updated_at=_utc_now(),
@@ -4052,7 +11234,8 @@ def create_app(
         db: Session, form_id: str, *, bale_ready: bool = False
     ) -> FormRecord:
         form = get_published_form(db, form_id, bale_ready=bale_ready)
-        if form_has_companions(form) or _form_uses_payment(form):
+        if form_has_companions(form) or _form_uses_payment(form) or _form_is_purchase(form):
+            # Purchases start from form.html with a signed-in account (access is granted to it).
             raise HTTPException(404, "bot_form_not_supported")
         return form
 
@@ -4122,7 +11305,7 @@ def create_app(
             token,
             httponly=True,
             secure=cfg.cookie_secure,
-            samesite="strict",
+            samesite=_samesite(cfg),
             path=f"/api/public/forms/{form_id}",
             max_age=cfg.response_draft_ttl_seconds,
         )
@@ -4133,7 +11316,7 @@ def create_app(
             path=f"/api/public/forms/{form_id}",
             secure=cfg.cookie_secure,
             httponly=True,
-            samesite="strict",
+            samesite=_samesite(cfg),
         )
 
     def enforce_public_write_limit(
@@ -4365,6 +11548,7 @@ def create_app(
         issues = publication_issues(form, bale_ready=bale_ready)
         if issues or form_has_companions(form) and not allow_companions:
             raise HTTPException(409, "form_not_open")
+        _raise_if_event_registration_blocked(db, form)
         return form
 
     def validate_expected_version(payload: dict[str, Any], record: FormRecord) -> int:
@@ -4385,7 +11569,7 @@ def create_app(
         identity: OwnerIdentity = Depends(require_owner_write),
         db: Session = Depends(get_db),
     ):
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         payload = await _read_json_object(request, cfg.max_request_bytes)
         record = get_owned_form(db, identity.owner_id, form_id)
         validate_expected_version(payload, record)
@@ -4399,6 +11583,17 @@ def create_app(
                 422,
                 detail={"code": "form_not_publishable", "issues": issues},
             )
+        if _form_is_purchase(record):
+            if db.get(EventRecordingRecord, record.recording_id or "") is None:
+                raise HTTPException(422, detail={"code": "form_not_publishable", "issues": [
+                    {"code": "recording_not_found", "message": "محصول ضبط‌شدهٔ این فرم دیگر وجود ندارد."},
+                ]})
+            other = _other_published_purchase_form(db, record)
+            if other is not None:
+                raise HTTPException(409, detail={
+                    "code": "purchase_form_already_published", "form_id": other.id, "title": other.title,
+                    "message": "برای این محصول یک فرم خرید منتشرشده وجود دارد؛ ابتدا آن را متوقف کنید.",
+                })
         result = db.execute(
             update(FormRecord)
             .where(
@@ -4413,6 +11608,10 @@ def create_app(
         if cast(CursorResult[Any], result).rowcount != 1:
             db.rollback()
             raise HTTPException(409, "form_conflict")
+        record_audit(
+            db, identity, "form.publish", target_type="form", target_id=form_id,
+            details={"from_status": record.status, "title": record.title},
+        )
         db.commit()
         db.expire_all()
         return _form_dict(get_owned_form(db, identity.owner_id, form_id))
@@ -4445,6 +11644,95 @@ def create_app(
         if cast(CursorResult[Any], result).rowcount != 1:
             db.rollback()
             raise HTTPException(409, "form_conflict")
+        record_audit(
+            db, identity, "form.pause", target_type="form", target_id=form_id,
+            details={"title": record.title},
+        )
+        db.commit()
+        db.expire_all()
+        return _form_dict(get_owned_form(db, identity.owner_id, form_id))
+
+    @app.post("/api/forms/{form_id}/event")
+    async def link_form_event(
+        form_id: str,
+        request: Request,
+        identity: OwnerIdentity | AccountIdentity = Depends(require_permission_write("fm_create")),
+        db: Session = Depends(get_db),
+    ):
+        """Attach an existing warehouse form to an event (or detach it) from the event wizard.
+
+        Only the reference moves: fields/settings stay untouched, so the builder remains the sole
+        form editor. Same guards as a full edit: owned form, ``expected_version`` compare-and-swap,
+        immutable once responses exist, published forms must be paused first, purchase forms keep
+        the event derived from their recording, and the target must be a real ``site_content`` event.
+        """
+        payload = await _read_json_object(request, request.app.state.settings.max_request_bytes)
+        expected = payload.get("expected_version")
+        raw_event = payload.get("ev", "")
+        if (
+            set(payload) - {"expected_version", "ev"}
+            or isinstance(expected, bool)
+            or not isinstance(expected, int)
+            or expected < 1
+        ):
+            raise HTTPException(428, "expected_version_required")
+        if raw_event is not None and not isinstance(raw_event, str):
+            raise HTTPException(422, detail={"code": "invalid_event_reference", "field": "ev"})
+        event_id = str(raw_event or "").strip()[:120]
+        record = get_owned_form(db, identity.owner_id, form_id)
+        if expected != record.version:
+            raise HTTPException(409, detail={"code": "version_conflict", "current_version": record.version})
+        previous = str(record.event_id or "")
+        if event_id == previous:
+            return _form_dict(record)
+        if record.purpose == "recording_access":
+            raise HTTPException(
+                409,
+                detail={"code": "purchase_form_event_fixed", "message": "رویداد فرم خرید از محصول ضبط‌شده می‌آید."},
+            )
+        if record.status == "published":
+            raise HTTPException(
+                409,
+                detail={"code": "published_form_read_only", "message": "ابتدا دریافت پاسخ را متوقف کنید."},
+            )
+        response_count = db.scalar(
+            select(func.count(FormResponseRecord.id)).where(FormResponseRecord.form_id == form_id)
+        ) or 0
+        if response_count:
+            raise HTTPException(
+                409,
+                detail={"code": "form_has_responses", "message": "پس از ثبت پاسخ، پیوند رویداد فرم تغییر نمی‌کند."},
+            )
+        if event_id:
+            site = db.get(SiteContentRecord, "public")
+            content = site.content if site is not None and isinstance(site.content, dict) else {}
+            known = {
+                str(row.get("id") or "").strip()
+                for row in (content.get("events") or [])
+                if isinstance(row, dict)
+            }
+            if event_id not in known:
+                raise HTTPException(
+                    422,
+                    detail={"code": "unknown_reference", "field": "ev", "message": "رویدادی با این شناسه در محتوای سایت نیست."},
+                )
+        result = db.execute(
+            update(FormRecord)
+            .where(
+                FormRecord.id == form_id,
+                FormRecord.owner_id == identity.owner_id,
+                FormRecord.version == expected,
+            )
+            .values(event_id=event_id or None, version=FormRecord.version + 1, updated_at=_utc_now())
+            .execution_options(synchronize_session=False)
+        )
+        if cast(CursorResult[Any], result).rowcount != 1:
+            db.rollback()
+            raise HTTPException(409, "form_conflict")
+        record_audit(
+            db, identity, "form.event_link", target_type="form", target_id=form_id,
+            details={"title": record.title, "from_event": previous, "to_event": event_id},
+        )
         db.commit()
         db.expire_all()
         return _form_dict(get_owned_form(db, identity.owner_id, form_id))
@@ -4455,17 +11743,54 @@ def create_app(
         request: Request,
         db: Session = Depends(get_db),
     ):
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         form = get_published_form(db, form_id, bale_ready=cfg.form_bale_payments_ready)
+        _raise_if_event_registration_blocked(db, form)
         accepted, waitlisted = _response_counts(db, form_id)
         if _capacity_is_full(form, accepted + _active_bale_payment_holds(db, form_id), waitlisted):
             raise HTTPException(410, detail={"code": "form_full"})
-        return public_form_data(
+        data = public_form_data(
             form,
             accepted_count=accepted,
             waitlisted_count=waitlisted,
             bale_ready=cfg.form_bale_payments_ready,
         )
+        if _form_is_purchase(form):
+            data["purchase"] = _public_purchase_header(db, request, form)
+        return data
+
+    @app.post("/api/public/forms/{form_id}/coupon-check")
+    def check_public_coupon(
+        form_id: str,
+        payload: dict[str, Any],
+        request: Request,
+        http_response: Response,
+        db: Session = Depends(get_db),
+    ):
+        """Validate a typed discount code without ever exposing the configured code."""
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
+        http_response.headers["Cache-Control"] = "no-store"
+        if not isinstance(payload, dict) or set(payload) != {"code"} or not isinstance(payload.get("code"), str):
+            raise HTTPException(400, detail={"code": "invalid_coupon_payload"})
+        typed = payload["code"]
+        if len(typed) > 64:
+            raise HTTPException(422, detail={"code": "invalid_coupon_code"})
+        form = get_published_form(db, form_id, bale_ready=cfg.form_bale_payments_ready)
+        enforce_public_write_limit(request, db, form_id, cfg, cfg.response_draft_write_limit_per_minute)
+        settings = form.settings if isinstance(form.settings, dict) else {}
+        try:
+            financial = normalize_financial_config(settings)
+        except PaymentConfigurationError:
+            return {"valid": False, "off": 0, "all": False}
+        coupon = financial["coupon"]
+        configured = unicodedata.normalize("NFKC", coupon["code"]).strip().casefold()
+        normalized = unicodedata.normalize("NFKC", typed).strip().casefold()
+        valid = bool(configured) and coupon["off"] > 0 and bool(financial["fin"]) and secrets.compare_digest(
+            configured.encode("utf-8"), normalized.encode("utf-8")
+        )
+        if not valid:
+            return {"valid": False, "off": 0, "all": False}
+        return {"valid": True, "off": coupon["off"], "all": coupon["all"]}
 
     @app.post("/api/public/forms/{form_id}/payment-intents", status_code=201)
     async def create_public_payment_intent(
@@ -4474,7 +11799,7 @@ def create_app(
         db: Session = Depends(get_db),
     ):
         _same_origin(request)
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         payload = await _read_json_object(request, cfg.max_request_bytes)
         if (
             not isinstance(payload, dict)
@@ -4503,7 +11828,16 @@ def create_app(
         )
         if draft is None or draft.form_version != form.version:
             raise HTTPException(409, "form_version_changed")
-        bind_public_draft_account(draft, account_identity_from_request(request, db), db)
+        purchase_identity = _require_purchase_account(request, db, form)
+        bind_public_draft_account(draft, purchase_identity, db)
+        if _form_is_purchase(form):
+            purchase_recording = _purchase_recording_for_form(db, form)
+            if purchase_recording is None or purchase_recording.status != "published":
+                raise HTTPException(409, detail={"code": "recording_not_on_sale"})
+            current_access = recordings_mod.access_for(db, purchase_recording.id, draft.account_id)
+            if recordings_mod.access_state(current_access, _utc_now()) == "active":
+                raise HTTPException(409, detail={"code": "access_already_active", "recording_id": purchase_recording.id})
+            _reject_duplicate_purchase_order(db, purchase_recording, draft.account_id)
         if db.scalar(select(FormResponseRecord.id).where(FormResponseRecord.draft_id == draft.id)):
             raise HTTPException(409, detail={"code": "response_already_submitted"})
         answers, submitted = draft_answers(db, draft)
@@ -4576,37 +11910,14 @@ def create_app(
             raise HTTPException(410, detail={"code": "form_full"})
 
         try:
-            webhook_info = await asyncio.to_thread(call_bale_payment_api, _payment_cfg(db, cfg), "getWebhookInfo", {})
-            webhook_result = webhook_info.get("result")
-            configured_webhook = (
-                webhook_result.get("url", "") if isinstance(webhook_result, dict) else ""
-            )
-            registered_webhook_url = _form_payment_registered_webhook_url(cfg)
-            current_webhook_url = configured_webhook.rstrip("/")
-            base_webhook_url = cfg.form_payment_webhook_url.rstrip("/")
-            if current_webhook_url != registered_webhook_url:
-                if current_webhook_url not in {"", base_webhook_url}:
-                    raise HTTPException(503, detail={"code": "bale_payment_webhook_conflict"})
-                await asyncio.to_thread(
-                    call_bale_payment_api,
-                    _payment_cfg(db, cfg),
-                    "setWebhook",
-                    {"url": registered_webhook_url},
-                )
-                verified_webhook_info = await asyncio.to_thread(
-                    call_bale_payment_api, _payment_cfg(db, cfg), "getWebhookInfo", {}
-                )
-                verified_result = verified_webhook_info.get("result")
-                verified_url = verified_result.get("url", "") if isinstance(verified_result, dict) else ""
-                if verified_url.rstrip("/") != registered_webhook_url:
-                    raise HTTPException(503, detail={"code": "bale_payment_webhook_registration_failed"})
+            await _ensure_bale_payment_webhook(cfg)
             payment_id = str(uuid.uuid4())
             invoice_payload = "nora_" + uuid.uuid4().hex
             title = str(form.title or "ثبت‌نام").strip()[:32] or "ثبت‌نام"
             description = f"پرداخت ثبت‌نام: {str(form.title or 'فرم')[:200]}"[:255]
             invoice_response = await asyncio.to_thread(
                 call_bale_payment_api,
-                _payment_cfg(db, cfg),
+                cfg,
                 "createInvoiceLink",
                 {
                     "title": title,
@@ -4749,7 +12060,7 @@ def create_app(
         request: Request,
         db: Session = Depends(get_db),
     ):
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         if not cfg.form_bale_payments_ready:
             raise HTTPException(503, detail={"code": "bale_payment_not_configured"})
         if not constant_time_equal(webhook_token, _form_payment_webhook_token(cfg)):
@@ -4799,7 +12110,7 @@ def create_app(
                 answer["error_message"] = "این صورت‌حساب منقضی یا نامعتبر است؛ دوباره از فرم شروع کنید."
             try:
                 await asyncio.to_thread(
-                    call_bale_payment_api, _payment_cfg(db, cfg), "answerPreCheckoutQuery", answer
+                    call_bale_payment_api, cfg, "answerPreCheckoutQuery", answer
                 )
             except BalePaymentAPIError as error:
                 raise HTTPException(503, detail={"code": error.code}) from None
@@ -4860,7 +12171,7 @@ def create_app(
         try:
             inquiry = await asyncio.to_thread(
                 call_bale_payment_api,
-                _payment_cfg(db, cfg),
+                cfg,
                 "inquireTransaction",
                 {"transaction_id": transaction_id},
             )
@@ -4934,6 +12245,12 @@ def create_app(
                 return False
             if db.scalar(select(FormResponseRecord.id).where(FormResponseRecord.draft_id == draft.id)):
                 return False
+            purchase_recording: EventRecordingRecord | None = None
+            if _form_is_purchase(form):
+                # The access right needs an account; the product must still be on sale.
+                purchase_recording = _purchase_recording_for_form(db, form, for_update=True)
+                if draft.account_id is None or purchase_recording is None or purchase_recording.status != "published":
+                    return False
             form_settings = form.settings if isinstance(form.settings, dict) else {}
             try:
                 normalized_answers = validate_answers(form.fields, draft.answers or {}, partial=False)
@@ -5027,6 +12344,12 @@ def create_app(
             payment.provider_charge_id = provider_charge_id
             payment.payer_bale_user_id = payer_id
             payment.updated_at = now_inner
+            if purchase_recording is not None and draft.account_id:
+                db.flush()
+                _finalize_purchase(
+                    db, form=form, response=response_record, payment=payment, account_id=draft.account_id,
+                    now=now_inner, actor=("system", "bale_webhook"), reason="bale_wallet_verified",
+                )
             return True
 
         if already_paid and payment.transaction_id == transaction_id:
@@ -5063,7 +12386,7 @@ def create_app(
         db: Session = Depends(get_db),
     ):
         """List only currently open, publishable, free forms for the Bale bot."""
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         records = db.scalars(
             select(FormRecord)
             .options(selectinload(FormRecord.fields))
@@ -5073,7 +12396,9 @@ def create_app(
         ).all()
         items = []
         for form in records:
-            if publication_issues(form, bale_ready=cfg.form_bale_payments_ready) or form_has_companions(form) or _form_uses_payment(form):
+            if publication_issues(form, bale_ready=cfg.form_bale_payments_ready) or form_has_companions(form) or _form_uses_payment(form) or _form_is_purchase(form):
+                continue
+            if _event_registration_block(db, form) is not None:
                 continue
             accepted, waitlisted = _response_counts(db, form.id)
             if _capacity_is_full(form, accepted + _active_bale_payment_holds(db, form.id), waitlisted):
@@ -5098,7 +12423,7 @@ def create_app(
         http_response.headers["Cache-Control"] = "no-store"
         user_id = validate_bot_form_user_id(bale_user_id)
         history_filter = (
-            FormResponseDraftRecord.bot_bale_user_id == user_id,
+            bot_form_record_scope(db, user_id),
             FormResponseRecord.status.in_(("accepted", "waitlisted")),
         )
         joined = select(FormResponseRecord).join(
@@ -5159,7 +12484,7 @@ def create_app(
             .join(FormResponseDraftRecord, FormResponseDraftRecord.id == FormResponseRecord.draft_id)
             .where(
                 FormResponseRecord.id == response_id,
-                FormResponseDraftRecord.bot_bale_user_id == user_id,
+                bot_form_record_scope(db, user_id),
             )
         )
         if record is None:
@@ -5324,13 +12649,15 @@ def create_app(
         _service: None = Depends(require_bot_service),
         db: Session = Depends(get_db),
     ):
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         payload = await _read_json_object(request, cfg.max_request_bytes)
         if set(payload) != {"bale_user_id", "session_key"}:
             raise HTTPException(400, "invalid_bot_form_draft_payload")
         bale_user_id, session_key = validate_bot_form_identity(
             payload.get("bale_user_id"), payload.get("session_key")
         )
+        if _bale_user_is_blocked(db, bale_user_id):
+            raise HTTPException(403, ACCOUNT_BLOCKED_DETAIL)
         enforce_bot_form_write_limit(
             db, form_id, bale_user_id, cfg, cfg.response_draft_write_limit_per_minute
         )
@@ -5385,7 +12712,7 @@ def create_app(
         _service: None = Depends(require_bot_service),
         db: Session = Depends(get_db),
     ):
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         payload = await _read_json_object(request, cfg.max_request_bytes)
         if set(payload) != {"bale_user_id", "session_key"}:
             raise HTTPException(400, "invalid_bot_form_draft_payload")
@@ -5425,7 +12752,7 @@ def create_app(
         _service: None = Depends(require_bot_service),
         db: Session = Depends(get_db),
     ):
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         payload = await _read_json_object(request, cfg.max_request_bytes)
         identity_keys = {"bale_user_id", "session_key", "field_id"}
         set_answer = set(payload) == identity_keys | {"value"}
@@ -5510,13 +12837,15 @@ def create_app(
         _service: None = Depends(require_bot_service),
         db: Session = Depends(get_db),
     ):
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         payload = await _read_json_object(request, cfg.max_request_bytes)
         if set(payload) != {"bale_user_id", "session_key"}:
             raise HTTPException(400, "invalid_bot_form_response_payload")
         bale_user_id, session_key = validate_bot_form_identity(
             payload.get("bale_user_id"), payload.get("session_key")
         )
+        if _bale_user_is_blocked(db, bale_user_id):
+            raise HTTPException(403, ACCOUNT_BLOCKED_DETAIL)
         enforce_bot_form_write_limit(
             db, form_id, bale_user_id, cfg, cfg.response_submit_limit_per_minute
         )
@@ -5797,14 +13126,16 @@ def create_app(
         response: Response,
         db: Session = Depends(get_db),
     ):
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         form = get_published_form(db, form_id, bale_ready=cfg.form_bale_payments_ready)
         enforce_public_write_limit(request, db, form_id, cfg, cfg.response_draft_write_limit_per_minute)
         _cleanup_expired_public_drafts(db)
         draft, raw_token = ensure_public_draft(request, db, form)
-        bind_public_draft_account(draft, account_identity_from_request(request, db), db)
+        bind_public_draft_account(draft, public_write_identity(request, db), db)
         answers, submitted = draft_answers(db, draft)
         companions = draft_companions(db, draft, submitted)
+        if submitted is None:
+            _raise_if_event_registration_blocked(db, form)
         accepted, waitlisted = _response_counts(db, form_id)
         if submitted is None and _capacity_is_full(
             form,
@@ -5860,7 +13191,7 @@ def create_app(
         db: Session = Depends(get_db),
     ):
         _same_origin(request)
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         payload = await _read_json_object(request, cfg.max_request_bytes)
         if set(payload) not in ({"answers"}, {"answers", "companions"}):
             raise HTTPException(400, "invalid_draft_payload")
@@ -5875,7 +13206,7 @@ def create_app(
             raise HTTPException(401, "response_draft_required")
         if draft.form_version != form.version:
             raise HTTPException(409, "form_version_changed")
-        bind_public_draft_account(draft, account_identity_from_request(request, db), db)
+        bind_public_draft_account(draft, public_write_identity(request, db), db)
         active_payment = db.scalar(
             select(FormPaymentRecord).where(
                 FormPaymentRecord.draft_id == draft.id,
@@ -5913,7 +13244,7 @@ def create_app(
         db: Session = Depends(get_db),
     ):
         _same_origin(request)
-        cfg: Settings = request.app.state.settings
+        cfg: Settings = _runtime_settings(db, request.app.state.settings)
         payload = await _read_json_object(request, cfg.max_request_bytes)
         allowed_response_keys = {"answers"}
         if not isinstance(payload, dict) or "answers" not in payload:
@@ -5935,7 +13266,16 @@ def create_app(
             raise HTTPException(401, "response_draft_required")
         if draft.form_version != form.version:
             raise HTTPException(409, "form_version_changed")
-        account_linked = bind_public_draft_account(draft, account_identity_from_request(request, db), db)
+        purchase_identity = _require_purchase_account(request, db, form)
+        account_linked = bind_public_draft_account(draft, purchase_identity, db)
+        purchase_recording: EventRecordingRecord | None = None
+        if _form_is_purchase(form):
+            purchase_recording = _purchase_recording_for_form(db, form, for_update=True)
+            if purchase_recording is None or purchase_recording.status != "published":
+                raise HTTPException(409, detail={"code": "recording_not_on_sale"})
+            current_access = recordings_mod.access_for(db, purchase_recording.id, draft.account_id)
+            if recordings_mod.access_state(current_access, _utc_now()) == "active":
+                raise HTTPException(409, detail={"code": "access_already_active", "recording_id": purchase_recording.id})
         try:
             normalized = validate_answers(form.fields, payload["answers"], partial=False)
             settings = form.settings if isinstance(form.settings, dict) else {}
@@ -6000,6 +13340,8 @@ def create_app(
             return {
                 "accepted": True,
                 "status": existing.status,
+                "purpose": form.purpose,
+                "purchase": _purchase_state_view(db, form, draft.account_id, _utc_now()) if purchase_recording is not None else None,
                 "tracking_code": _form_tracking_code(existing),
                 "ticket_type": _form_response_ticket_type(existing),
                 "receipt_uploaded": existing.receipt_upload is not None or existing.receipt_review_task_id is not None,
@@ -6010,6 +13352,10 @@ def create_app(
                 "registrants_count": 1 + len(normalized_companions),
                 "message": "پاسخ این نشست قبلاً ثبت شده است.",
             }
+        if purchase_recording is not None:
+            _reject_duplicate_purchase_order(
+                db, purchase_recording, draft.account_id, own_response_id=existing.id if existing is not None else None,
+            )
         pending_intents = db.scalars(
             select(FormPaymentRecord)
             .where(
@@ -6136,6 +13482,19 @@ def create_app(
                 existing_payment.selection = payment_summary
                 existing_payment.status = "awaiting_receipt"
                 existing_payment.updated_at = now
+        purchase_view: dict[str, Any] | None = None
+        if purchase_recording is not None and draft.account_id:
+            if existing_payment is None:
+                # Free product sold through a form: the accepted response is the purchase.
+                _finalize_purchase(
+                    db, form=form, response=existing, payment=None, account_id=draft.account_id, now=now,
+                    actor=("account", draft.account_id), reason="purchase_form_free:" + existing.id,
+                )
+            else:
+                _upsert_purchase_ledger(
+                    db, recording=purchase_recording, account_id=draft.account_id, response=existing,
+                    payment=existing_payment, now=now,
+                )
         draft.answers = {}
         draft.companions = []
         draft.has_unsaved_changes = False
@@ -6146,9 +13505,13 @@ def create_app(
         except IntegrityError:
             db.rollback()
             raise HTTPException(409, "response_conflict") from None
+        if purchase_recording is not None:
+            purchase_view = _purchase_state_view(db, form, draft.account_id, now)
         return {
             "accepted": True,
             "status": existing.status,
+            "purpose": form.purpose,
+            "purchase": purchase_view,
             "tracking_code": _form_tracking_code(existing),
             "ticket_type": _form_response_ticket_type(existing),
             "receipt_uploaded": (
@@ -6190,7 +13553,14 @@ def create_app(
         )
         if record is None:
             raise HTTPException(409, detail={"code": "ticket_response_not_submitted"})
-        _ensure_form_ticket(record)
+        is_purchase = _snapshot_purpose(record) == "recording_access"
+        if is_purchase:
+            if record.status != "accepted":
+                raise HTTPException(409, detail={"code": "ticket_not_accepted"})
+            if draft.account_id is None or account_identity_from_request(request, db) is None:
+                raise HTTPException(401, detail={"code": "account_required", "purpose": "recording_access"})
+        else:
+            _ensure_form_ticket(record)
         snapshot = record.form_snapshot if isinstance(record.form_snapshot, dict) else {}
         if snapshot.get("receipt_review_required") is not True:
             raise HTTPException(422, "public_form_receipt_not_required")
@@ -6285,7 +13655,44 @@ def create_app(
         if payment_record is not None and payment_record.status == "awaiting_receipt":
             payment_record.status = "receipt_submitted"
             payment_record.updated_at = _utc_now()
+        task_id: str | None = None
+        if is_purchase and draft.account_id:
+            # Purchases are reviewed in the shared inbox right away (no Bale ticket claim step).
+            db.flush()
+            account = db.get(AccountRecord, draft.account_id)
+            if account is None:
+                raise HTTPException(409, detail={"code": "account_required"})
+            bale_ids = verified_bale_ids_for_account(db, account.id)
+            task = _create_public_form_receipt_task(
+                db, record, bale_ids[0] if bale_ids else "", account=account, purchase=True,
+            )
+            task_id = task.id if task is not None else None
+            form_record = db.get(FormRecord, record.form_id)
+            recording = _purchase_recording_for_form(db, form_record) if form_record is not None else None
+            if recording is not None and payment_record is not None:
+                order = _upsert_purchase_ledger(
+                    db, recording=recording, account_id=account.id, response=record, payment=payment_record,
+                    now=_utc_now(),
+                )
+                order.receipt_submitted_at = _utc_now()
+                order.receipt_file_name = safe_name
+                order.receipt_content_type = content_type
+                order.receipt_size = len(blob)
+                order.receipt_hash = content_hash
+                order.receipt_note = receipt_note[:300]
+                # Purchase recorded (not paid, not access): one honest row per ledger order.
+                product_title = recording.title or _recording_event_title(db, recording.event_id) or "محتوای ضبط‌شده"
+                notifications_mod.queue(
+                    db, account_id=account.id, kind=notifications_mod.KIND_PURCHASE_RECORDED,
+                    title="خرید شما ثبت شد و در انتظار بررسی است",
+                    body=(f"سفارش شما برای «{product_title}» به مبلغ {order.amount:,} {order.currency} ثبت و رسید دریافت شد.\n"
+                          "پرداخت هنوز تأیید نشده؛ پس از بررسی رسید، نتیجه و فعال‌شدن دسترسی جداگانه اطلاع داده می‌شود."),
+                    key=notifications_mod.dedupe_key("recording_order", order.id, "receipt_submitted"),
+                    bale_ids=bale_ids, link=notifications_mod.event_link(recording.event_id, anchor="recording"),
+                )
         db.commit()
+        if is_purchase:
+            return {"uploaded": True, "created": created, "review_task_id": task_id}
         return {"uploaded": True, "created": created}
 
     @app.get("/api/public/forms/{form_id}/ticket-image")
@@ -6333,6 +13740,9 @@ def create_app(
             "qr_data": qr_data,
             "event_date": ticket["event_date"],
             "event_time": ticket["event_time"],
+            # نام سازمان از همین سرویس وب می‌آید تا رندر بلیت مجبور نشود
+            # تنظیمات/پایگاه ربات بله را از داخل فرایند وب بخواند.
+            "organization": ORGANIZATION_NAME,
         }
         ticket_type = ticket.get("ticket_type")
         if isinstance(ticket_type, dict) and isinstance(ticket_type.get("name"), str):
@@ -6437,12 +13847,75 @@ def create_app(
     @app.get("/api/forms/{form_id}/responses")
     def list_responses(
         form_id: str,
+        request: Request,
         limit: int = 50,
         offset: int = 0,
+        format: str = Query(default="", pattern=r"^(|csv)$"),
         identity: OwnerIdentity | AccountIdentity = Depends(require_permission("fm_responses")),
         db: Session = Depends(get_db),
     ):
-        get_owned_form(db, identity.owner_id, form_id)
+        form = get_owned_form(db, identity.owner_id, form_id)
+        if format == "csv":
+            # Real export (panel restore, stage B): same rows as the list, flattened by the form's
+            # current field keys. ``fm_export`` is required on top of ``fm_responses``; payment
+            # columns are finance-only because they carry amounts and transaction ids.
+            require_permission("fm_export")(request, db)
+            role = ROLE_OWNER if isinstance(identity, OwnerIdentity) else identity.role
+            with_finance = has_permission(role, "finance")
+            fields = [
+                field for field in sorted(form.fields, key=lambda item: (item.position, item.row_id))
+                if (field.config or {}).get("col") is not False
+            ]
+            rows = db.execute(
+                select(FormResponseRecord, FormPaymentRecord)
+                .outerjoin(FormPaymentRecord, FormPaymentRecord.response_id == FormResponseRecord.id)
+                .where(FormResponseRecord.form_id == form_id)
+                .order_by(FormResponseRecord.created_at.desc(), FormResponseRecord.id.desc())
+                .limit(5000)
+            ).all()
+            header = ["response_id", "status", "created_at", "registrant_name", "companion_index", "added_by_name"]
+            header += [str(field.label or field.field_key) for field in fields]
+            header += ["checked_in_at", "receipt_uploaded"]
+            if with_finance:
+                header += ["payment_status", "payment_method", "amount", "currency", "transaction_id"]
+
+            def _cell(value: Any) -> str:
+                if value is None:
+                    return ""
+                if isinstance(value, (list, tuple)):
+                    return "، ".join(_cell(item) for item in value)
+                if isinstance(value, dict):
+                    return json.dumps(value, ensure_ascii=False, sort_keys=True)
+                text = str(value)
+                # Neutralise spreadsheet formula injection on user-supplied answers.
+                return "'" + text if text[:1] in ("=", "+", "-", "@") else text
+
+            buffer = io.StringIO()
+            writer = csv.writer(buffer)
+            writer.writerow(header)
+            for record, payment in rows:
+                answers = record.answers if isinstance(record.answers, dict) else {}
+                line = [record.id, record.status, _as_utc(record.created_at).isoformat(), _cell(record.registrant_name),
+                        "" if record.companion_index is None else str(record.companion_index), _cell(record.added_by_name)]
+                line += [_cell(answers.get(field.field_key)) for field in fields]
+                line += [_as_utc(record.ticket_checked_in_at).isoformat() if record.ticket_checked_in_at is not None else "",
+                         "yes" if (record.receipt_review_task_id is not None or record.receipt_upload is not None) else "no"]
+                if with_finance:
+                    line += [payment.status if payment is not None else "", payment.method if payment is not None else "",
+                             str(payment.amount) if payment is not None else "", payment.currency if payment is not None else "",
+                             _cell(payment.transaction_id) if payment is not None else ""]
+                writer.writerow(line)
+            record_audit(
+                db, identity, "form.responses.export", target_type="form", target_id=form_id,
+                details={"rows": len(rows), "fields": len(fields), "finance_columns": with_finance},
+            )
+            db.commit()
+            safe_name = re.sub(r"[^A-Za-z0-9_-]+", "-", form_id)[:40] or "form"
+            return Response(
+                content="\ufeff" + buffer.getvalue(), media_type="text/csv; charset=utf-8",
+                headers={"Content-Disposition": f'attachment; filename="form-{safe_name}-responses.csv"',
+                         "Cache-Control": "private, no-store"},
+            )
         page_size = max(1, min(100, limit))
         start = max(0, min(1_000_000, offset))
         records = db.scalars(
@@ -6496,10 +13969,16 @@ def create_app(
         if record is None:
             raise HTTPException(404, "response_not_found")
         draft = db.get(FormResponseDraftRecord, record.draft_id)
+        cancelled = cancel_registration(
+            db, record, reason="owner_delete", source="owner_delete", actor_kind=audit_mod.ACTOR_OWNER,
+            actor_id=identity.owner_id, actor_role=ROLE_OWNER,
+        )
         if draft is not None:
             db.delete(draft)
-        else:
-            db.delete(record)
+        record_audit(
+            db, identity, "form.response.delete", target_type="form_response", target_id=response_id,
+            details={"form_id": form_id, "cancellation_id": cancelled.id, "companions": len(cancelled.companions)},
+        )
         db.commit()
         return {"deleted": True}
 
@@ -6519,6 +13998,7 @@ def create_app(
         else:
             try:
                 with factory() as db:
+                    cfg = _runtime_settings(db, cfg)
                     form = db.scalar(
                         select(FormRecord)
                         .options(selectinload(FormRecord.fields))
@@ -6530,6 +14010,12 @@ def create_app(
                         route_error = "closed" if form.status in {"paused", "archived"} else "draft"
                     elif publication_issues(form, bale_ready=cfg.form_bale_payments_ready):
                         route_error = "invalid-form"
+                    elif (purchase_block := _purchase_form_block(db, form)) is not None:
+                        # Purchase form of a product that is not on sale right now (draft/paused/archived).
+                        route_error = "recording-not-on-sale:" + str(purchase_block.get("recording_id") or "")
+                    elif (block := _event_registration_block(db, form)) is not None:
+                        # The form itself is published; only the event's registration window/status blocks it.
+                        route_error = "registration-closed:" + str(block.get("event_id") or "")
                     else:
                         accepted, waitlisted = _response_counts(db, form_id)
                         if _capacity_is_full(
@@ -6543,6 +14029,8 @@ def create_app(
                                 waitlisted_count=waitlisted,
                                 bale_ready=cfg.form_bale_payments_ready,
                             )
+                            if _form_is_purchase(form):
+                                form_data["purchase"] = _public_purchase_header(db, request, form)
             except SQLAlchemyError:
                 route_error = "unavailable"
 

@@ -1,0 +1,18 @@
+✓ authz scheduler/retry: guest → {"monitor":401,"run":401,"retry":401}, signed-in member → {"monitor":403,"run":403,"retry":403} (server-side; no panel involved)
+✓ owner schedules resource: resource d233d717… published with publish_at=2026-10-22T09:40:10Z; monitor pending={"future":1,"due_unannounced":0}; announced_at=
+✓ d scheduler card (future): state=ok «زمان‌بند انتشار و اعلان محتوا API سرور بازخوانی اجرای دستی یک نوبت منبعِ زمان‌بندی‌شده تا رسیدن زمانش در صفحهٔ رویداد دیده نمی‌شود (محاسبه با ساعت سرور در هر درخواست). اعلان به دارندگان دسترسی را تایمر سیستم (systemd) یا»
+✓ holder before due: scheduled resource hidden on the event page and absent from /recording API before publish_at (server clock)
+✓ manual run announces once: before run: state=stalled; after run: state=ok; panel line «اجرای دستی: در موعد ۱ · اعلان‌شده ۱ · اعلان‌های ساخته‌شده ۱» · «آخرین اجرا: 2026-10-22T09:40:21.612766Z · عامل: دستی از پنل · موفق · در موعد: ۱ · اعلان‌شده: ۱ · اعلان‌های ساخته‌شده: ۱ · نادیده (بدون دارنده): ۰»; second run → announced=0, due=0; last_run.actor=owner:owner-qa
+✓ holder after due: resource visible after publish_at; notifications 1 → 2 (exactly +1, recording_content for the scheduled resource); content became visible by server time, the run only announced
+✓ failed row offers retry: filter «ناموفق» → 1 row(s); the injected final-failure row 19fe4ac6… shows the retry button (ev_publish); text «محتوای تازه در محصول خریداری‌شده محتوای تازه حساب 4c70b96e · 2026-10-22T07:56:20+00:00 · ۵ تلاش · آخرین خطا: provider_delivery_failed ناموفق تلاش دوبارهٔ ارسال»
+✓ retry re-queues the same row: same row → state=queued, attempts=0, last_error=null; outbox total=8; notice «همان اعلان دوباره در صف ربات قرار گرفت (ردیف تازه‌ای ساخته نشد). تحویل واقعی فقط با ربات زنده انجام و جداگانه ثبت می‌شود.» (no delivery claim)
+✓ second retry rejected: POST retry on a queued row → 409 {"detail":{"code":"notification_not_failed","state":"queued"}}
+✓ manager scheduler card: manager permissions include ev_publish=true; run button shown=true; state=ok
+✓ d account countdown: registration already existed; account.html loads countdown.js/css; upcoming row has the shared countdown «تا شروع رویداد ۱۱ روز ۲۲ ساعت ۱۲ دقیقه ۱۱ روز و ۲۲ ساعت و ۱۲ دقیقه»; the held (ended) registration has none
+✓ m account countdown: registration already existed; account.html loads countdown.js/css; upcoming row has the shared countdown «تا شروع رویداد ۱۱ روز ۲۲ ساعت ۱۲ دقیقه ۱۱ روز و ۲۲ ساعت و ۱۲ دقیقه»; the held (ended) registration has none
+
+ARTIFACTS: 10 screenshots in shots95
+
+NOTE (synthetic state): before the run, one existing outbox row of the TEST DB (recording_content for member 91001) was set to the bot's final-failure state
+(delivery_status=failed, delivery_attempts=5, last_delivery_error=provider_delivery_failed) by hand to exercise the retry path; real Bale delivery is not
+reachable from this sandbox, so «تحویل‌شده» was never observed and is not claimed. Server code: commit 8 tree (scheduled_publish + attendee announcement).

@@ -1,0 +1,7601 @@
+[
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "A پرش به بخش‌های خانه",
+"attrs": {
+"href": "#quick"
+},
+"outcome": "nav",
+"detail": "(keyboard) home.html#quick"
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "A نورا",
+"attrs": {
+"href": "home.html",
+"aria-label": "خانهٔ نورا"
+},
+"outcome": "nav",
+"detail": "(reload) home.html"
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON حالت شب",
+"attrs": {
+"data-theme-toggle": "",
+"aria-label": "حالت شب",
+"data-label-light": "حالت شب",
+"data-label-dark": "حالت روز",
+"data-state": "light"
+},
+"outcome": "dom-change",
+"detail": "mutations=90"
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "A پشتیبانی و راهنما",
+"attrs": {
+"href": "support.html",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON پیشنهادی",
+"attrs": {
+"data-sq": "پیشنهادی"
+},
+"outcome": "dom-change",
+"detail": "mutations=124"
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON رایگان",
+"attrs": {
+"data-sq": "رایگان"
+},
+"outcome": "gone",
+"detail": ""
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON آنلاین",
+"attrs": {
+"data-sq": "آنلاین"
+},
+"outcome": "gone",
+"detail": ""
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON گواهی‌دار",
+"attrs": {
+"data-sq": "گواهی‌دار"
+},
+"outcome": "gone",
+"detail": ""
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON مطلب آزمایشی محیط تست",
+"attrs": {
+"data-sq": "مطلب آزمایشی محیط تست"
+},
+"outcome": "gone",
+"detail": ""
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "A رویدادها و آرشیو برنامه‌های پیش‌رو، برگز",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON مطالب و مطالعه مطالب، رسانه و باشگاه کتا",
+"attrs": {
+"data-q": "articles",
+"data-anim": ""
+},
+"outcome": "message",
+"detail": "فهرست دست‌اندرکاران هنوز محتوای منتشرشده ندارد. / نهاد همکارِ عمومی منتشر نشده است."
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "A افراد و نهادها اساتید، دست‌اندرکاران و ه",
+"attrs": {
+"href": "home.html#teachers"
+},
+"outcome": "nav",
+"detail": "home.html#teachers"
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON استعلام گواهی بررسی گواهی در سامانه",
+"attrs": {
+"data-q": "verify",
+"data-anim": ""
+},
+"outcome": "overlay",
+"detail": "shVerify|scrim | استعلام سروری در دسترس نیست\n\nفهرست گواهی‌ها و اعتبارسنجی آن‌"
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "A پشتیبانی و راهنما راهنما و مسیر پیگیری د",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON همهٔ بخش‌های نورا",
+"attrs": {
+"data-menu": ""
+},
+"outcome": "overlay",
+"detail": "shMenu|scrim"
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON کارگاه آزمایشی",
+"attrs": {
+"data-ev": "ev-test-1",
+"aria-label": "جزئیات کارگاه آزمایشی محیط تست"
+},
+"outcome": "nav",
+"detail": "event.html?id=ev-test-1"
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "A جزئیات",
+"attrs": {
+"href": "event.html?id=ev-test-1"
+},
+"outcome": "nav",
+"detail": "event.html?id=ev-test-1"
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "A همهٔ رویدادها",
+"attrs": {
+"href": "events.html#list"
+},
+"outcome": "nav",
+"detail": "events.html#list"
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "A آرشیو رویدادها",
+"attrs": {
+"href": "events.html?status=past"
+},
+"outcome": "nav",
+"detail": "events.html?status=past"
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON جزئیات نشست برگزارشدهٔ آزمایشی",
+"attrs": {
+"data-ev": "ev-test-2",
+"aria-label": "جزئیات نشست برگزارشدهٔ آزمایشی"
+},
+"outcome": "nav",
+"detail": "event.html?id=ev-test-2"
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "A جزئیات رویداد",
+"attrs": {
+"href": "event.html?id=ev-test-2"
+},
+"outcome": "nav",
+"detail": "event.html?id=ev-test-2"
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON باشگاه در حساب من",
+"attrs": {
+"data-uihref": "account.html#book"
+},
+"outcome": "nav",
+"detail": "account.html#book"
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "A دوره‌هایشان",
+"attrs": {
+"href": "events.html#cat"
+},
+"outcome": "nav",
+"detail": "events.html#cat"
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON سنجاق کردن مدرس آزمایشی",
+"attrs": {
+"data-pin": "pe:pe-test-1",
+"aria-label": "سنجاق کردن مدرس آزمایشی"
+},
+"outcome": "message",
+"detail": "باشگاه کتاب‌خوانی خط زندگی\nکتاب ماه هنوز منتشر نشده است\nکتاب"
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "A پروفایل",
+"attrs": {
+"href": "person.html?id=pe-test-1"
+},
+"outcome": "nav",
+"detail": "person.html?id=pe-test-1"
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON همهٔ مطالب",
+"attrs": {
+"id": "artMore"
+},
+"outcome": "message",
+"detail": "فهرست دست‌اندرکاران هنوز محتوای منتشرشده ندارد. / نهاد همکارِ عمومی منتشر نشده است."
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON سنجاق کردن مطلب آزمایشی محیط تست",
+"attrs": {
+"data-pin": "ar:ar-test-1",
+"aria-label": "سنجاق کردن مطلب آزمایشی محیط تست"
+},
+"outcome": "dom-change",
+"detail": "mutations=172"
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "A مطلب آزمایشی محیط تست",
+"attrs": {
+"href": "post.html?id=ar-test-1"
+},
+"outcome": "nav",
+"detail": "post.html?id=ar-test-1"
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "A خواندن",
+"attrs": {
+"href": "post.html?id=ar-test-1"
+},
+"outcome": "nav",
+"detail": "post.html?id=ar-test-1"
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html#list"
+},
+"outcome": "nav",
+"detail": "events.html#list"
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "A پشتیبانی",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "(reload) home.html"
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html#list"
+},
+"outcome": "nav",
+"detail": "events.html#list"
+},
+{
+"page": "home",
+"vp": "mobile",
+"member": false,
+"control": "A ورود/ثبت‌نام",
+"attrs": {
+"href": "account.html",
+"data-account-nav": "",
+"aria-label": "ورود/ثبت‌نام"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "events",
+"vp": "mobile",
+"member": false,
+"control": "A رفتن به فهرست رویدادها",
+"attrs": {
+"href": "#eventsList"
+},
+"outcome": "nav",
+"detail": "(keyboard) events.html#eventsList"
+},
+{
+"page": "events",
+"vp": "mobile",
+"member": false,
+"control": "A نورا",
+"attrs": {
+"href": "home.html",
+"aria-label": "خانهٔ نورا"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "events",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON ☼ ☾",
+"attrs": {
+"data-theme-toggle": "",
+"aria-label": "حالت شب",
+"data-label-light": "حالت شب",
+"data-label-dark": "حالت روز"
+},
+"outcome": "NO-EFFECT",
+"detail": ""
+},
+{
+"page": "events",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON باز کردن منو",
+"attrs": {
+"data-menu": "",
+"aria-label": "باز کردن منو"
+},
+"outcome": "overlay",
+"detail": "shMenu|scrim"
+},
+{
+"page": "events",
+"vp": "mobile",
+"member": false,
+"control": "A خانه",
+"attrs": {
+"href": "/"
+},
+"outcome": "nav",
+"detail": ""
+},
+{
+"page": "events",
+"vp": "mobile",
+"member": false,
+"control": "A اساتید و مدرسان",
+"attrs": {
+"href": "home.html#teachers"
+},
+"outcome": "nav",
+"detail": "home.html#teachers"
+},
+{
+"page": "events",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON همه",
+"attrs": {
+"type": "button",
+"data-event-filter": "all"
+},
+"outcome": "dom-change",
+"detail": "mutations=12"
+},
+{
+"page": "events",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON پیش‌رو",
+"attrs": {
+"type": "button",
+"data-event-filter": "upcoming"
+},
+"outcome": "dom-change",
+"detail": "mutations=15"
+},
+{
+"page": "events",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON برگزارشده",
+"attrs": {
+"type": "button",
+"data-event-filter": "past"
+},
+"outcome": "dom-change",
+"detail": "mutations=14"
+},
+{
+"page": "events",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON کارگاه ۱",
+"attrs": {
+"type": "button",
+"data-event-kind": "کارگاه"
+},
+"outcome": "gone",
+"detail": ""
+},
+{
+"page": "events",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON نشست ۱",
+"attrs": {
+"type": "button",
+"data-event-kind": "نشست"
+},
+"outcome": "gone",
+"detail": ""
+},
+{
+"page": "events",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON آنلاین ۱",
+"attrs": {
+"type": "button",
+"data-event-mode": "آنلاین"
+},
+"outcome": "gone",
+"detail": ""
+},
+{
+"page": "events",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON حضوری ۱",
+"attrs": {
+"type": "button",
+"data-event-mode": "حضوری"
+},
+"outcome": "gone",
+"detail": ""
+},
+{
+"page": "events",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON فهرست",
+"attrs": {
+"type": "button",
+"data-event-view": "list"
+},
+"outcome": "nav",
+"detail": "events.html#list"
+},
+{
+"page": "events",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON تقویم",
+"attrs": {
+"type": "button",
+"data-event-view": "cal"
+},
+"outcome": "nav",
+"detail": "events.html#cal"
+},
+{
+"page": "events",
+"vp": "mobile",
+"member": false,
+"control": "A فهرست استادان و دست‌اندرکاران",
+"attrs": {
+"href": "home.html#teachers"
+},
+"outcome": "nav",
+"detail": "home.html#teachers"
+},
+{
+"page": "events",
+"vp": "mobile",
+"member": false,
+"control": "A کارگاه ۱۰ آبان ۱۴۰۵ · ۱۷:۰۰",
+"attrs": {
+"href": "event.html?id=ev-test-1",
+"aria-label": "جزئیات کارگاه آزمایشی محیط تست"
+},
+"outcome": "nav",
+"detail": "event.html?id=ev-test-1"
+},
+{
+"page": "events",
+"vp": "mobile",
+"member": false,
+"control": "A کارگاه آزمایشی محیط تست",
+"attrs": {
+"href": "event.html?id=ev-test-1"
+},
+"outcome": "nav",
+"detail": "event.html?id=ev-test-1"
+},
+{
+"page": "events",
+"vp": "mobile",
+"member": false,
+"control": "A مدرس آزمایشی",
+"attrs": {
+"href": "person.html?id=pe-test-1"
+},
+"outcome": "nav",
+"detail": "person.html?id=pe-test-1"
+},
+{
+"page": "events",
+"vp": "mobile",
+"member": false,
+"control": "A جزئیات کامل",
+"attrs": {
+"href": "event.html?id=ev-test-1"
+},
+"outcome": "nav",
+"detail": "event.html?id=ev-test-1"
+},
+{
+"page": "events",
+"vp": "mobile",
+"member": false,
+"control": "A نشست برگزارشده ۱ شهریور ۱۴۰۵",
+"attrs": {
+"href": "event.html?id=ev-test-2",
+"aria-label": "جزئیات نشست برگزارشدهٔ آزمایشی"
+},
+"outcome": "nav",
+"detail": "event.html?id=ev-test-2"
+},
+{
+"page": "events",
+"vp": "mobile",
+"member": false,
+"control": "A نشست برگزارشدهٔ آزمایشی",
+"attrs": {
+"href": "event.html?id=ev-test-2"
+},
+"outcome": "nav",
+"detail": "event.html?id=ev-test-2"
+},
+{
+"page": "events",
+"vp": "mobile",
+"member": false,
+"control": "A جزئیات کامل",
+"attrs": {
+"href": "event.html?id=ev-test-2"
+},
+"outcome": "nav",
+"detail": "event.html?id=ev-test-2"
+},
+{
+"page": "events",
+"vp": "mobile",
+"member": false,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "events",
+"vp": "mobile",
+"member": false,
+"control": "A ورود/ثبت‌نام",
+"attrs": {
+"href": "account.html"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "events",
+"vp": "mobile",
+"member": false,
+"control": "A پشتیبانی",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "events",
+"vp": "mobile",
+"member": false,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "events",
+"vp": "mobile",
+"member": false,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html#list"
+},
+"outcome": "nav",
+"detail": "events.html#list"
+},
+{
+"page": "events",
+"vp": "mobile",
+"member": false,
+"control": "A ورود/ثبت‌نام",
+"attrs": {
+"href": "account.html",
+"data-account-nav": "",
+"aria-label": "ورود/ثبت‌نام"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "event",
+"vp": "mobile",
+"member": false,
+"control": "A رفتن به جزئیات رویداد",
+"attrs": {
+"href": "#page"
+},
+"outcome": "nav",
+"detail": "(keyboard) event.html?id=ev-test-1#page"
+},
+{
+"page": "event",
+"vp": "mobile",
+"member": false,
+"control": "A نورا",
+"attrs": {
+"href": "home.html",
+"aria-label": "خانهٔ نورا"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "event",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON حالت شب",
+"attrs": {
+"data-theme-toggle": "",
+"aria-label": "حالت شب",
+"data-label-light": "حالت شب",
+"data-label-dark": "حالت روز"
+},
+"outcome": "dom-change",
+"detail": "mutations=9"
+},
+{
+"page": "event",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON اعلان‌ها",
+"attrs": {
+"data-notice": "",
+"aria-label": "اعلان‌ها"
+},
+"outcome": "overlay",
+"detail": "scrim|shNotice"
+},
+{
+"page": "event",
+"vp": "mobile",
+"member": false,
+"control": "A پشتیبانی و راهنما",
+"attrs": {
+"href": "support.html",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "event",
+"vp": "mobile",
+"member": false,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "event",
+"vp": "mobile",
+"member": false,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html#list"
+},
+"outcome": "nav",
+"detail": "events.html#list"
+},
+{
+"page": "event",
+"vp": "mobile",
+"member": false,
+"control": "A م مدرس آزمایشی مدرس نمونهٔ محیط تست ‹",
+"attrs": {
+"href": "person.html?id=pe-test-1"
+},
+"outcome": "nav",
+"detail": "person.html?id=pe-test-1"
+},
+{
+"page": "event",
+"vp": "mobile",
+"member": false,
+"control": "A بازگشت به فهرست رویدادها",
+"attrs": {
+"href": "events.html#list"
+},
+"outcome": "nav",
+"detail": "events.html#list"
+},
+{
+"page": "event",
+"vp": "mobile",
+"member": false,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "event",
+"vp": "mobile",
+"member": false,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "event",
+"vp": "mobile",
+"member": false,
+"control": "A ورود/ثبت‌نام",
+"attrs": {
+"href": "account.html",
+"data-account-nav": "",
+"aria-label": "ورود/ثبت‌نام"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "person",
+"vp": "mobile",
+"member": false,
+"control": "A نورا",
+"attrs": {
+"href": "home.html",
+"aria-label": "خانهٔ نورا"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "person",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON ☼ ☾",
+"attrs": {
+"data-theme-toggle": "",
+"aria-label": "حالت شب",
+"data-label-light": "حالت شب",
+"data-label-dark": "حالت روز"
+},
+"outcome": "dom-change",
+"detail": "mutations=6"
+},
+{
+"page": "person",
+"vp": "mobile",
+"member": false,
+"control": "A بازگشت",
+"attrs": {
+"href": "home.html#teachers"
+},
+"outcome": "nav",
+"detail": "home.html#teachers"
+},
+{
+"page": "person",
+"vp": "mobile",
+"member": false,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "person",
+"vp": "mobile",
+"member": false,
+"control": "A اساتید و مدرسان",
+"attrs": {
+"href": "home.html#teachers"
+},
+"outcome": "nav",
+"detail": "home.html#teachers"
+},
+{
+"page": "person",
+"vp": "mobile",
+"member": false,
+"control": "A ◴ کارگاه آزمایشی محیط تست ۱۰ آبان ۱۴۰۵ ·",
+"attrs": {
+"href": "event.html?id=ev-test-1"
+},
+"outcome": "nav",
+"detail": "event.html?id=ev-test-1"
+},
+{
+"page": "person",
+"vp": "mobile",
+"member": false,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "person",
+"vp": "mobile",
+"member": false,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html#list"
+},
+"outcome": "nav",
+"detail": "events.html#list"
+},
+{
+"page": "person",
+"vp": "mobile",
+"member": false,
+"control": "A ورود/ثبت‌نام",
+"attrs": {
+"href": "account.html",
+"data-account-nav": "",
+"aria-label": "ورود/ثبت‌نام"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "post",
+"vp": "mobile",
+"member": false,
+"control": "A پرش به ثبت‌نام",
+"attrs": {
+"href": "#reg"
+},
+"outcome": "nav",
+"detail": "(keyboard) post.html?id=ar-test-1#reg"
+},
+{
+"page": "post",
+"vp": "mobile",
+"member": false,
+"control": "A نورا",
+"attrs": {
+"href": "home.html",
+"aria-label": "خانهٔ نورا"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "post",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON حالت شب",
+"attrs": {
+"data-theme-toggle": "",
+"aria-label": "حالت شب",
+"data-label-light": "حالت شب",
+"data-label-dark": "حالت روز"
+},
+"outcome": "dom-change",
+"detail": "mutations=8"
+},
+{
+"page": "post",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON اعلان‌ها",
+"attrs": {
+"data-notice": "",
+"aria-label": "اعلان‌ها"
+},
+"outcome": "overlay",
+"detail": "scrim|shNotice"
+},
+{
+"page": "post",
+"vp": "mobile",
+"member": false,
+"control": "A پشتیبانی و راهنما",
+"attrs": {
+"href": "support.html",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "post",
+"vp": "mobile",
+"member": false,
+"control": "A خانه",
+"attrs": {
+"href": "/"
+},
+"outcome": "nav",
+"detail": ""
+},
+{
+"page": "post",
+"vp": "mobile",
+"member": false,
+"control": "A مطالب",
+"attrs": {
+"href": "/#articles"
+},
+"outcome": "nav",
+"detail": "#articles"
+},
+{
+"page": "post",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON همرسانی · غیرفعال",
+"attrs": {
+"type": "button",
+"id": "pbShare"
+},
+"outcome": "dom-change",
+"detail": "mutations=6"
+},
+{
+"page": "post",
+"vp": "mobile",
+"member": false,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "post",
+"vp": "mobile",
+"member": false,
+"control": "A مطالب",
+"attrs": {
+"href": "home.html#articles"
+},
+"outcome": "nav",
+"detail": "home.html#articles"
+},
+{
+"page": "post",
+"vp": "mobile",
+"member": false,
+"control": "A کتابخانهٔ من",
+"attrs": {
+"href": "events.html#lib"
+},
+"outcome": "nav",
+"detail": "events.html#lib"
+},
+{
+"page": "support",
+"vp": "mobile",
+"member": false,
+"control": "A نورا",
+"attrs": {
+"href": "home.html",
+"aria-label": "خانهٔ نورا"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "support",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON حالت شب",
+"attrs": {
+"data-theme-toggle": "",
+"aria-label": "حالت شب",
+"data-label-light": "حالت شب",
+"data-label-dark": "حالت روز",
+"data-state": "light"
+},
+"outcome": "dom-change",
+"detail": "mutations=14"
+},
+{
+"page": "support",
+"vp": "mobile",
+"member": false,
+"control": "A اعلان‌ها",
+"attrs": {
+"href": "home.html#notice",
+"aria-label": "اعلان‌ها"
+},
+"outcome": "overlay",
+"detail": "scrim|noraPageLoader|shNotice | راهنمای عمومی در دسترس نیست\n\nراهنمای زنده و تیکت امن هنوز از / فرم همکاری هنوز از سوی مدیر منتشر نشده است. / فهرست عمومی کارشناسان در دسترس نیست. / در حال بارگذاری…\nسامانه مدیریت آموزش نورا"
+},
+{
+"page": "support",
+"vp": "mobile",
+"member": false,
+"control": "A پشتیبانی و راهنما",
+"attrs": {
+"href": "support.html",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "(reload) support.html"
+},
+{
+"page": "support",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON منوی کامل نورا",
+"attrs": {
+"data-menu": ""
+},
+"outcome": "overlay",
+"detail": "scrim|shMenu | راهنمای عمومی در دسترس نیست\n\nراهنمای زنده و تیکت امن هنوز از / فرم همکاری هنوز از سوی مدیر منتشر نشده است. / فهرست عمومی کارشناسان در دسترس نیست."
+},
+{
+"page": "support",
+"vp": "mobile",
+"member": false,
+"control": "A بازگشت به خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "support",
+"vp": "mobile",
+"member": false,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "support",
+"vp": "mobile",
+"member": false,
+"control": "A ورود/ثبت‌نام",
+"attrs": {
+"href": "account.html"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "support",
+"vp": "mobile",
+"member": false,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "support",
+"vp": "mobile",
+"member": false,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "support",
+"vp": "mobile",
+"member": false,
+"control": "A ورود/ثبت‌نام",
+"attrs": {
+"href": "account.html",
+"data-account-nav": "",
+"aria-label": "ورود/ثبت‌نام"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "login",
+"vp": "mobile",
+"member": false,
+"control": "A نورا",
+"attrs": {
+"href": "home.html",
+"aria-label": "خانهٔ نورا"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "login",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON حالت شب",
+"attrs": {
+"data-theme-toggle": "",
+"aria-label": "حالت شب",
+"data-label-light": "حالت شب",
+"data-label-dark": "حالت روز"
+},
+"outcome": "dom-change",
+"detail": "mutations=14"
+},
+{
+"page": "login",
+"vp": "mobile",
+"member": false,
+"control": "A پشتیبانی و راهنما",
+"attrs": {
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "login",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON کد جدید",
+"attrs": {
+"type": "button",
+"id": "lgCapNew"
+},
+"outcome": "dom-change",
+"detail": "mutations=13"
+},
+{
+"page": "login",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON دریافت کد",
+"attrs": {
+"type": "submit",
+"id": "lgPhoneSubmit"
+},
+"outcome": "dom-change",
+"detail": "mutations=8"
+},
+{
+"page": "login",
+"vp": "mobile",
+"member": false,
+"control": "A ورود مدیران",
+"attrs": {
+"href": "login.html?mode=staff&next=admin.html%23dash"
+},
+"outcome": "nav",
+"detail": "login.html?mode=staff&next=admin.html%23dash"
+},
+{
+"page": "login",
+"vp": "mobile",
+"member": false,
+"control": "A راهنما",
+"attrs": {
+"href": "support.html#reader"
+},
+"outcome": "nav",
+"detail": "support.html#reader"
+},
+{
+"page": "login",
+"vp": "mobile",
+"member": false,
+"control": "A پشتیبانی",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "login",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON قوانین",
+"attrs": {
+"type": "button",
+"id": "rulesBtn"
+},
+"outcome": "overlay",
+"detail": "shRules|scrim"
+},
+{
+"page": "login",
+"vp": "mobile",
+"member": false,
+"control": "A پشتیبانی و راهنمابی ورود باز است؛ گفت‌وگ",
+"attrs": {
+"id": "supBar",
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "dom-change",
+"detail": "mutations=24"
+},
+{
+"page": "login",
+"vp": "mobile",
+"member": false,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "login",
+"vp": "mobile",
+"member": false,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "login",
+"vp": "mobile",
+"member": false,
+"control": "A ورود/ثبت‌نام",
+"attrs": {
+"href": "account.html",
+"data-account-nav": "",
+"aria-label": "ورود/ثبت‌نام"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "account-guest",
+"vp": "mobile",
+"member": false,
+"control": "A نورا",
+"attrs": {
+"href": "home.html",
+"aria-label": "خانهٔ نورا"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-guest",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON حالت شب",
+"attrs": {
+"data-theme-toggle": "",
+"aria-label": "حالت شب",
+"data-label-light": "حالت شب",
+"data-label-dark": "حالت روز",
+"data-state": "light"
+},
+"outcome": "dom-change",
+"detail": "mutations=63"
+},
+{
+"page": "account-guest",
+"vp": "mobile",
+"member": false,
+"control": "A پشتیبانی و راهنما",
+"attrs": {
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-guest",
+"vp": "mobile",
+"member": false,
+"control": "A ورود یا ساخت حساب",
+"attrs": {
+"href": "login.html?mode=server&next=account.html"
+},
+"outcome": "nav",
+"detail": "login.html?mode=server&next=account.html"
+},
+{
+"page": "account-guest",
+"vp": "mobile",
+"member": false,
+"control": "A دیدن رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-guest",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON نورا پی پرداخت‌ها و رسیدهای ثبت‌نام وارد",
+"attrs": {
+"type": "button",
+"data-view": "pay",
+"aria-label": "نورا پی · پرداخت‌ها و رسیدهای ثبت‌نام"
+},
+"outcome": "nav",
+"detail": "account.html#pay"
+},
+{
+"page": "account-guest",
+"vp": "mobile",
+"member": false,
+"control": "A پرداخت‌ها",
+"attrs": {
+"href": "account.html#payments"
+},
+"outcome": "nav",
+"detail": "account.html#payments"
+},
+{
+"page": "account-guest",
+"vp": "mobile",
+"member": false,
+"control": "A رسیدها",
+"attrs": {
+"href": "account.html#payments"
+},
+"outcome": "nav",
+"detail": "account.html#payments"
+},
+{
+"page": "account-guest",
+"vp": "mobile",
+"member": false,
+"control": "A اقساط",
+"attrs": {
+"href": "account.html#acc-20"
+},
+"outcome": "nav",
+"detail": "account.html#acc-20"
+},
+{
+"page": "account-guest",
+"vp": "mobile",
+"member": false,
+"control": "A رویدادهای من ثبت‌نام‌ها، وضعیت و بلیت هر",
+"attrs": {
+"href": "account.html#events"
+},
+"outcome": "nav",
+"detail": "account.html#events"
+},
+{
+"page": "account-guest",
+"vp": "mobile",
+"member": false,
+"control": "A فرم‌های من پاسخ‌های فرم و وضعیت بررسی",
+"attrs": {
+"href": "account.html#forms"
+},
+"outcome": "nav",
+"detail": "account.html#forms"
+},
+{
+"page": "account-guest",
+"vp": "mobile",
+"member": false,
+"control": "A پروفایل من نوع ورود، دسترسی‌ها و پیوند ح",
+"attrs": {
+"href": "account.html#profile"
+},
+"outcome": "nav",
+"detail": "account.html#profile"
+},
+{
+"page": "account-guest",
+"vp": "mobile",
+"member": false,
+"control": "A باشگاه کتاب‌خوانی خط زندگی کتاب ماه، جلس",
+"attrs": {
+"href": "account.html#book"
+},
+"outcome": "nav",
+"detail": "account.html#book"
+},
+{
+"page": "account-guest",
+"vp": "mobile",
+"member": false,
+"control": "A شروع کن",
+"attrs": {
+"href": "login.html?mode=server&next=account.html"
+},
+"outcome": "nav",
+"detail": "login.html?mode=server&next=account.html"
+},
+{
+"page": "account-guest",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON منوی کامل نورا",
+"attrs": {
+"data-menu": ""
+},
+"outcome": "overlay",
+"detail": "scrim|shMenu"
+},
+{
+"page": "account-guest",
+"vp": "mobile",
+"member": false,
+"control": "A بازگشت به خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-guest",
+"vp": "mobile",
+"member": false,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-guest",
+"vp": "mobile",
+"member": false,
+"control": "A پشتیبانی",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-guest",
+"vp": "mobile",
+"member": false,
+"control": "A پشتیبانی و راهنما راهنمای محلی؛ تیکت یا",
+"attrs": {
+"id": "supBar",
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-guest",
+"vp": "mobile",
+"member": false,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-guest",
+"vp": "mobile",
+"member": false,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-guest",
+"vp": "mobile",
+"member": false,
+"control": "A ورود/ثبت‌نام",
+"attrs": {
+"href": "account.html",
+"data-account-nav": "",
+"aria-label": "ورود/ثبت‌نام"
+},
+"outcome": "nav",
+"detail": "(reload) account.html"
+},
+{
+"page": "account-payments-guest",
+"vp": "mobile",
+"member": false,
+"control": "A نورا",
+"attrs": {
+"href": "home.html",
+"aria-label": "خانهٔ نورا"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-payments-guest",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON حالت شب",
+"attrs": {
+"data-theme-toggle": "",
+"aria-label": "حالت شب",
+"data-label-light": "حالت شب",
+"data-label-dark": "حالت روز",
+"data-state": "light"
+},
+"outcome": "dom-change",
+"detail": "mutations=63"
+},
+{
+"page": "account-payments-guest",
+"vp": "mobile",
+"member": false,
+"control": "A پشتیبانی و راهنما",
+"attrs": {
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-payments-guest",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON بازگشت به حساب من",
+"attrs": {
+"data-back": "",
+"aria-label": "بازگشت به حساب من"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "account-payments-guest",
+"vp": "mobile",
+"member": false,
+"control": "A ورود/ثبت‌نام",
+"attrs": {
+"href": "login.html?mode=server&next=account.html%23payments"
+},
+"outcome": "nav",
+"detail": "login.html?mode=server&next=account.html%23payments"
+},
+{
+"page": "account-payments-guest",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON منوی کامل نورا",
+"attrs": {
+"data-menu": ""
+},
+"outcome": "overlay",
+"detail": "scrim|shMenu"
+},
+{
+"page": "account-payments-guest",
+"vp": "mobile",
+"member": false,
+"control": "A بازگشت به خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-payments-guest",
+"vp": "mobile",
+"member": false,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-payments-guest",
+"vp": "mobile",
+"member": false,
+"control": "A پشتیبانی",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-payments-guest",
+"vp": "mobile",
+"member": false,
+"control": "A پشتیبانی و راهنما راهنمای محلی؛ تیکت یا",
+"attrs": {
+"id": "supBar",
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-payments-guest",
+"vp": "mobile",
+"member": false,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-payments-guest",
+"vp": "mobile",
+"member": false,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-payments-guest",
+"vp": "mobile",
+"member": false,
+"control": "A ورود/ثبت‌نام",
+"attrs": {
+"href": "account.html",
+"data-account-nav": "",
+"aria-label": "ورود/ثبت‌نام"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "account-book-guest",
+"vp": "mobile",
+"member": false,
+"control": "A نورا",
+"attrs": {
+"href": "home.html",
+"aria-label": "خانهٔ نورا"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-book-guest",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON حالت شب",
+"attrs": {
+"data-theme-toggle": "",
+"aria-label": "حالت شب",
+"data-label-light": "حالت شب",
+"data-label-dark": "حالت روز",
+"data-state": "light"
+},
+"outcome": "dom-change",
+"detail": "mutations=44"
+},
+{
+"page": "account-book-guest",
+"vp": "mobile",
+"member": false,
+"control": "A پشتیبانی و راهنما",
+"attrs": {
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-book-guest",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON بازگشت به حساب من",
+"attrs": {
+"data-back": "",
+"aria-label": "بازگشت به حساب من"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "account-book-guest",
+"vp": "mobile",
+"member": false,
+"control": "A تازه‌های باشگاه",
+"attrs": {
+"href": "home.html#club"
+},
+"outcome": "nav",
+"detail": "(reload) account.html#book"
+},
+{
+"page": "account-book-guest",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON منوی کامل نورا",
+"attrs": {
+"data-menu": ""
+},
+"outcome": "overlay",
+"detail": "scrim|shMenu"
+},
+{
+"page": "account-book-guest",
+"vp": "mobile",
+"member": false,
+"control": "A بازگشت به خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-book-guest",
+"vp": "mobile",
+"member": false,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-book-guest",
+"vp": "mobile",
+"member": false,
+"control": "A پشتیبانی",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-book-guest",
+"vp": "mobile",
+"member": false,
+"control": "A پشتیبانی و راهنما راهنمای محلی؛ تیکت یا",
+"attrs": {
+"id": "supBar",
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-book-guest",
+"vp": "mobile",
+"member": false,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-book-guest",
+"vp": "mobile",
+"member": false,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-book-guest",
+"vp": "mobile",
+"member": false,
+"control": "A ورود/ثبت‌نام",
+"attrs": {
+"href": "account.html",
+"data-account-nav": "",
+"aria-label": "ورود/ثبت‌نام"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "admin",
+"vp": "mobile",
+"member": false,
+"control": "A ورود",
+"attrs": {
+"href": "login.html?mode=staff&next=admin.html%23dash"
+},
+"outcome": "nav",
+"detail": "login.html?mode=staff&next=admin.html%23dash"
+},
+{
+"page": "offline",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON دوباره تلاش کن",
+"attrs": {
+"id": "retry"
+},
+"outcome": "nav",
+"detail": "(reload) offline.html"
+},
+{
+"page": "offline",
+"vp": "mobile",
+"member": false,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "404",
+"vp": "mobile",
+"member": false,
+"control": "A رفتن به پیام خطا",
+"attrs": {
+"href": "#main"
+},
+"outcome": "nav",
+"detail": "(keyboard) 404.html#main"
+},
+{
+"page": "404",
+"vp": "mobile",
+"member": false,
+"control": "A نورا گروه فرهنگی خط زندگی",
+"attrs": {
+"href": "/",
+"aria-label": "نورا، رفتن به خانه"
+},
+"outcome": "nav",
+"detail": ""
+},
+{
+"page": "404",
+"vp": "mobile",
+"member": false,
+"control": "A بازگشت به خانه",
+"attrs": {
+"href": "/"
+},
+"outcome": "nav",
+"detail": ""
+},
+{
+"page": "404",
+"vp": "mobile",
+"member": false,
+"control": "A ورود/ثبت‌نام",
+"attrs": {
+"href": "/login.html?mode=server&next=account.html"
+},
+"outcome": "nav",
+"detail": "login.html?mode=server&next=account.html"
+},
+{
+"page": "404",
+"vp": "mobile",
+"member": false,
+"control": "A رویدادهای نورا",
+"attrs": {
+"href": "/events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "404",
+"vp": "mobile",
+"member": false,
+"control": "A راهنما",
+"attrs": {
+"href": "/support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "nora-pay-preview",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON خروج",
+"attrs": {
+"data-sheet": "shExit",
+"aria-label": "خروج"
+},
+"outcome": "overlay",
+"detail": "scrim|shExit"
+},
+{
+"page": "nora-pay-preview",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON شروع",
+"attrs": {
+"id": "next"
+},
+"outcome": "dom-change",
+"detail": "mutations=62"
+},
+{
+"page": "form",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON خروج",
+"attrs": {
+"data-sheet": "shExit",
+"aria-label": "خروج"
+},
+"outcome": "overlay",
+"detail": "scrim|shExit"
+},
+{
+"page": "form",
+"vp": "mobile",
+"member": false,
+"control": "BUTTON شروع",
+"attrs": {
+"id": "next"
+},
+"outcome": "dom-change",
+"detail": "mutations=63"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A نورا",
+"attrs": {
+"href": "home.html",
+"aria-label": "خانهٔ نورا"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "BUTTON حالت شب",
+"attrs": {
+"data-theme-toggle": "",
+"aria-label": "حالت شب",
+"data-label-light": "حالت شب",
+"data-label-dark": "حالت روز",
+"data-state": "light"
+},
+"outcome": "dom-change",
+"detail": "mutations=63"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A پشتیبانی و راهنما",
+"attrs": {
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "BUTTON اعلان‌های حساب",
+"attrs": {
+"data-server-data-open": "notifications",
+"aria-label": "اعلان‌های حساب"
+},
+"outcome": "nav",
+"detail": "account.html#notifications"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "BUTTON ۱ ثبت‌نام",
+"attrs": {
+"data-server-data-open": "registrations"
+},
+"outcome": "nav",
+"detail": "account.html#events"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "BUTTON ۰ اعلان",
+"attrs": {
+"data-server-data-open": "notifications"
+},
+"outcome": "nav",
+"detail": "account.html#notifications"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "BUTTON ۰ فایل حساب",
+"attrs": {
+"data-server-data-open": "files"
+},
+"outcome": "nav",
+"detail": "account.html#my-files"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "BUTTON ثبت‌نام‌های من",
+"attrs": {
+"data-server-data-open": "registrations"
+},
+"outcome": "nav",
+"detail": "account.html#events"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A فرم‌های من",
+"attrs": {
+"href": "account.html#forms"
+},
+"outcome": "nav",
+"detail": "account.html#forms"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "BUTTON فایل‌ها",
+"attrs": {
+"data-server-data-open": "files"
+},
+"outcome": "nav",
+"detail": "account.html#my-files"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "BUTTON خروج",
+"attrs": {
+"data-server-account-logout": ""
+},
+"outcome": "skipped-logout",
+"detail": "جداگانه بررسی شد: نشست سرور باطل و نمای مهمان نشان داده می‌شود"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "BUTTON نورا پی پرداخت‌ها و رسیدهای ثبت‌نام هنوز",
+"attrs": {
+"type": "button",
+"data-view": "pay",
+"aria-label": "نورا پی · پرداخت‌ها و رسیدهای ثبت‌نام"
+},
+"outcome": "nav",
+"detail": "account.html#pay"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A پرداخت‌ها",
+"attrs": {
+"href": "account.html#payments"
+},
+"outcome": "nav",
+"detail": "account.html#payments"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A رسیدها",
+"attrs": {
+"href": "account.html#payments"
+},
+"outcome": "nav",
+"detail": "account.html#payments"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A اقساط",
+"attrs": {
+"href": "account.html#acc-20"
+},
+"outcome": "nav",
+"detail": "account.html#acc-20"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A رویدادهای من ثبت‌نام‌ها، وضعیت و بلیت هر",
+"attrs": {
+"href": "account.html#events"
+},
+"outcome": "nav",
+"detail": "account.html#events"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A فرم‌های من پاسخ‌های فرم و وضعیت بررسی ۱",
+"attrs": {
+"href": "account.html#forms"
+},
+"outcome": "nav",
+"detail": "account.html#forms"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A پروفایل من نوع ورود، دسترسی‌ها و پیوند ح",
+"attrs": {
+"href": "account.html#profile"
+},
+"outcome": "nav",
+"detail": "account.html#profile"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A باشگاه کتاب‌خوانی خط زندگی کتاب ماه، جلس",
+"attrs": {
+"href": "account.html#book"
+},
+"outcome": "nav",
+"detail": "account.html#book"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "account.html#acc-0"
+},
+"outcome": "nav",
+"detail": "account.html#acc-0"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "account.html#events"
+},
+"outcome": "nav",
+"detail": "account.html#events"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "account.html#notifications"
+},
+"outcome": "nav",
+"detail": "account.html#notifications"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "events.html#cal"
+},
+"outcome": "nav",
+"detail": "events.html#cal"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-4"
+},
+"outcome": "nav",
+"detail": "account.html#acc-4"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-5"
+},
+"outcome": "nav",
+"detail": "account.html#acc-5"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-6"
+},
+"outcome": "nav",
+"detail": "account.html#acc-6"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-7"
+},
+"outcome": "nav",
+"detail": "account.html#acc-7"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-8"
+},
+"outcome": "nav",
+"detail": "account.html#acc-8"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-9"
+},
+"outcome": "nav",
+"detail": "account.html#acc-9"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-10"
+},
+"outcome": "nav",
+"detail": "account.html#acc-10"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-11"
+},
+"outcome": "nav",
+"detail": "account.html#acc-11"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-12"
+},
+"outcome": "nav",
+"detail": "account.html#acc-12"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-13"
+},
+"outcome": "nav",
+"detail": "account.html#acc-13"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-14"
+},
+"outcome": "nav",
+"detail": "account.html#acc-14"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "events.html?status=past"
+},
+"outcome": "nav",
+"detail": "events.html?status=past"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-16"
+},
+"outcome": "nav",
+"detail": "account.html#acc-16"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "account.html#forms"
+},
+"outcome": "nav",
+"detail": "account.html#forms"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-18"
+},
+"outcome": "nav",
+"detail": "account.html#acc-18"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-19"
+},
+"outcome": "nav",
+"detail": "account.html#acc-19"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-20"
+},
+"outcome": "nav",
+"detail": "account.html#acc-20"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-21"
+},
+"outcome": "nav",
+"detail": "account.html#acc-21"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-22"
+},
+"outcome": "nav",
+"detail": "account.html#acc-22"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-23"
+},
+"outcome": "nav",
+"detail": "account.html#acc-23"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-24"
+},
+"outcome": "nav",
+"detail": "account.html#acc-24"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-25"
+},
+"outcome": "nav",
+"detail": "account.html#acc-25"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-26"
+},
+"outcome": "nav",
+"detail": "account.html#acc-26"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-27"
+},
+"outcome": "nav",
+"detail": "account.html#acc-27"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-28"
+},
+"outcome": "nav",
+"detail": "account.html#acc-28"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-29"
+},
+"outcome": "nav",
+"detail": "account.html#acc-29"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-30"
+},
+"outcome": "nav",
+"detail": "account.html#acc-30"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html?status=upcoming"
+},
+"outcome": "nav",
+"detail": "events.html?status=upcoming"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "account.html#notifications"
+},
+"outcome": "nav",
+"detail": "account.html#notifications"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-34"
+},
+"outcome": "nav",
+"detail": "account.html#acc-34"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-35"
+},
+"outcome": "nav",
+"detail": "account.html#acc-35"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html?status=upcoming"
+},
+"outcome": "nav",
+"detail": "events.html?status=upcoming"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html?status=upcoming"
+},
+"outcome": "nav",
+"detail": "events.html?status=upcoming"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "account.html#payments"
+},
+"outcome": "nav",
+"detail": "account.html#payments"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html?status=upcoming"
+},
+"outcome": "nav",
+"detail": "events.html?status=upcoming"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "account.html#payments"
+},
+"outcome": "nav",
+"detail": "account.html#payments"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html?status=upcoming"
+},
+"outcome": "nav",
+"detail": "events.html?status=upcoming"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html?status=upcoming"
+},
+"outcome": "nav",
+"detail": "events.html?status=upcoming"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "account.html"
+},
+"outcome": "nav",
+"detail": "(reload) account.html"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "login.html"
+},
+"outcome": "nav",
+"detail": "login.html"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html?status=upcoming"
+},
+"outcome": "nav",
+"detail": "events.html?status=upcoming"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-50"
+},
+"outcome": "nav",
+"detail": "account.html#acc-50"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "BUTTON منوی کامل نورا",
+"attrs": {
+"data-menu": ""
+},
+"outcome": "overlay",
+"detail": "scrim|shMenu"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A بازگشت به خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A پشتیبانی",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A پشتیبانی و راهنما راهنمای محلی؛ تیکت یا",
+"attrs": {
+"id": "supBar",
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-member",
+"vp": "mobile",
+"member": true,
+"control": "A حساب من",
+"attrs": {
+"href": "account.html",
+"data-account-nav": "",
+"aria-label": "حساب من"
+},
+"outcome": "nav",
+"detail": "(reload) account.html"
+},
+{
+"page": "account-forms-member",
+"vp": "mobile",
+"member": true,
+"control": "A نورا",
+"attrs": {
+"href": "home.html",
+"aria-label": "خانهٔ نورا"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-forms-member",
+"vp": "mobile",
+"member": true,
+"control": "BUTTON حالت شب",
+"attrs": {
+"data-theme-toggle": "",
+"aria-label": "حالت شب",
+"data-label-light": "حالت شب",
+"data-label-dark": "حالت روز",
+"data-state": "light"
+},
+"outcome": "dom-change",
+"detail": "mutations=44"
+},
+{
+"page": "account-forms-member",
+"vp": "mobile",
+"member": true,
+"control": "A پشتیبانی و راهنما",
+"attrs": {
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-forms-member",
+"vp": "mobile",
+"member": true,
+"control": "BUTTON بازگشت به حساب من",
+"attrs": {
+"data-back": "",
+"aria-label": "بازگشت به حساب من"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "account-forms-member",
+"vp": "mobile",
+"member": true,
+"control": "A حساب من",
+"attrs": {
+"href": "account.html"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "account-forms-member",
+"vp": "mobile",
+"member": true,
+"control": "BUTTON خروج",
+"attrs": {
+"data-server-account-logout": ""
+},
+"outcome": "dom-change",
+"detail": "mutations=85"
+},
+{
+"page": "account-forms-member",
+"vp": "mobile",
+"member": true,
+"control": "BUTTON بازخوانی",
+"attrs": {
+"data-account-registrations-refresh": "",
+"aria-label": "بازخوانی ثبت‌نام‌ها"
+},
+"outcome": "gone",
+"detail": ""
+},
+{
+"page": "account-forms-member",
+"vp": "mobile",
+"member": true,
+"control": "BUTTON منوی کامل نورا",
+"attrs": {
+"data-menu": ""
+},
+"outcome": "overlay",
+"detail": "scrim|shMenu"
+},
+{
+"page": "account-forms-member",
+"vp": "mobile",
+"member": true,
+"control": "A بازگشت به خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-forms-member",
+"vp": "mobile",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-forms-member",
+"vp": "mobile",
+"member": true,
+"control": "A پشتیبانی",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-forms-member",
+"vp": "mobile",
+"member": true,
+"control": "A پشتیبانی و راهنما راهنمای محلی؛ تیکت یا",
+"attrs": {
+"id": "supBar",
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-forms-member",
+"vp": "mobile",
+"member": true,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-forms-member",
+"vp": "mobile",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-forms-member",
+"vp": "mobile",
+"member": true,
+"control": "A حساب من",
+"attrs": {
+"href": "account.html",
+"data-account-nav": "",
+"aria-label": "حساب من"
+},
+"outcome": "gone",
+"detail": ""
+},
+{
+"page": "account-payments-member",
+"vp": "mobile",
+"member": true,
+"control": "A نورا",
+"attrs": {
+"href": "home.html",
+"aria-label": "خانهٔ نورا"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-payments-member",
+"vp": "mobile",
+"member": true,
+"control": "BUTTON حالت شب",
+"attrs": {
+"data-theme-toggle": "",
+"aria-label": "حالت شب",
+"data-label-light": "حالت شب",
+"data-label-dark": "حالت روز",
+"data-state": "light"
+},
+"outcome": "dom-change",
+"detail": "mutations=44"
+},
+{
+"page": "account-payments-member",
+"vp": "mobile",
+"member": true,
+"control": "A پشتیبانی و راهنما",
+"attrs": {
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-payments-member",
+"vp": "mobile",
+"member": true,
+"control": "BUTTON بازگشت به حساب من",
+"attrs": {
+"data-back": "",
+"aria-label": "بازگشت به حساب من"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "account-payments-member",
+"vp": "mobile",
+"member": true,
+"control": "A حساب من",
+"attrs": {
+"href": "account.html"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "account-payments-member",
+"vp": "mobile",
+"member": true,
+"control": "BUTTON خروج",
+"attrs": {
+"data-server-account-logout": ""
+},
+"outcome": "dom-change",
+"detail": "mutations=104"
+},
+{
+"page": "account-payments-member",
+"vp": "mobile",
+"member": true,
+"control": "BUTTON بازخوانی",
+"attrs": {
+"data-account-registrations-refresh": "",
+"aria-label": "بازخوانی ثبت‌نام‌ها"
+},
+"outcome": "gone",
+"detail": ""
+},
+{
+"page": "account-payments-member",
+"vp": "mobile",
+"member": true,
+"control": "BUTTON منوی کامل نورا",
+"attrs": {
+"data-menu": ""
+},
+"outcome": "overlay",
+"detail": "scrim|shMenu"
+},
+{
+"page": "account-payments-member",
+"vp": "mobile",
+"member": true,
+"control": "A بازگشت به خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-payments-member",
+"vp": "mobile",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-payments-member",
+"vp": "mobile",
+"member": true,
+"control": "A پشتیبانی",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-payments-member",
+"vp": "mobile",
+"member": true,
+"control": "A پشتیبانی و راهنما راهنمای محلی؛ تیکت یا",
+"attrs": {
+"id": "supBar",
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-payments-member",
+"vp": "mobile",
+"member": true,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-payments-member",
+"vp": "mobile",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-payments-member",
+"vp": "mobile",
+"member": true,
+"control": "A حساب من",
+"attrs": {
+"href": "account.html",
+"data-account-nav": "",
+"aria-label": "حساب من"
+},
+"outcome": "gone",
+"detail": ""
+},
+{
+"page": "account-book-member",
+"vp": "mobile",
+"member": true,
+"control": "A نورا",
+"attrs": {
+"href": "home.html",
+"aria-label": "خانهٔ نورا"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-book-member",
+"vp": "mobile",
+"member": true,
+"control": "BUTTON حالت شب",
+"attrs": {
+"data-theme-toggle": "",
+"aria-label": "حالت شب",
+"data-label-light": "حالت شب",
+"data-label-dark": "حالت روز",
+"data-state": "light"
+},
+"outcome": "dom-change",
+"detail": "mutations=44"
+},
+{
+"page": "account-book-member",
+"vp": "mobile",
+"member": true,
+"control": "A پشتیبانی و راهنما",
+"attrs": {
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-book-member",
+"vp": "mobile",
+"member": true,
+"control": "BUTTON بازگشت به حساب من",
+"attrs": {
+"data-back": "",
+"aria-label": "بازگشت به حساب من"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "account-book-member",
+"vp": "mobile",
+"member": true,
+"control": "A تازه‌های باشگاه",
+"attrs": {
+"href": "home.html#club"
+},
+"outcome": "nav",
+"detail": "(reload) account.html#book"
+},
+{
+"page": "account-book-member",
+"vp": "mobile",
+"member": true,
+"control": "BUTTON منوی کامل نورا",
+"attrs": {
+"data-menu": ""
+},
+"outcome": "overlay",
+"detail": "scrim|shMenu"
+},
+{
+"page": "account-book-member",
+"vp": "mobile",
+"member": true,
+"control": "A بازگشت به خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-book-member",
+"vp": "mobile",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-book-member",
+"vp": "mobile",
+"member": true,
+"control": "A پشتیبانی",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-book-member",
+"vp": "mobile",
+"member": true,
+"control": "A پشتیبانی و راهنما راهنمای محلی؛ تیکت یا",
+"attrs": {
+"id": "supBar",
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-book-member",
+"vp": "mobile",
+"member": true,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-book-member",
+"vp": "mobile",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-book-member",
+"vp": "mobile",
+"member": true,
+"control": "A حساب من",
+"attrs": {
+"href": "account.html",
+"data-account-nav": "",
+"aria-label": "حساب من"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "account-profile-member",
+"vp": "mobile",
+"member": true,
+"control": "A نورا",
+"attrs": {
+"href": "home.html",
+"aria-label": "خانهٔ نورا"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-profile-member",
+"vp": "mobile",
+"member": true,
+"control": "BUTTON حالت شب",
+"attrs": {
+"data-theme-toggle": "",
+"aria-label": "حالت شب",
+"data-label-light": "حالت شب",
+"data-label-dark": "حالت روز",
+"data-state": "light"
+},
+"outcome": "dom-change",
+"detail": "mutations=44"
+},
+{
+"page": "account-profile-member",
+"vp": "mobile",
+"member": true,
+"control": "A پشتیبانی و راهنما",
+"attrs": {
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-profile-member",
+"vp": "mobile",
+"member": true,
+"control": "BUTTON بازگشت به حساب من",
+"attrs": {
+"data-back": "",
+"aria-label": "بازگشت به حساب من"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "account-profile-member",
+"vp": "mobile",
+"member": true,
+"control": "BUTTON منوی کامل نورا",
+"attrs": {
+"data-menu": ""
+},
+"outcome": "overlay",
+"detail": "scrim|shMenu"
+},
+{
+"page": "account-profile-member",
+"vp": "mobile",
+"member": true,
+"control": "A بازگشت به خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-profile-member",
+"vp": "mobile",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-profile-member",
+"vp": "mobile",
+"member": true,
+"control": "A پشتیبانی",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-profile-member",
+"vp": "mobile",
+"member": true,
+"control": "A پشتیبانی و راهنما راهنمای محلی؛ تیکت یا",
+"attrs": {
+"id": "supBar",
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-profile-member",
+"vp": "mobile",
+"member": true,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-profile-member",
+"vp": "mobile",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-profile-member",
+"vp": "mobile",
+"member": true,
+"control": "A حساب من",
+"attrs": {
+"href": "account.html",
+"data-account-nav": "",
+"aria-label": "حساب من"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "account-events-member",
+"vp": "mobile",
+"member": true,
+"control": "A نورا",
+"attrs": {
+"href": "home.html",
+"aria-label": "خانهٔ نورا"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-events-member",
+"vp": "mobile",
+"member": true,
+"control": "BUTTON حالت شب",
+"attrs": {
+"data-theme-toggle": "",
+"aria-label": "حالت شب",
+"data-label-light": "حالت شب",
+"data-label-dark": "حالت روز",
+"data-state": "light"
+},
+"outcome": "dom-change",
+"detail": "mutations=63"
+},
+{
+"page": "account-events-member",
+"vp": "mobile",
+"member": true,
+"control": "A پشتیبانی و راهنما",
+"attrs": {
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-events-member",
+"vp": "mobile",
+"member": true,
+"control": "BUTTON بازگشت به حساب من",
+"attrs": {
+"data-back": "",
+"aria-label": "بازگشت به حساب من"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "account-events-member",
+"vp": "mobile",
+"member": true,
+"control": "A حساب من",
+"attrs": {
+"href": "account.html"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "account-events-member",
+"vp": "mobile",
+"member": true,
+"control": "BUTTON خروج",
+"attrs": {
+"data-server-account-logout": ""
+},
+"outcome": "dom-change",
+"detail": "mutations=104"
+},
+{
+"page": "account-events-member",
+"vp": "mobile",
+"member": true,
+"control": "BUTTON بازخوانی",
+"attrs": {
+"data-account-registrations-refresh": "",
+"aria-label": "بازخوانی ثبت‌نام‌ها"
+},
+"outcome": "gone",
+"detail": ""
+},
+{
+"page": "account-events-member",
+"vp": "mobile",
+"member": true,
+"control": "BUTTON منوی کامل نورا",
+"attrs": {
+"data-menu": ""
+},
+"outcome": "overlay",
+"detail": "scrim|shMenu"
+},
+{
+"page": "account-events-member",
+"vp": "mobile",
+"member": true,
+"control": "A بازگشت به خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-events-member",
+"vp": "mobile",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-events-member",
+"vp": "mobile",
+"member": true,
+"control": "A پشتیبانی",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-events-member",
+"vp": "mobile",
+"member": true,
+"control": "A پشتیبانی و راهنما راهنمای محلی؛ تیکت یا",
+"attrs": {
+"id": "supBar",
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-events-member",
+"vp": "mobile",
+"member": true,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-events-member",
+"vp": "mobile",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-events-member",
+"vp": "mobile",
+"member": true,
+"control": "A حساب من",
+"attrs": {
+"href": "account.html",
+"data-account-nav": "",
+"aria-label": "حساب من"
+},
+"outcome": "gone",
+"detail": ""
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "A پرش به بخش‌های خانه",
+"attrs": {
+"href": "#quick"
+},
+"outcome": "nav",
+"detail": "(keyboard) home.html#quick"
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "A نورا گروه فرهنگی خط زندگی",
+"attrs": {
+"href": "home.html",
+"aria-label": "خانهٔ نورا"
+},
+"outcome": "nav",
+"detail": "(reload) home.html"
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON حالت شب",
+"attrs": {
+"data-theme-toggle": "",
+"aria-label": "حالت شب",
+"data-label-light": "حالت شب",
+"data-label-dark": "حالت روز",
+"data-state": "light"
+},
+"outcome": "dom-change",
+"detail": "mutations=62"
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "A پشتیبانی و راهنما",
+"attrs": {
+"href": "support.html",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON پیشنهادی",
+"attrs": {
+"data-sq": "پیشنهادی"
+},
+"outcome": "dom-change",
+"detail": "mutations=152"
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON رایگان",
+"attrs": {
+"data-sq": "رایگان"
+},
+"outcome": "gone",
+"detail": ""
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON آنلاین",
+"attrs": {
+"data-sq": "آنلاین"
+},
+"outcome": "gone",
+"detail": ""
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON گواهی‌دار",
+"attrs": {
+"data-sq": "گواهی‌دار"
+},
+"outcome": "gone",
+"detail": ""
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON مطلب آزمایشی محیط تست",
+"attrs": {
+"data-sq": "مطلب آزمایشی محیط تست"
+},
+"outcome": "gone",
+"detail": ""
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "A رویدادها و آرشیو برنامه‌های پیش‌رو، برگز",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON مطالب و مطالعه مطالب، رسانه و باشگاه کتا",
+"attrs": {
+"data-q": "articles",
+"data-anim": ""
+},
+"outcome": "message",
+"detail": "فهرست دست‌اندرکاران هنوز محتوای منتشرشده ندارد. / نهاد همکارِ عمومی منتشر نشده است."
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "A افراد و نهادها اساتید، دست‌اندرکاران و ه",
+"attrs": {
+"href": "home.html#teachers"
+},
+"outcome": "nav",
+"detail": "home.html#teachers"
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON استعلام گواهی بررسی گواهی در سامانه",
+"attrs": {
+"data-q": "verify",
+"data-anim": ""
+},
+"outcome": "overlay",
+"detail": "shVerify|scrim | استعلام سروری در دسترس نیست\n\nفهرست گواهی‌ها و اعتبارسنجی آن‌"
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "A پشتیبانی و راهنما راهنما و مسیر پیگیری د",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON همهٔ بخش‌های نورا",
+"attrs": {
+"data-menu": ""
+},
+"outcome": "overlay",
+"detail": "shMenu|scrim"
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON کارگاه آزمایشی",
+"attrs": {
+"data-ev": "ev-test-1",
+"aria-label": "جزئیات کارگاه آزمایشی محیط تست"
+},
+"outcome": "nav",
+"detail": "event.html?id=ev-test-1"
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "A جزئیات",
+"attrs": {
+"href": "event.html?id=ev-test-1"
+},
+"outcome": "nav",
+"detail": "event.html?id=ev-test-1"
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "A همهٔ رویدادها",
+"attrs": {
+"href": "events.html#list"
+},
+"outcome": "nav",
+"detail": "events.html#list"
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "A آرشیو رویدادها",
+"attrs": {
+"href": "events.html?status=past"
+},
+"outcome": "nav",
+"detail": "events.html?status=past"
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON جزئیات نشست برگزارشدهٔ آزمایشی",
+"attrs": {
+"data-ev": "ev-test-2",
+"aria-label": "جزئیات نشست برگزارشدهٔ آزمایشی"
+},
+"outcome": "nav",
+"detail": "event.html?id=ev-test-2"
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "A جزئیات رویداد",
+"attrs": {
+"href": "event.html?id=ev-test-2"
+},
+"outcome": "nav",
+"detail": "event.html?id=ev-test-2"
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON باشگاه در حساب من",
+"attrs": {
+"data-uihref": "account.html#book"
+},
+"outcome": "nav",
+"detail": "account.html#book"
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "A دوره‌هایشان",
+"attrs": {
+"href": "events.html#cat"
+},
+"outcome": "nav",
+"detail": "events.html#cat"
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON سنجاق کردن مدرس آزمایشی",
+"attrs": {
+"data-pin": "pe:pe-test-1",
+"aria-label": "سنجاق کردن مدرس آزمایشی"
+},
+"outcome": "message",
+"detail": "باشگاه کتاب‌خوانی خط زندگی\nکتاب ماه هنوز منتشر نشده است\nکتاب"
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "A پروفایل",
+"attrs": {
+"href": "person.html?id=pe-test-1"
+},
+"outcome": "nav",
+"detail": "person.html?id=pe-test-1"
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON همهٔ مطالب",
+"attrs": {
+"id": "artMore"
+},
+"outcome": "message",
+"detail": "فهرست دست‌اندرکاران هنوز محتوای منتشرشده ندارد. / نهاد همکارِ عمومی منتشر نشده است."
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON سنجاق کردن مطلب آزمایشی محیط تست",
+"attrs": {
+"data-pin": "ar:ar-test-1",
+"aria-label": "سنجاق کردن مطلب آزمایشی محیط تست"
+},
+"outcome": "dom-change",
+"detail": "mutations=144"
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "A مطلب آزمایشی محیط تست",
+"attrs": {
+"href": "post.html?id=ar-test-1"
+},
+"outcome": "nav",
+"detail": "post.html?id=ar-test-1"
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "A خواندن",
+"attrs": {
+"href": "post.html?id=ar-test-1"
+},
+"outcome": "nav",
+"detail": "post.html?id=ar-test-1"
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html#list"
+},
+"outcome": "nav",
+"detail": "events.html#list"
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "A پشتیبانی",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "(reload) home.html"
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html#list"
+},
+"outcome": "nav",
+"detail": "events.html#list"
+},
+{
+"page": "home",
+"vp": "desktop",
+"member": false,
+"control": "A ورود/ثبت‌نام",
+"attrs": {
+"href": "account.html",
+"data-account-nav": "",
+"aria-label": "ورود/ثبت‌نام"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "events",
+"vp": "desktop",
+"member": false,
+"control": "A رفتن به فهرست رویدادها",
+"attrs": {
+"href": "#eventsList"
+},
+"outcome": "nav",
+"detail": "(keyboard) events.html#eventsList"
+},
+{
+"page": "events",
+"vp": "desktop",
+"member": false,
+"control": "A نورا گروه فرهنگی خط زندگی",
+"attrs": {
+"href": "home.html",
+"aria-label": "خانهٔ نورا"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "events",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON ☼ ☾",
+"attrs": {
+"data-theme-toggle": "",
+"aria-label": "حالت شب",
+"data-label-light": "حالت شب",
+"data-label-dark": "حالت روز"
+},
+"outcome": "dom-change",
+"detail": "mutations=6"
+},
+{
+"page": "events",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON باز کردن منو",
+"attrs": {
+"data-menu": "",
+"aria-label": "باز کردن منو"
+},
+"outcome": "overlay",
+"detail": "shMenu|scrim"
+},
+{
+"page": "events",
+"vp": "desktop",
+"member": false,
+"control": "A خانه",
+"attrs": {
+"href": "/"
+},
+"outcome": "nav",
+"detail": ""
+},
+{
+"page": "events",
+"vp": "desktop",
+"member": false,
+"control": "A اساتید و مدرسان",
+"attrs": {
+"href": "home.html#teachers"
+},
+"outcome": "nav",
+"detail": "home.html#teachers"
+},
+{
+"page": "events",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON همه",
+"attrs": {
+"type": "button",
+"data-event-filter": "all"
+},
+"outcome": "dom-change",
+"detail": "mutations=12"
+},
+{
+"page": "events",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON پیش‌رو",
+"attrs": {
+"type": "button",
+"data-event-filter": "upcoming"
+},
+"outcome": "dom-change",
+"detail": "mutations=15"
+},
+{
+"page": "events",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON برگزارشده",
+"attrs": {
+"type": "button",
+"data-event-filter": "past"
+},
+"outcome": "dom-change",
+"detail": "mutations=14"
+},
+{
+"page": "events",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON کارگاه ۱",
+"attrs": {
+"type": "button",
+"data-event-kind": "کارگاه"
+},
+"outcome": "gone",
+"detail": ""
+},
+{
+"page": "events",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON نشست ۱",
+"attrs": {
+"type": "button",
+"data-event-kind": "نشست"
+},
+"outcome": "gone",
+"detail": ""
+},
+{
+"page": "events",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON آنلاین ۱",
+"attrs": {
+"type": "button",
+"data-event-mode": "آنلاین"
+},
+"outcome": "gone",
+"detail": ""
+},
+{
+"page": "events",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON حضوری ۱",
+"attrs": {
+"type": "button",
+"data-event-mode": "حضوری"
+},
+"outcome": "gone",
+"detail": ""
+},
+{
+"page": "events",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON فهرست",
+"attrs": {
+"type": "button",
+"data-event-view": "list"
+},
+"outcome": "nav",
+"detail": "events.html#list"
+},
+{
+"page": "events",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON تقویم",
+"attrs": {
+"type": "button",
+"data-event-view": "cal"
+},
+"outcome": "nav",
+"detail": "events.html#cal"
+},
+{
+"page": "events",
+"vp": "desktop",
+"member": false,
+"control": "A فهرست استادان و دست‌اندرکاران",
+"attrs": {
+"href": "home.html#teachers"
+},
+"outcome": "nav",
+"detail": "home.html#teachers"
+},
+{
+"page": "events",
+"vp": "desktop",
+"member": false,
+"control": "A کارگاه ۱۰ آبان ۱۴۰۵ · ۱۷:۰۰",
+"attrs": {
+"href": "event.html?id=ev-test-1",
+"aria-label": "جزئیات کارگاه آزمایشی محیط تست"
+},
+"outcome": "nav",
+"detail": "event.html?id=ev-test-1"
+},
+{
+"page": "events",
+"vp": "desktop",
+"member": false,
+"control": "A کارگاه آزمایشی محیط تست",
+"attrs": {
+"href": "event.html?id=ev-test-1"
+},
+"outcome": "nav",
+"detail": "event.html?id=ev-test-1"
+},
+{
+"page": "events",
+"vp": "desktop",
+"member": false,
+"control": "A مدرس آزمایشی",
+"attrs": {
+"href": "person.html?id=pe-test-1"
+},
+"outcome": "nav",
+"detail": "person.html?id=pe-test-1"
+},
+{
+"page": "events",
+"vp": "desktop",
+"member": false,
+"control": "A جزئیات کامل",
+"attrs": {
+"href": "event.html?id=ev-test-1"
+},
+"outcome": "nav",
+"detail": "event.html?id=ev-test-1"
+},
+{
+"page": "events",
+"vp": "desktop",
+"member": false,
+"control": "A نشست برگزارشده ۱ شهریور ۱۴۰۵",
+"attrs": {
+"href": "event.html?id=ev-test-2",
+"aria-label": "جزئیات نشست برگزارشدهٔ آزمایشی"
+},
+"outcome": "nav",
+"detail": "event.html?id=ev-test-2"
+},
+{
+"page": "events",
+"vp": "desktop",
+"member": false,
+"control": "A نشست برگزارشدهٔ آزمایشی",
+"attrs": {
+"href": "event.html?id=ev-test-2"
+},
+"outcome": "nav",
+"detail": "event.html?id=ev-test-2"
+},
+{
+"page": "events",
+"vp": "desktop",
+"member": false,
+"control": "A جزئیات کامل",
+"attrs": {
+"href": "event.html?id=ev-test-2"
+},
+"outcome": "nav",
+"detail": "event.html?id=ev-test-2"
+},
+{
+"page": "events",
+"vp": "desktop",
+"member": false,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "events",
+"vp": "desktop",
+"member": false,
+"control": "A ورود/ثبت‌نام",
+"attrs": {
+"href": "account.html"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "events",
+"vp": "desktop",
+"member": false,
+"control": "A پشتیبانی",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "events",
+"vp": "desktop",
+"member": false,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "events",
+"vp": "desktop",
+"member": false,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html#list"
+},
+"outcome": "nav",
+"detail": "events.html#list"
+},
+{
+"page": "events",
+"vp": "desktop",
+"member": false,
+"control": "A ورود/ثبت‌نام",
+"attrs": {
+"href": "account.html",
+"data-account-nav": "",
+"aria-label": "ورود/ثبت‌نام"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "event",
+"vp": "desktop",
+"member": false,
+"control": "A رفتن به جزئیات رویداد",
+"attrs": {
+"href": "#page"
+},
+"outcome": "nav",
+"detail": "(keyboard) event.html?id=ev-test-1#page"
+},
+{
+"page": "event",
+"vp": "desktop",
+"member": false,
+"control": "A نورا گروه فرهنگی خط زندگی",
+"attrs": {
+"href": "home.html",
+"aria-label": "خانهٔ نورا"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "event",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON حالت شب",
+"attrs": {
+"data-theme-toggle": "",
+"aria-label": "حالت شب",
+"data-label-light": "حالت شب",
+"data-label-dark": "حالت روز"
+},
+"outcome": "dom-change",
+"detail": "mutations=8"
+},
+{
+"page": "event",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON اعلان‌ها",
+"attrs": {
+"data-notice": "",
+"aria-label": "اعلان‌ها"
+},
+"outcome": "overlay",
+"detail": "scrim|shNotice | فرم ثبت‌نام عمومی برای این رویداد منتشر نشده است."
+},
+{
+"page": "event",
+"vp": "desktop",
+"member": false,
+"control": "A پشتیبانی و راهنما",
+"attrs": {
+"href": "support.html",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "event",
+"vp": "desktop",
+"member": false,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "event",
+"vp": "desktop",
+"member": false,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html#list"
+},
+"outcome": "nav",
+"detail": "events.html#list"
+},
+{
+"page": "event",
+"vp": "desktop",
+"member": false,
+"control": "A م مدرس آزمایشی مدرس نمونهٔ محیط تست ‹",
+"attrs": {
+"href": "person.html?id=pe-test-1"
+},
+"outcome": "nav",
+"detail": "person.html?id=pe-test-1"
+},
+{
+"page": "event",
+"vp": "desktop",
+"member": false,
+"control": "A بازگشت به فهرست رویدادها",
+"attrs": {
+"href": "events.html#list"
+},
+"outcome": "nav",
+"detail": "events.html#list"
+},
+{
+"page": "event",
+"vp": "desktop",
+"member": false,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "event",
+"vp": "desktop",
+"member": false,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "event",
+"vp": "desktop",
+"member": false,
+"control": "A ورود/ثبت‌نام",
+"attrs": {
+"href": "account.html",
+"data-account-nav": "",
+"aria-label": "ورود/ثبت‌نام"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "person",
+"vp": "desktop",
+"member": false,
+"control": "A نورا گروه فرهنگی خط زندگی",
+"attrs": {
+"href": "home.html",
+"aria-label": "خانهٔ نورا"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "person",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON ☼ ☾",
+"attrs": {
+"data-theme-toggle": "",
+"aria-label": "حالت شب",
+"data-label-light": "حالت شب",
+"data-label-dark": "حالت روز"
+},
+"outcome": "dom-change",
+"detail": "mutations=6"
+},
+{
+"page": "person",
+"vp": "desktop",
+"member": false,
+"control": "A بازگشت",
+"attrs": {
+"href": "home.html#teachers"
+},
+"outcome": "nav",
+"detail": "home.html#teachers"
+},
+{
+"page": "person",
+"vp": "desktop",
+"member": false,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "person",
+"vp": "desktop",
+"member": false,
+"control": "A اساتید و مدرسان",
+"attrs": {
+"href": "home.html#teachers"
+},
+"outcome": "nav",
+"detail": "home.html#teachers"
+},
+{
+"page": "person",
+"vp": "desktop",
+"member": false,
+"control": "A ◴ کارگاه آزمایشی محیط تست ۱۰ آبان ۱۴۰۵ ·",
+"attrs": {
+"href": "event.html?id=ev-test-1"
+},
+"outcome": "nav",
+"detail": "event.html?id=ev-test-1"
+},
+{
+"page": "person",
+"vp": "desktop",
+"member": false,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "person",
+"vp": "desktop",
+"member": false,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html#list"
+},
+"outcome": "nav",
+"detail": "events.html#list"
+},
+{
+"page": "person",
+"vp": "desktop",
+"member": false,
+"control": "A ورود/ثبت‌نام",
+"attrs": {
+"href": "account.html",
+"data-account-nav": "",
+"aria-label": "ورود/ثبت‌نام"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "post",
+"vp": "desktop",
+"member": false,
+"control": "A پرش به ثبت‌نام",
+"attrs": {
+"href": "#reg"
+},
+"outcome": "nav",
+"detail": "(keyboard) post.html?id=ar-test-1#reg"
+},
+{
+"page": "post",
+"vp": "desktop",
+"member": false,
+"control": "A نورا گروه فرهنگی خط زندگی",
+"attrs": {
+"href": "home.html",
+"aria-label": "خانهٔ نورا"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "post",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON حالت شب",
+"attrs": {
+"data-theme-toggle": "",
+"aria-label": "حالت شب",
+"data-label-light": "حالت شب",
+"data-label-dark": "حالت روز"
+},
+"outcome": "dom-change",
+"detail": "mutations=7"
+},
+{
+"page": "post",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON اعلان‌ها",
+"attrs": {
+"data-notice": "",
+"aria-label": "اعلان‌ها"
+},
+"outcome": "overlay",
+"detail": "scrim|shNotice"
+},
+{
+"page": "post",
+"vp": "desktop",
+"member": false,
+"control": "A پشتیبانی و راهنما",
+"attrs": {
+"href": "support.html",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "post",
+"vp": "desktop",
+"member": false,
+"control": "A خانه",
+"attrs": {
+"href": "/"
+},
+"outcome": "nav",
+"detail": ""
+},
+{
+"page": "post",
+"vp": "desktop",
+"member": false,
+"control": "A مطالب",
+"attrs": {
+"href": "/#articles"
+},
+"outcome": "nav",
+"detail": "#articles"
+},
+{
+"page": "post",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON همرسانی · غیرفعال",
+"attrs": {
+"type": "button",
+"id": "pbShare"
+},
+"outcome": "dom-change",
+"detail": "mutations=5"
+},
+{
+"page": "post",
+"vp": "desktop",
+"member": false,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "post",
+"vp": "desktop",
+"member": false,
+"control": "A مطالب",
+"attrs": {
+"href": "home.html#articles"
+},
+"outcome": "nav",
+"detail": "home.html#articles"
+},
+{
+"page": "post",
+"vp": "desktop",
+"member": false,
+"control": "A کتابخانهٔ من",
+"attrs": {
+"href": "events.html#lib"
+},
+"outcome": "nav",
+"detail": "events.html#lib"
+},
+{
+"page": "support",
+"vp": "desktop",
+"member": false,
+"control": "A نورا گروه فرهنگی خط زندگی",
+"attrs": {
+"href": "home.html",
+"aria-label": "خانهٔ نورا"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "support",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON حالت شب",
+"attrs": {
+"data-theme-toggle": "",
+"aria-label": "حالت شب",
+"data-label-light": "حالت شب",
+"data-label-dark": "حالت روز",
+"data-state": "light"
+},
+"outcome": "dom-change",
+"detail": "mutations=18"
+},
+{
+"page": "support",
+"vp": "desktop",
+"member": false,
+"control": "A اعلان‌ها",
+"attrs": {
+"href": "home.html#notice",
+"aria-label": "اعلان‌ها"
+},
+"outcome": "overlay",
+"detail": "scrim|noraPageLoader|shNotice | راهنمای عمومی در دسترس نیست\n\nراهنمای زنده و تیکت امن هنوز از / فرم همکاری هنوز از سوی مدیر منتشر نشده است. / فهرست عمومی کارشناسان در دسترس نیست. / در حال بارگذاری…\nسامانه مدیریت آموزش نورا"
+},
+{
+"page": "support",
+"vp": "desktop",
+"member": false,
+"control": "A پشتیبانی و راهنما",
+"attrs": {
+"href": "support.html",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "(reload) support.html"
+},
+{
+"page": "support",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON منوی کامل نورا",
+"attrs": {
+"data-menu": ""
+},
+"outcome": "overlay",
+"detail": "scrim|shMenu | راهنمای عمومی در دسترس نیست\n\nراهنمای زنده و تیکت امن هنوز از / فرم همکاری هنوز از سوی مدیر منتشر نشده است. / فهرست عمومی کارشناسان در دسترس نیست."
+},
+{
+"page": "support",
+"vp": "desktop",
+"member": false,
+"control": "A بازگشت به خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "support",
+"vp": "desktop",
+"member": false,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "support",
+"vp": "desktop",
+"member": false,
+"control": "A ورود/ثبت‌نام",
+"attrs": {
+"href": "account.html"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "support",
+"vp": "desktop",
+"member": false,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "support",
+"vp": "desktop",
+"member": false,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "support",
+"vp": "desktop",
+"member": false,
+"control": "A ورود/ثبت‌نام",
+"attrs": {
+"href": "account.html",
+"data-account-nav": "",
+"aria-label": "ورود/ثبت‌نام"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "login",
+"vp": "desktop",
+"member": false,
+"control": "A نورا گروه فرهنگی خط زندگی",
+"attrs": {
+"href": "home.html",
+"aria-label": "خانهٔ نورا"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "login",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON حالت شب",
+"attrs": {
+"data-theme-toggle": "",
+"aria-label": "حالت شب",
+"data-label-light": "حالت شب",
+"data-label-dark": "حالت روز"
+},
+"outcome": "dom-change",
+"detail": "mutations=14"
+},
+{
+"page": "login",
+"vp": "desktop",
+"member": false,
+"control": "A پشتیبانی و راهنما",
+"attrs": {
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "login",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON کد جدید",
+"attrs": {
+"type": "button",
+"id": "lgCapNew"
+},
+"outcome": "dom-change",
+"detail": "mutations=13"
+},
+{
+"page": "login",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON دریافت کد",
+"attrs": {
+"type": "submit",
+"id": "lgPhoneSubmit"
+},
+"outcome": "dom-change",
+"detail": "mutations=12"
+},
+{
+"page": "login",
+"vp": "desktop",
+"member": false,
+"control": "A ورود مدیران",
+"attrs": {
+"href": "login.html?mode=staff&next=admin.html%23dash"
+},
+"outcome": "nav",
+"detail": "login.html?mode=staff&next=admin.html%23dash"
+},
+{
+"page": "login",
+"vp": "desktop",
+"member": false,
+"control": "A راهنما",
+"attrs": {
+"href": "support.html#reader"
+},
+"outcome": "nav",
+"detail": "support.html#reader"
+},
+{
+"page": "login",
+"vp": "desktop",
+"member": false,
+"control": "A پشتیبانی",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "login",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON قوانین",
+"attrs": {
+"type": "button",
+"id": "rulesBtn"
+},
+"outcome": "overlay",
+"detail": "shRules|scrim"
+},
+{
+"page": "login",
+"vp": "desktop",
+"member": false,
+"control": "A پشتیبانی و راهنمابی ورود باز است؛ گفت‌وگ",
+"attrs": {
+"id": "supBar",
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "dom-change",
+"detail": "mutations=24"
+},
+{
+"page": "login",
+"vp": "desktop",
+"member": false,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "login",
+"vp": "desktop",
+"member": false,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "login",
+"vp": "desktop",
+"member": false,
+"control": "A ورود/ثبت‌نام",
+"attrs": {
+"href": "account.html",
+"data-account-nav": "",
+"aria-label": "ورود/ثبت‌نام"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "account-guest",
+"vp": "desktop",
+"member": false,
+"control": "A نورا حساب شخصی",
+"attrs": {
+"href": "home.html",
+"aria-label": "خانهٔ نورا"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-guest",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON حالت شب",
+"attrs": {
+"data-theme-toggle": "",
+"aria-label": "حالت شب",
+"data-label-light": "حالت شب",
+"data-label-dark": "حالت روز",
+"data-state": "light"
+},
+"outcome": "dom-change",
+"detail": "mutations=63"
+},
+{
+"page": "account-guest",
+"vp": "desktop",
+"member": false,
+"control": "A پشتیبانی و راهنما",
+"attrs": {
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-guest",
+"vp": "desktop",
+"member": false,
+"control": "A ورود یا ساخت حساب",
+"attrs": {
+"href": "login.html?mode=server&next=account.html"
+},
+"outcome": "nav",
+"detail": "login.html?mode=server&next=account.html"
+},
+{
+"page": "account-guest",
+"vp": "desktop",
+"member": false,
+"control": "A دیدن رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-guest",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON نورا پی پرداخت‌ها و رسیدهای ثبت‌نام وارد",
+"attrs": {
+"type": "button",
+"data-view": "pay",
+"aria-label": "نورا پی · پرداخت‌ها و رسیدهای ثبت‌نام"
+},
+"outcome": "nav",
+"detail": "account.html#pay"
+},
+{
+"page": "account-guest",
+"vp": "desktop",
+"member": false,
+"control": "A پرداخت‌ها",
+"attrs": {
+"href": "account.html#payments"
+},
+"outcome": "nav",
+"detail": "account.html#payments"
+},
+{
+"page": "account-guest",
+"vp": "desktop",
+"member": false,
+"control": "A رسیدها",
+"attrs": {
+"href": "account.html#payments"
+},
+"outcome": "nav",
+"detail": "account.html#payments"
+},
+{
+"page": "account-guest",
+"vp": "desktop",
+"member": false,
+"control": "A اقساط",
+"attrs": {
+"href": "account.html#acc-20"
+},
+"outcome": "nav",
+"detail": "account.html#acc-20"
+},
+{
+"page": "account-guest",
+"vp": "desktop",
+"member": false,
+"control": "A رویدادهای من ثبت‌نام‌ها، وضعیت و بلیت هر",
+"attrs": {
+"href": "account.html#events"
+},
+"outcome": "nav",
+"detail": "account.html#events"
+},
+{
+"page": "account-guest",
+"vp": "desktop",
+"member": false,
+"control": "A فرم‌های من پاسخ‌های فرم و وضعیت بررسی",
+"attrs": {
+"href": "account.html#forms"
+},
+"outcome": "nav",
+"detail": "account.html#forms"
+},
+{
+"page": "account-guest",
+"vp": "desktop",
+"member": false,
+"control": "A پروفایل من نوع ورود، دسترسی‌ها و پیوند ح",
+"attrs": {
+"href": "account.html#profile"
+},
+"outcome": "nav",
+"detail": "account.html#profile"
+},
+{
+"page": "account-guest",
+"vp": "desktop",
+"member": false,
+"control": "A باشگاه کتاب‌خوانی خط زندگی کتاب ماه، جلس",
+"attrs": {
+"href": "account.html#book"
+},
+"outcome": "nav",
+"detail": "account.html#book"
+},
+{
+"page": "account-guest",
+"vp": "desktop",
+"member": false,
+"control": "A شروع کن",
+"attrs": {
+"href": "login.html?mode=server&next=account.html"
+},
+"outcome": "nav",
+"detail": "login.html?mode=server&next=account.html"
+},
+{
+"page": "account-guest",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON منوی کامل نورا",
+"attrs": {
+"data-menu": ""
+},
+"outcome": "overlay",
+"detail": "scrim|shMenu"
+},
+{
+"page": "account-guest",
+"vp": "desktop",
+"member": false,
+"control": "A بازگشت به خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-guest",
+"vp": "desktop",
+"member": false,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-guest",
+"vp": "desktop",
+"member": false,
+"control": "A پشتیبانی",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-guest",
+"vp": "desktop",
+"member": false,
+"control": "A پشتیبانی و راهنما راهنمای محلی؛ تیکت یا",
+"attrs": {
+"id": "supBar",
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-guest",
+"vp": "desktop",
+"member": false,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-guest",
+"vp": "desktop",
+"member": false,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-guest",
+"vp": "desktop",
+"member": false,
+"control": "A ورود/ثبت‌نام",
+"attrs": {
+"href": "account.html",
+"data-account-nav": "",
+"aria-label": "ورود/ثبت‌نام"
+},
+"outcome": "nav",
+"detail": "(reload) account.html"
+},
+{
+"page": "account-payments-guest",
+"vp": "desktop",
+"member": false,
+"control": "A نورا حساب شخصی",
+"attrs": {
+"href": "home.html",
+"aria-label": "خانهٔ نورا"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-payments-guest",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON حالت شب",
+"attrs": {
+"data-theme-toggle": "",
+"aria-label": "حالت شب",
+"data-label-light": "حالت شب",
+"data-label-dark": "حالت روز",
+"data-state": "light"
+},
+"outcome": "dom-change",
+"detail": "mutations=44"
+},
+{
+"page": "account-payments-guest",
+"vp": "desktop",
+"member": false,
+"control": "A پشتیبانی و راهنما",
+"attrs": {
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-payments-guest",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON بازگشت به حساب من",
+"attrs": {
+"data-back": "",
+"aria-label": "بازگشت به حساب من"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "account-payments-guest",
+"vp": "desktop",
+"member": false,
+"control": "A ورود/ثبت‌نام",
+"attrs": {
+"href": "login.html?mode=server&next=account.html%23payments"
+},
+"outcome": "nav",
+"detail": "login.html?mode=server&next=account.html%23payments"
+},
+{
+"page": "account-payments-guest",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON منوی کامل نورا",
+"attrs": {
+"data-menu": ""
+},
+"outcome": "overlay",
+"detail": "scrim|shMenu"
+},
+{
+"page": "account-payments-guest",
+"vp": "desktop",
+"member": false,
+"control": "A بازگشت به خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-payments-guest",
+"vp": "desktop",
+"member": false,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-payments-guest",
+"vp": "desktop",
+"member": false,
+"control": "A پشتیبانی",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-payments-guest",
+"vp": "desktop",
+"member": false,
+"control": "A پشتیبانی و راهنما راهنمای محلی؛ تیکت یا",
+"attrs": {
+"id": "supBar",
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-payments-guest",
+"vp": "desktop",
+"member": false,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-payments-guest",
+"vp": "desktop",
+"member": false,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-payments-guest",
+"vp": "desktop",
+"member": false,
+"control": "A ورود/ثبت‌نام",
+"attrs": {
+"href": "account.html",
+"data-account-nav": "",
+"aria-label": "ورود/ثبت‌نام"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "account-book-guest",
+"vp": "desktop",
+"member": false,
+"control": "A نورا حساب شخصی",
+"attrs": {
+"href": "home.html",
+"aria-label": "خانهٔ نورا"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-book-guest",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON حالت شب",
+"attrs": {
+"data-theme-toggle": "",
+"aria-label": "حالت شب",
+"data-label-light": "حالت شب",
+"data-label-dark": "حالت روز",
+"data-state": "light"
+},
+"outcome": "dom-change",
+"detail": "mutations=44"
+},
+{
+"page": "account-book-guest",
+"vp": "desktop",
+"member": false,
+"control": "A پشتیبانی و راهنما",
+"attrs": {
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-book-guest",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON بازگشت به حساب من",
+"attrs": {
+"data-back": "",
+"aria-label": "بازگشت به حساب من"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "account-book-guest",
+"vp": "desktop",
+"member": false,
+"control": "A تازه‌های باشگاه",
+"attrs": {
+"href": "home.html#club"
+},
+"outcome": "nav",
+"detail": "(reload) account.html#book"
+},
+{
+"page": "account-book-guest",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON منوی کامل نورا",
+"attrs": {
+"data-menu": ""
+},
+"outcome": "overlay",
+"detail": "scrim|shMenu"
+},
+{
+"page": "account-book-guest",
+"vp": "desktop",
+"member": false,
+"control": "A بازگشت به خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-book-guest",
+"vp": "desktop",
+"member": false,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-book-guest",
+"vp": "desktop",
+"member": false,
+"control": "A پشتیبانی",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-book-guest",
+"vp": "desktop",
+"member": false,
+"control": "A پشتیبانی و راهنما راهنمای محلی؛ تیکت یا",
+"attrs": {
+"id": "supBar",
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-book-guest",
+"vp": "desktop",
+"member": false,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-book-guest",
+"vp": "desktop",
+"member": false,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-book-guest",
+"vp": "desktop",
+"member": false,
+"control": "A ورود/ثبت‌نام",
+"attrs": {
+"href": "account.html",
+"data-account-nav": "",
+"aria-label": "ورود/ثبت‌نام"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "admin",
+"vp": "desktop",
+"member": false,
+"control": "A نمای عمومی سایت",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "admin",
+"vp": "desktop",
+"member": false,
+"control": "A مرکز فرم‌ها",
+"attrs": {
+"href": "builder.html"
+},
+"outcome": "nav",
+"detail": "builder.html"
+},
+{
+"page": "admin",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON شب / روز",
+"attrs": {
+"id": "admTheme"
+},
+"outcome": "NO-EFFECT",
+"detail": ""
+},
+{
+"page": "admin",
+"vp": "desktop",
+"member": false,
+"control": "A ورود",
+"attrs": {
+"href": "login.html?mode=staff&next=admin.html%23dash"
+},
+"outcome": "nav",
+"detail": "login.html?mode=staff&next=admin.html%23dash"
+},
+{
+"page": "offline",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON دوباره تلاش کن",
+"attrs": {
+"id": "retry"
+},
+"outcome": "nav",
+"detail": "(reload) offline.html"
+},
+{
+"page": "offline",
+"vp": "desktop",
+"member": false,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "404",
+"vp": "desktop",
+"member": false,
+"control": "A رفتن به پیام خطا",
+"attrs": {
+"href": "#main"
+},
+"outcome": "nav",
+"detail": "(keyboard) 404.html#main"
+},
+{
+"page": "404",
+"vp": "desktop",
+"member": false,
+"control": "A نورا گروه فرهنگی خط زندگی",
+"attrs": {
+"href": "/",
+"aria-label": "نورا، رفتن به خانه"
+},
+"outcome": "nav",
+"detail": ""
+},
+{
+"page": "404",
+"vp": "desktop",
+"member": false,
+"control": "A بازگشت به خانه",
+"attrs": {
+"href": "/"
+},
+"outcome": "nav",
+"detail": ""
+},
+{
+"page": "404",
+"vp": "desktop",
+"member": false,
+"control": "A ورود/ثبت‌نام",
+"attrs": {
+"href": "/login.html?mode=server&next=account.html"
+},
+"outcome": "nav",
+"detail": "login.html?mode=server&next=account.html"
+},
+{
+"page": "404",
+"vp": "desktop",
+"member": false,
+"control": "A رویدادهای نورا",
+"attrs": {
+"href": "/events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "404",
+"vp": "desktop",
+"member": false,
+"control": "A راهنما",
+"attrs": {
+"href": "/support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "nora-pay-preview",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON خروج",
+"attrs": {
+"data-sheet": "shExit",
+"aria-label": "خروج"
+},
+"outcome": "overlay",
+"detail": "scrim|shExit"
+},
+{
+"page": "nora-pay-preview",
+"vp": "desktop",
+"member": false,
+"control": "BUTTON شروع",
+"attrs": {
+"id": "next"
+},
+"outcome": "dom-change",
+"detail": "mutations=62"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A نورا حساب شخصی",
+"attrs": {
+"href": "home.html",
+"aria-label": "خانهٔ نورا"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "BUTTON حالت شب",
+"attrs": {
+"data-theme-toggle": "",
+"aria-label": "حالت شب",
+"data-label-light": "حالت شب",
+"data-label-dark": "حالت روز",
+"data-state": "light"
+},
+"outcome": "dom-change",
+"detail": "mutations=44"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A پشتیبانی و راهنما",
+"attrs": {
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "BUTTON اعلان‌های حساب",
+"attrs": {
+"data-server-data-open": "notifications",
+"aria-label": "اعلان‌های حساب"
+},
+"outcome": "nav",
+"detail": "account.html#notifications"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "BUTTON ۱ ثبت‌نام",
+"attrs": {
+"data-server-data-open": "registrations"
+},
+"outcome": "nav",
+"detail": "account.html#events"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "BUTTON ۰ اعلان",
+"attrs": {
+"data-server-data-open": "notifications"
+},
+"outcome": "nav",
+"detail": "account.html#notifications"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "BUTTON ۰ فایل حساب",
+"attrs": {
+"data-server-data-open": "files"
+},
+"outcome": "nav",
+"detail": "account.html#my-files"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "BUTTON ثبت‌نام‌های من",
+"attrs": {
+"data-server-data-open": "registrations"
+},
+"outcome": "nav",
+"detail": "account.html#events"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A فرم‌های من",
+"attrs": {
+"href": "account.html#forms"
+},
+"outcome": "nav",
+"detail": "account.html#forms"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "BUTTON فایل‌ها",
+"attrs": {
+"data-server-data-open": "files"
+},
+"outcome": "nav",
+"detail": "account.html#my-files"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "BUTTON خروج",
+"attrs": {
+"data-server-account-logout": ""
+},
+"outcome": "skipped-logout",
+"detail": "جداگانه بررسی شد: نشست سرور باطل و نمای مهمان نشان داده می‌شود"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "BUTTON نورا پی پرداخت‌ها و رسیدهای ثبت‌نام هنوز",
+"attrs": {
+"type": "button",
+"data-view": "pay",
+"aria-label": "نورا پی · پرداخت‌ها و رسیدهای ثبت‌نام"
+},
+"outcome": "nav",
+"detail": "account.html#pay"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A پرداخت‌ها",
+"attrs": {
+"href": "account.html#payments"
+},
+"outcome": "nav",
+"detail": "account.html#payments"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A رسیدها",
+"attrs": {
+"href": "account.html#payments"
+},
+"outcome": "nav",
+"detail": "account.html#payments"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A اقساط",
+"attrs": {
+"href": "account.html#acc-20"
+},
+"outcome": "nav",
+"detail": "account.html#acc-20"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A رویدادهای من ثبت‌نام‌ها، وضعیت و بلیت هر",
+"attrs": {
+"href": "account.html#events"
+},
+"outcome": "nav",
+"detail": "account.html#events"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A فرم‌های من پاسخ‌های فرم و وضعیت بررسی ۱",
+"attrs": {
+"href": "account.html#forms"
+},
+"outcome": "nav",
+"detail": "account.html#forms"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A پروفایل من نوع ورود، دسترسی‌ها و پیوند ح",
+"attrs": {
+"href": "account.html#profile"
+},
+"outcome": "nav",
+"detail": "account.html#profile"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A باشگاه کتاب‌خوانی خط زندگی کتاب ماه، جلس",
+"attrs": {
+"href": "account.html#book"
+},
+"outcome": "nav",
+"detail": "account.html#book"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "account.html#acc-0"
+},
+"outcome": "nav",
+"detail": "account.html#acc-0"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "account.html#events"
+},
+"outcome": "nav",
+"detail": "account.html#events"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "account.html#notifications"
+},
+"outcome": "nav",
+"detail": "account.html#notifications"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "events.html#cal"
+},
+"outcome": "nav",
+"detail": "events.html#cal"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-4"
+},
+"outcome": "nav",
+"detail": "account.html#acc-4"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-5"
+},
+"outcome": "nav",
+"detail": "account.html#acc-5"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-6"
+},
+"outcome": "nav",
+"detail": "account.html#acc-6"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-7"
+},
+"outcome": "nav",
+"detail": "account.html#acc-7"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-8"
+},
+"outcome": "nav",
+"detail": "account.html#acc-8"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-9"
+},
+"outcome": "nav",
+"detail": "account.html#acc-9"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-10"
+},
+"outcome": "nav",
+"detail": "account.html#acc-10"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-11"
+},
+"outcome": "nav",
+"detail": "account.html#acc-11"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-12"
+},
+"outcome": "nav",
+"detail": "account.html#acc-12"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-13"
+},
+"outcome": "nav",
+"detail": "account.html#acc-13"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-14"
+},
+"outcome": "nav",
+"detail": "account.html#acc-14"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "events.html?status=past"
+},
+"outcome": "nav",
+"detail": "events.html?status=past"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-16"
+},
+"outcome": "nav",
+"detail": "account.html#acc-16"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "account.html#forms"
+},
+"outcome": "nav",
+"detail": "account.html#forms"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-18"
+},
+"outcome": "nav",
+"detail": "account.html#acc-18"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-19"
+},
+"outcome": "nav",
+"detail": "account.html#acc-19"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-20"
+},
+"outcome": "nav",
+"detail": "account.html#acc-20"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-21"
+},
+"outcome": "nav",
+"detail": "account.html#acc-21"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-22"
+},
+"outcome": "nav",
+"detail": "account.html#acc-22"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-23"
+},
+"outcome": "nav",
+"detail": "account.html#acc-23"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-24"
+},
+"outcome": "nav",
+"detail": "account.html#acc-24"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-25"
+},
+"outcome": "nav",
+"detail": "account.html#acc-25"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-26"
+},
+"outcome": "nav",
+"detail": "account.html#acc-26"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-27"
+},
+"outcome": "nav",
+"detail": "account.html#acc-27"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-28"
+},
+"outcome": "nav",
+"detail": "account.html#acc-28"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-29"
+},
+"outcome": "nav",
+"detail": "account.html#acc-29"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-30"
+},
+"outcome": "nav",
+"detail": "account.html#acc-30"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html?status=upcoming"
+},
+"outcome": "nav",
+"detail": "events.html?status=upcoming"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "account.html#notifications"
+},
+"outcome": "nav",
+"detail": "account.html#notifications"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-34"
+},
+"outcome": "nav",
+"detail": "account.html#acc-34"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-35"
+},
+"outcome": "nav",
+"detail": "account.html#acc-35"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html?status=upcoming"
+},
+"outcome": "nav",
+"detail": "events.html?status=upcoming"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html?status=upcoming"
+},
+"outcome": "nav",
+"detail": "events.html?status=upcoming"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "account.html#payments"
+},
+"outcome": "nav",
+"detail": "account.html#payments"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html?status=upcoming"
+},
+"outcome": "nav",
+"detail": "events.html?status=upcoming"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "account.html#payments"
+},
+"outcome": "nav",
+"detail": "account.html#payments"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html?status=upcoming"
+},
+"outcome": "nav",
+"detail": "events.html?status=upcoming"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html?status=upcoming"
+},
+"outcome": "nav",
+"detail": "events.html?status=upcoming"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "account.html"
+},
+"outcome": "nav",
+"detail": "(reload) account.html"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "login.html"
+},
+"outcome": "nav",
+"detail": "login.html"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html?status=upcoming"
+},
+"outcome": "nav",
+"detail": "events.html?status=upcoming"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A وضعیت",
+"attrs": {
+"href": "account.html#acc-50"
+},
+"outcome": "nav",
+"detail": "account.html#acc-50"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"member": true,
+"control": "A باز کردن",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-member",
+"vp": "desktop",
+"control": "(page)",
+"outcome": "harness-error",
+"detail": "page.waitForTimeout: Target page, context or browser has been closed"
+},
+{
+"page": "account-forms-member",
+"vp": "desktop",
+"member": true,
+"control": "A نورا حساب شخصی",
+"attrs": {
+"href": "home.html",
+"aria-label": "خانهٔ نورا"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-forms-member",
+"vp": "desktop",
+"member": true,
+"control": "BUTTON حالت شب",
+"attrs": {
+"data-theme-toggle": "",
+"aria-label": "حالت شب",
+"data-label-light": "حالت شب",
+"data-label-dark": "حالت روز",
+"data-state": "light"
+},
+"outcome": "dom-change",
+"detail": "mutations=44"
+},
+{
+"page": "account-forms-member",
+"vp": "desktop",
+"member": true,
+"control": "A پشتیبانی و راهنما",
+"attrs": {
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-forms-member",
+"vp": "desktop",
+"member": true,
+"control": "BUTTON بازگشت به حساب من",
+"attrs": {
+"data-back": "",
+"aria-label": "بازگشت به حساب من"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "account-forms-member",
+"vp": "desktop",
+"member": true,
+"control": "A حساب من",
+"attrs": {
+"href": "account.html"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "account-forms-member",
+"vp": "desktop",
+"member": true,
+"control": "BUTTON خروج",
+"attrs": {
+"data-server-account-logout": ""
+},
+"outcome": "dom-change",
+"detail": "mutations=85"
+},
+{
+"page": "account-forms-member",
+"vp": "desktop",
+"member": true,
+"control": "BUTTON بازخوانی",
+"attrs": {
+"data-account-registrations-refresh": "",
+"aria-label": "بازخوانی ثبت‌نام‌ها"
+},
+"outcome": "gone",
+"detail": ""
+},
+{
+"page": "account-forms-member",
+"vp": "desktop",
+"member": true,
+"control": "BUTTON منوی کامل نورا",
+"attrs": {
+"data-menu": ""
+},
+"outcome": "overlay",
+"detail": "scrim|shMenu"
+},
+{
+"page": "account-forms-member",
+"vp": "desktop",
+"member": true,
+"control": "A بازگشت به خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-forms-member",
+"vp": "desktop",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-forms-member",
+"vp": "desktop",
+"member": true,
+"control": "A پشتیبانی",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-forms-member",
+"vp": "desktop",
+"member": true,
+"control": "A پشتیبانی و راهنما راهنمای محلی؛ تیکت یا",
+"attrs": {
+"id": "supBar",
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-forms-member",
+"vp": "desktop",
+"member": true,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-forms-member",
+"vp": "desktop",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-forms-member",
+"vp": "desktop",
+"member": true,
+"control": "A حساب من",
+"attrs": {
+"href": "account.html",
+"data-account-nav": "",
+"aria-label": "حساب من"
+},
+"outcome": "gone",
+"detail": ""
+},
+{
+"page": "account-payments-member",
+"vp": "desktop",
+"member": true,
+"control": "A نورا حساب شخصی",
+"attrs": {
+"href": "home.html",
+"aria-label": "خانهٔ نورا"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-payments-member",
+"vp": "desktop",
+"member": true,
+"control": "BUTTON حالت شب",
+"attrs": {
+"data-theme-toggle": "",
+"aria-label": "حالت شب",
+"data-label-light": "حالت شب",
+"data-label-dark": "حالت روز",
+"data-state": "light"
+},
+"outcome": "dom-change",
+"detail": "mutations=44"
+},
+{
+"page": "account-payments-member",
+"vp": "desktop",
+"member": true,
+"control": "A پشتیبانی و راهنما",
+"attrs": {
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-payments-member",
+"vp": "desktop",
+"member": true,
+"control": "BUTTON بازگشت به حساب من",
+"attrs": {
+"data-back": "",
+"aria-label": "بازگشت به حساب من"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "account-payments-member",
+"vp": "desktop",
+"member": true,
+"control": "A حساب من",
+"attrs": {
+"href": "account.html"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "account-payments-member",
+"vp": "desktop",
+"member": true,
+"control": "BUTTON خروج",
+"attrs": {
+"data-server-account-logout": ""
+},
+"outcome": "dom-change",
+"detail": "mutations=104"
+},
+{
+"page": "account-payments-member",
+"vp": "desktop",
+"member": true,
+"control": "BUTTON بازخوانی",
+"attrs": {
+"data-account-registrations-refresh": "",
+"aria-label": "بازخوانی ثبت‌نام‌ها"
+},
+"outcome": "gone",
+"detail": ""
+},
+{
+"page": "account-payments-member",
+"vp": "desktop",
+"member": true,
+"control": "BUTTON منوی کامل نورا",
+"attrs": {
+"data-menu": ""
+},
+"outcome": "overlay",
+"detail": "scrim|shMenu"
+},
+{
+"page": "account-payments-member",
+"vp": "desktop",
+"member": true,
+"control": "A بازگشت به خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-payments-member",
+"vp": "desktop",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-payments-member",
+"vp": "desktop",
+"member": true,
+"control": "A پشتیبانی",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-payments-member",
+"vp": "desktop",
+"member": true,
+"control": "A پشتیبانی و راهنما راهنمای محلی؛ تیکت یا",
+"attrs": {
+"id": "supBar",
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-payments-member",
+"vp": "desktop",
+"member": true,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-payments-member",
+"vp": "desktop",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-payments-member",
+"vp": "desktop",
+"member": true,
+"control": "A حساب من",
+"attrs": {
+"href": "account.html",
+"data-account-nav": "",
+"aria-label": "حساب من"
+},
+"outcome": "gone",
+"detail": ""
+},
+{
+"page": "account-book-member",
+"vp": "desktop",
+"member": true,
+"control": "A نورا حساب شخصی",
+"attrs": {
+"href": "home.html",
+"aria-label": "خانهٔ نورا"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-book-member",
+"vp": "desktop",
+"member": true,
+"control": "BUTTON حالت شب",
+"attrs": {
+"data-theme-toggle": "",
+"aria-label": "حالت شب",
+"data-label-light": "حالت شب",
+"data-label-dark": "حالت روز",
+"data-state": "light"
+},
+"outcome": "dom-change",
+"detail": "mutations=44"
+},
+{
+"page": "account-book-member",
+"vp": "desktop",
+"member": true,
+"control": "A پشتیبانی و راهنما",
+"attrs": {
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-book-member",
+"vp": "desktop",
+"member": true,
+"control": "BUTTON بازگشت به حساب من",
+"attrs": {
+"data-back": "",
+"aria-label": "بازگشت به حساب من"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "account-book-member",
+"vp": "desktop",
+"member": true,
+"control": "A تازه‌های باشگاه",
+"attrs": {
+"href": "home.html#club"
+},
+"outcome": "nav",
+"detail": "(reload) account.html#book"
+},
+{
+"page": "account-book-member",
+"vp": "desktop",
+"member": true,
+"control": "BUTTON منوی کامل نورا",
+"attrs": {
+"data-menu": ""
+},
+"outcome": "overlay",
+"detail": "scrim|shMenu"
+},
+{
+"page": "account-book-member",
+"vp": "desktop",
+"member": true,
+"control": "A بازگشت به خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-book-member",
+"vp": "desktop",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-book-member",
+"vp": "desktop",
+"member": true,
+"control": "A پشتیبانی",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-book-member",
+"vp": "desktop",
+"member": true,
+"control": "A پشتیبانی و راهنما راهنمای محلی؛ تیکت یا",
+"attrs": {
+"id": "supBar",
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-book-member",
+"vp": "desktop",
+"member": true,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-book-member",
+"vp": "desktop",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-book-member",
+"vp": "desktop",
+"member": true,
+"control": "A حساب من",
+"attrs": {
+"href": "account.html",
+"data-account-nav": "",
+"aria-label": "حساب من"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "account-profile-member",
+"vp": "desktop",
+"member": true,
+"control": "A نورا حساب شخصی",
+"attrs": {
+"href": "home.html",
+"aria-label": "خانهٔ نورا"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-profile-member",
+"vp": "desktop",
+"member": true,
+"control": "BUTTON حالت شب",
+"attrs": {
+"data-theme-toggle": "",
+"aria-label": "حالت شب",
+"data-label-light": "حالت شب",
+"data-label-dark": "حالت روز",
+"data-state": "light"
+},
+"outcome": "dom-change",
+"detail": "mutations=63"
+},
+{
+"page": "account-profile-member",
+"vp": "desktop",
+"member": true,
+"control": "A پشتیبانی و راهنما",
+"attrs": {
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-profile-member",
+"vp": "desktop",
+"member": true,
+"control": "BUTTON بازگشت به حساب من",
+"attrs": {
+"data-back": "",
+"aria-label": "بازگشت به حساب من"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "account-profile-member",
+"vp": "desktop",
+"member": true,
+"control": "BUTTON منوی کامل نورا",
+"attrs": {
+"data-menu": ""
+},
+"outcome": "overlay",
+"detail": "scrim|shMenu"
+},
+{
+"page": "account-profile-member",
+"vp": "desktop",
+"member": true,
+"control": "A بازگشت به خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-profile-member",
+"vp": "desktop",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-profile-member",
+"vp": "desktop",
+"member": true,
+"control": "A پشتیبانی",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-profile-member",
+"vp": "desktop",
+"member": true,
+"control": "A پشتیبانی و راهنما راهنمای محلی؛ تیکت یا",
+"attrs": {
+"id": "supBar",
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-profile-member",
+"vp": "desktop",
+"member": true,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-profile-member",
+"vp": "desktop",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-profile-member",
+"vp": "desktop",
+"member": true,
+"control": "A حساب من",
+"attrs": {
+"href": "account.html",
+"data-account-nav": "",
+"aria-label": "حساب من"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "account-events-member",
+"vp": "desktop",
+"member": true,
+"control": "A نورا حساب شخصی",
+"attrs": {
+"href": "home.html",
+"aria-label": "خانهٔ نورا"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-events-member",
+"vp": "desktop",
+"member": true,
+"control": "BUTTON حالت شب",
+"attrs": {
+"data-theme-toggle": "",
+"aria-label": "حالت شب",
+"data-label-light": "حالت شب",
+"data-label-dark": "حالت روز",
+"data-state": "light"
+},
+"outcome": "dom-change",
+"detail": "mutations=63"
+},
+{
+"page": "account-events-member",
+"vp": "desktop",
+"member": true,
+"control": "A پشتیبانی و راهنما",
+"attrs": {
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-events-member",
+"vp": "desktop",
+"member": true,
+"control": "BUTTON بازگشت به حساب من",
+"attrs": {
+"data-back": "",
+"aria-label": "بازگشت به حساب من"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "account-events-member",
+"vp": "desktop",
+"member": true,
+"control": "A حساب من",
+"attrs": {
+"href": "account.html"
+},
+"outcome": "nav",
+"detail": "account.html"
+},
+{
+"page": "account-events-member",
+"vp": "desktop",
+"member": true,
+"control": "BUTTON خروج",
+"attrs": {
+"data-server-account-logout": ""
+},
+"outcome": "skipped-logout",
+"detail": "جداگانه بررسی شد: نشست سرور باطل و نمای مهمان نشان داده می‌شود"
+},
+{
+"page": "account-events-member",
+"vp": "desktop",
+"member": true,
+"control": "BUTTON بازخوانی",
+"attrs": {
+"data-account-registrations-refresh": "",
+"aria-label": "بازخوانی ثبت‌نام‌ها"
+},
+"outcome": "dom-change",
+"detail": "mutations=98"
+},
+{
+"page": "account-events-member",
+"vp": "desktop",
+"member": true,
+"control": "BUTTON منوی کامل نورا",
+"attrs": {
+"data-menu": ""
+},
+"outcome": "overlay",
+"detail": "scrim|shMenu"
+},
+{
+"page": "account-events-member",
+"vp": "desktop",
+"member": true,
+"control": "A بازگشت به خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-events-member",
+"vp": "desktop",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-events-member",
+"vp": "desktop",
+"member": true,
+"control": "A پشتیبانی",
+"attrs": {
+"href": "support.html"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-events-member",
+"vp": "desktop",
+"member": true,
+"control": "A پشتیبانی و راهنما راهنمای محلی؛ تیکت یا",
+"attrs": {
+"id": "supBar",
+"href": "support.html",
+"data-open-support": "",
+"aria-label": "پشتیبانی و راهنما"
+},
+"outcome": "nav",
+"detail": "support.html"
+},
+{
+"page": "account-events-member",
+"vp": "desktop",
+"member": true,
+"control": "A خانه",
+"attrs": {
+"href": "home.html"
+},
+"outcome": "nav",
+"detail": "home.html"
+},
+{
+"page": "account-events-member",
+"vp": "desktop",
+"member": true,
+"control": "A رویدادها",
+"attrs": {
+"href": "events.html"
+},
+"outcome": "nav",
+"detail": "events.html"
+},
+{
+"page": "account-events-member",
+"vp": "desktop",
+"member": true,
+"control": "A حساب من",
+"attrs": {
+"href": "account.html",
+"data-account-nav": "",
+"aria-label": "حساب من"
+},
+"outcome": "nav",
+"detail": "account.html"
+}
+]

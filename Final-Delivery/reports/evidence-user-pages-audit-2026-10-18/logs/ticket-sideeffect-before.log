@@ -1,0 +1,6 @@
+[2026-10-18 20:41:59] ❌ خطای پایگاه داده: OperationalError
+rendered: True bytes: 159704
+bot db files created by this process: ['nora.db', 'nora.db-shm', 'nora.db-wal']
+bot log files: ['bot_20261014.log', 'bot_20261018.log']
+modules loaded from bot dir: ['config', 'database']
+new env keys added by import: []

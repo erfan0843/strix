@@ -1,0 +1,142 @@
+{
+  "tool": "certificate-pdf-check",
+  "offline": true,
+  "libreoffice_available": false,
+  "versions": {
+    "python": "3.11.2",
+    "platform": "Linux-6.1.158+-x86_64-with-glibc2.36",
+    "python_docx": "1.2.0",
+    "pillow": "13.0.0",
+    "raqm_text_shaping": false,
+    "libreoffice_path": null,
+    "libreoffice_version": null,
+    "pdftoppm": null,
+    "pdftotext": null
+  },
+  "checks": [
+    {
+      "check": "issue_kind_recording_completion",
+      "ok": true
+    },
+    {
+      "check": "template_scan_real_docx",
+      "ok": true,
+      "ask": [
+        "event",
+        "serial",
+        "issued_on"
+      ],
+      "auto": [
+        "name"
+      ],
+      "images": [
+        "qr"
+      ]
+    },
+    {
+      "check": "issue_ready",
+      "ok": true,
+      "todo": ""
+    },
+    {
+      "check": "publish_silent",
+      "ok": true,
+      "error": ""
+    },
+    {
+      "check": "build_one_real_generate",
+      "ok": true,
+      "error": ""
+    },
+    {
+      "check": "certificate_row_source_recording",
+      "ok": true
+    },
+    {
+      "check": "serial_and_codes_present",
+      "ok": true
+    },
+    {
+      "check": "docx_persian_substitution",
+      "ok": true,
+      "name_present": true,
+      "title_present": true,
+      "braces_left": 0
+    },
+    {
+      "check": "pdf_structure_valid",
+      "ok": true,
+      "bytes": 84660,
+      "header": "%PDF-1.4",
+      "valid_header": true,
+      "eof_marker": true,
+      "pages": 1,
+      "has_font": false,
+      "has_image": true,
+      "has_text_operator": false
+    },
+    {
+      "check": "pdf_has_text_layer_office_engine",
+      "ok": false,
+      "skipped": true,
+      "reason": "LibreOffice not installed: image-based fallback PDF only → نیازمند staging"
+    },
+    {
+      "check": "png_rendered_non_blank",
+      "ok": true,
+      "width": 1275,
+      "height": 1650,
+      "dark_pixels": 18159
+    },
+    {
+      "check": "retry_is_idempotent",
+      "ok": true,
+      "rows": 1
+    },
+    {
+      "check": "revoke_sets_flag_and_syncs_mirror",
+      "ok": true,
+      "revoked": 1,
+      "mirror_status": "revoked",
+      "synced": 1
+    },
+    {
+      "check": "restore_clears_flag_and_syncs_mirror",
+      "ok": true,
+      "revoked": 0
+    },
+    {
+      "check": "revoke_never_deletes_rows",
+      "ok": true,
+      "rows": 1
+    },
+    {
+      "check": "revoke_restore_audited",
+      "ok": true
+    },
+    {
+      "check": "no_bale_delivery_to_holder",
+      "ok": true,
+      "calls": 6,
+      "to_holder": 0
+    }
+  ],
+  "engine": "builtin_image",
+  "outputs": {
+    "png_path": "cert_LR8SGN_64429.png",
+    "pdf_path": "cert_LR8SGN_64429.pdf",
+    "docx_path": "cert_LR8SGN_64429.docx"
+  },
+  "pdf": {
+    "bytes": 84660,
+    "header": "%PDF-1.4",
+    "valid_header": true,
+    "eof_marker": true,
+    "pages": 1,
+    "has_font": false,
+    "has_image": true,
+    "has_text_operator": false
+  },
+  "exit_code": 2,
+  "summary": "STAGING_REQUIRED: LibreOffice not available here; real-path + fallback PDF verified, text-layer PDF untested"
+}

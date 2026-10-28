@@ -1,0 +1,60 @@
+home@1440: sw=1440 main=170|1100|170 fonts=12px×48 13.5px×
+events-public@1440: sw=1440 main=170|1100|170 fonts=12px×48
+event-public@1440: sw=1440 main=390|660|390 fonts=12px×18 1
+admin-first@1440: sw=1440 main=60|1320|60 fonts=12px×24 15p
+admin-events@1440: sw=1440 main=60|1320|60 fonts=13.5px×38 
+admin-edit@1440: sw=1440 main=60|1320|60 fonts=12px×69 15px
+admin-event-hub@1440: sw=1440 main=60|1320|60 fonts=12px×35
+admin-regs@1440: sw=1440 main=60|1320|60 fonts=13.5px×16 15
+admin-person@1440: sw=1440 main=60|1320|60 fonts=15px×27 12
+admin-settings@1440: sw=1440 main=60|1320|60 fonts=13.5px×2
+admin-users@1440: sw=1440 main=60|1320|60 fonts=15px×21 12p
+admin-reports@1440: sw=1440 main=60|1320|60 fonts=15px×31 1
+builder@1440: sw=1440 main=60|1320|60 fonts=12px×36 13.5px�
+manager-first@1440: sw=1440 main=60|1320|60 fonts=12px×24 1
+manager-event-hub@1440: sw=1440 main=60|1320|60 fonts=12px×
+home@1024: sw=1024 main=0|1024|0 fonts=12px×48 13.5px×18 1
+events-public@1024: sw=1024 main=0|1024|0 fonts=12px×48 15p
+event-public@1024: sw=1024 main=182|660|182 fonts=12px×18 1
+admin-first@1024: sw=1024 main=0|1024|0 fonts=12px×22 11px�
+admin-events@1024: sw=1024 main=0|1024|0 fonts=13.5px×38 12
+admin-edit@1024: sw=1024 main=0|1024|0 fonts=12px×67 15px×
+admin-event-hub@1024: sw=1024 main=0|1024|0 fonts=12px×33 1
+admin-regs@1024: sw=1024 main=0|1024|0 fonts=11px×17 13.5px
+admin-person@1024: sw=1024 main=0|1024|0 fonts=15px×17 12px
+admin-settings@1024: sw=1024 main=0|1024|0 fonts=13.5px×26 
+admin-users@1024: sw=1024 main=0|1024|0 fonts=13.5px×20 12p
+admin-reports@1024: sw=1024 main=0|1024|0 fonts=12px×27 13.
+builder@1024: sw=1024 main=0|1024|0 fonts=13.5px×33 12px×3
+manager-first@1024: sw=1024 main=0|1024|0 fonts=12px×22 11p
+manager-event-hub@1024: sw=1024 main=0|1024|0 fonts=12px×30
+home@390: sw=390 main=0|390|0 fonts=12px×47 13.5px×20 15px
+events-public@390: sw=390 main=0|390|0 fonts=12px×47 15px×
+event-public@390: sw=390 main=0|390|0 fonts=11px×15 12px×1
+admin-first@390: sw=390 main=0|390|0 fonts=12px×22 11px×21
+admin-events@390: sw=390 main=0|390|0 fonts=13.5px×37 12px�
+admin-edit@390: sw=390 main=0|390|0 fonts=12px×67 15px×31 
+admin-event-hub@390: sw=390 main=0|390|0 fonts=11px×15 13.5
+admin-regs@390: sw=390 main=0|390|0 fonts=11px×17 13.5px×1
+admin-person@390: sw=390 main=0|390|0 fonts=15px×17 12px×1
+admin-settings@390: sw=390 main=0|390|0 fonts=13.5px×25 12p
+admin-users@390: sw=390 main=0|390|0 fonts=13.5px×19 12px×
+admin-reports@390: sw=390 main=0|390|0 fonts=12px×27 13.5px
+builder@390: sw=390 main=0|390|0 fonts=13.5px×33 12px×32 1
+manager-first@390: sw=390 main=0|390|0 fonts=12px×22 11px×
+manager-event-hub@390: sw=390 main=0|390|0 fonts=13.5px×14 
+home@360: sw=360 main=0|360|0 fonts=12px×47 13.5px×20 15px
+events-public@360: sw=360 main=0|360|0 fonts=12px×47 15px×
+event-public@360: sw=360 main=0|360|0 fonts=11px×15 12px×1
+admin-first@360: sw=360 main=0|360|0 fonts=12px×22 11px×21
+admin-events@360: sw=360 main=0|360|0 fonts=13.5px×37 12px�
+admin-edit@360: sw=360 main=0|360|0 fonts=12px×67 15px×31 
+admin-event-hub@360: sw=360 main=0|360|0 fonts=11px×15 13.5
+admin-regs@360: sw=360 main=0|360|0 fonts=11px×17 13.5px×1
+admin-person@360: sw=360 main=0|360|0 fonts=15px×17 12px×1
+admin-settings@360: sw=360 main=0|360|0 fonts=13.5px×25 12p
+admin-users@360: sw=360 main=0|360|0 fonts=13.5px×19 12px×
+admin-reports@360: sw=360 main=0|360|0 fonts=12px×27 13.5px
+builder@360: sw=360 main=0|360|0 fonts=13.5px×33 12px×32 1
+manager-first@360: sw=360 main=0|360|0 fonts=12px×22 11px×
+manager-event-hub@360: sw=360 main=0|360|0 fonts=13.5px×14 

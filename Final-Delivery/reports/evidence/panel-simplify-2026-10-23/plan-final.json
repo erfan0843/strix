@@ -1,0 +1,17 @@
+[
+ {"name":"create-form","target":"before","path":"/admin.html#newev","full":true,"wait":2200},
+ {"name":"create-form","target":"after","path":"/admin.html#newev","full":true,"wait":2200},
+ {"name":"create-form-time","target":"before","path":"/admin.html#newev","clicks":["[data-ct-wizard] [data-ct-step=\"1\"]"],"full":true,"wait":2200,"viewports":["desktop"]},
+ {"name":"calendar","target":"before","path":"/admin.html#newev","clicks":["[data-ct-wizard] [data-ct-step=\"1\"]","[data-ctdp=\"on\"]"],"full":false,"wait":2200,"scroll":"[data-ctdp-box]"},
+ {"name":"calendar","target":"after","path":"/admin.html#newev","clicks":["[data-ctdp=\"on\"]"],"full":false,"wait":2200,"scroll":"[data-ctdp-box]"},
+ {"name":"past-event","target":"after","path":"/admin.html#newev","clicks":["[data-newev-past=\"1\"]"],"full":true,"wait":2200},
+ {"name":"events-list","target":"before","path":"/admin.html#events","full":false,"wait":2500},
+ {"name":"events-list","target":"after","path":"/admin.html#events","full":false,"wait":2500},
+ {"name":"event-files","target":"before","path":"/admin.html#events","clicks":["[data-ct-file=\"ev-398eadbedc\"]","[data-ei-tab=\"resources\"]"],"full":true,"wait":2500,"after":2000,"viewports":["desktop"]},
+ {"name":"event-files","target":"after","path":"/admin.html#events","clicks":["[data-ct-file=\"ev-398eadbedc\"]","[data-ei-tab=\"resources\"]"],"full":true,"wait":2500,"after":2000,"viewports":["desktop"]},
+ {"name":"settings-texts","target":"before","path":"/admin.html#settings","clicks":["[data-setg=\"texts\"]"],"full":true,"viewports":["desktop"]},
+ {"name":"settings-texts","target":"after","path":"/admin.html#settings","clicks":["[data-setg=\"texts\"]"],"full":true,"viewports":["desktop"]},
+ {"name":"settings-cert","target":"after","path":"/admin.html#settings","clicks":["[data-setg=\"cert\"]"],"full":true,"viewports":["desktop"]},
+ {"name":"settings-ticket","target":"after","path":"/admin.html#settings","clicks":["[data-setg=\"ticket\"]"],"full":true,"viewports":["desktop"]},
+ {"name":"settings-home","target":"after","path":"/admin.html#settings","full":true,"viewports":["desktop","mobile"]}
+]

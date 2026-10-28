@@ -1,0 +1,30 @@
+
+## mobile 390x844 sw=off
+1 home: /home.html
+  visible «ورود/ثبت‌نام» controls: [{"tag":"A","href":"account.html","cls":"","text":"ورود/ثبت‌نام","in":"tabbar"}]
+2 after click: /account.html
+  guest-view login link: {"href":"login.html?mode=server&next=account.html","text":"ورود یا ساخت حساب","cls":"btn primary"}
+3 login page: /login.html?mode=server&next=account.html
+  rendered: {"title":"ورود به نورا","h1":"ورود یا ثبت‌نام","css":["glass.css?v=100","nora.css?v=102","login.css?v=131"],"js":["ui.js?v=129","login.js?v=133"],"form":true,"captcha":true}
+  loaded assets: 200 /nora.css?v=102 | 200 /glass.css?v=100 | 200 /ui.js?v=129 | 200 /glass.css?v=100 | 200 /nora.css?v=102 | 200 /ui.js?v=129 | 200 /login.html?mode=server&next=account.html | 200 /glass.css?v=100 | 200 /nora.css?v=102 | 200 /ui.js?v=129 | 200 /login.css?v=131 | 200 /login.js?v=133
+  page errors: none
+
+## desktop 1280x800 sw=off
+1 home: /home.html
+  visible «ورود/ثبت‌نام» controls: [{"tag":"A","href":"account.html","cls":"","text":"ورود/ثبت‌نام","in":"tabbar"}]
+2 after click: /account.html
+  guest-view login link: {"href":"login.html?mode=server&next=account.html","text":"ورود یا ساخت حساب","cls":"btn primary"}
+3 login page: /login.html?mode=server&next=account.html
+  rendered: {"title":"ورود به نورا","h1":"ورود یا ثبت‌نام","css":["glass.css?v=100","nora.css?v=102","login.css?v=131"],"js":["ui.js?v=129","login.js?v=133"],"form":true,"captcha":true}
+  loaded assets: 200 /glass.css?v=100 | 200 /nora.css?v=102 | 200 /ui.js?v=129 | 200 /glass.css?v=100 | 200 /nora.css?v=102 | 200 /ui.js?v=129 | 200 /login.html?mode=server&next=account.html | 200 /glass.css?v=100 | 200 /nora.css?v=102 | 200 /ui.js?v=129 | 200 /login.js?v=133 | 200 /login.css?v=131
+  page errors: none
+
+## mobile-sw 390x844 sw=on
+1 home: /home.html
+  visible «ورود/ثبت‌نام» controls: [{"tag":"A","href":"account.html","cls":"","text":"ورود/ثبت‌نام","in":"tabbar"}]
+2 after click: /account.html
+  guest-view login link: {"href":"login.html?mode=server&next=account.html","text":"ورود یا ساخت حساب","cls":"btn primary"}
+3 login page: /login.html?mode=server&next=account.html
+  rendered: {"title":"ورود به نورا","h1":"ورود یا ثبت‌نام","css":["glass.css?v=100","nora.css?v=102","login.css?v=131"],"js":["ui.js?v=129","login.js?v=133"],"form":true,"captcha":true}
+  loaded assets: 200 /glass.css?v=100 | 200 /nora.css?v=102 | 200 /ui.js?v=129 | 200 /glass.css?v=100 | 200 /nora.css?v=102 | 200 /ui.js?v=129 | 200 /login.html?mode=server&next=account.html [SW] | 200 /glass.css?v=100 | 200 /nora.css?v=102 | 200 /ui.js?v=129 | 200 /login.css?v=131 | 200 /login.js?v=133
+  page errors: none

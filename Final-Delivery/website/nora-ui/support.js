@@ -721,7 +721,7 @@ document.addEventListener('click',e=>{
   const cc=t.closest('[data-close]');
   if(cc){ e.preventDefault(); closeSheets(); return }
   const tm=t.closest('[data-theme-toggle]');
-  if(tm){ e.preventDefault(); if(typeof themeToggle==='function') themeToggle(); return }
+  if(tm){ e.preventDefault(); if(!e.noraThemeHandled){ e.noraThemeHandled=true; if(typeof themeToggle==='function') themeToggle() } return }
 });
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){ const m=$('#modal'); if(m&&!m.hidden){ closeModal(); return } closeSheets(); return }

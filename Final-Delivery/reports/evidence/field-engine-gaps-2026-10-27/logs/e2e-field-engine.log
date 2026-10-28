@@ -1,0 +1,53 @@
+PASS capability contract resolved from the server (state ready)
+PASS empty canvas, save state idle (new form, nothing on the server yet)
+PASS search «شماره همراه» ranks the mobile pattern first and shows a result count
+PASS upload row is disabled with the server reason inline (not addable)
+PASS category button is a real toggle (aria-pressed) and keeps focus
+PASS adding «نام و نام خانوادگی» opens its editor
+PASS adding «موبایل» works and the editor shows the honest verification state
+PASS adding a number field opens bounds controls
+PASS invalid bounds (min > max) keep the editor open with the error inside the sheet
+PASS valid bounds saved as numbers (Persian digits accepted)
+PASS adding a single-choice field gives editable options
+PASS first option cannot move up, last cannot move down
+PASS option moved down for real and focus stayed on the moved row
+PASS adding a short text field for the conditional question
+PASS conditional rule saved on the field (field/op/value)
+PASS canvas shows the conditional badge and the editor closed
+PASS save state is not «ذخیره شد» before the server confirmed anything
+PASS after the first save the URL is pinned with fid= and state becomes «ذخیره شد»
+form id: d48c03ad-dd70-456a-a936-ccee29a08ac8
+PASS server stored 5 fields in order with bounds, option order and the condition
+PASS reopening by fid opens as «ذخیره شد» on the server version (mirror verified against the API, no stale copy)
+PASS restored fields equal the server record (ids, types, titles, bounds, option order, conditions)
+PASS cancel on an untouched editor closes without a discard prompt
+PASS API accepted a draft with an invalid numeric range and a legacy upload field (draft stays editable)
+PASS readiness reports both defects with field ids
+PASS builder detects the newer server version behind the local mirror and reloads on it (hydrated=1)
+PASS legacy upload field is visible on the canvas, flagged «نیاز به اصلاح», not deleted
+PASS readiness list renders a «بازکردن پرسش» button per field-level issue
+PASS numeric-range issue opens that question with the minimum control focused
+PASS legacy upload issue opens the type-change control with only safe targets
+PASS type change asks for confirmation and lists the consequences
+PASS legacy field converted to text, title kept, no longer flagged
+PASS catalog still blocks upload types after the fix (no cosmetic enabling)
+PASS re-save confirmed by the server (version bumped)
+PASS readiness is clean after fixing both issues from the mapped controls
+PASS form is published on the server (from the builder button)
+public step 0: {"filled":[],"clicked":"شروع","errors":[]}
+public step 1: {"filled":["نام و نام خانوادگی=آزمون نورا"],"clicked":"ادامه","errors":[]}
+public step 2: {"filled":["موبایل=09121234567"],"clicked":"ادامه","errors":[]}
+public step 3: {"filled":["سن=5"],"clicked":"ادامه","errors":["حداقل مقدار «سن» ۱۰ است"]}
+public step 4: {"filled":["سن=25"],"clicked":"ادامه","errors":[]}
+public step 5: {"filled":["choice=گزینهٔ دو"],"clicked":"ادامه","errors":[]}
+public step 6: {"filled":["چرا؟=چون دوست دارم"],"clicked":"ادامه","errors":[]}
+public step 7: {"filled":["سن=25"],"clicked":"ثبت پاسخ","errors":[]}
+PASS public visitor got a validation error for age=5 (bounds 10..90 enforced on the public form)
+PASS the conditional question was shown (and answered) after its reference option was selected
+PASS public submission completed (server draft submitted=true)
+PASS owner sees exactly one response for this form
+PASS stored answers contain age 25, the chosen option and the conditional text
+PASS CSV export served through the real endpoint with the question headers
+PASS published form with responses rejects field edits (409), builder cannot bypass it
+PASS no page errors in the browser during the whole chain
+e2e-field-engine: 43 قبول، 0 خطا

@@ -1,0 +1,63 @@
+owner auth/me 200
+=== e2e-field-types start 19:47:08
+e2e-field-types EXIT 0
+e2e-field-types: 474 قبول، 0 خطا
+=== e2e-rating start 19:51:50
+e2e-rating EXIT 0
+e2e-rating: 45 قبول، 0 خطا
+=== e2e-length-integer start 19:53:18
+e2e-length-integer EXIT 0
+e2e-length-integer: 44 قبول، 0 خطا
+=== e2e-picker-ux start 19:56:53
+e2e-picker-ux EXIT 0
+e2e-picker-ux: 23 قبول، 0 خطا
+=== e2e-field-engine start 19:58:44
+e2e-field-engine EXIT 0
+e2e-field-engine: 43 قبول، 0 خطا
+=== e2e-event-file start 20:04:07
+e2e-event-file EXIT 0
+PASS no page errors: 
+
+TOTAL PASS 83 / FAIL 0
+=== e2e-duplicate start 20:09:16
+e2e-duplicate EXIT 0
+✓ انتشار نسخهٔ مدیر از API با 401 رد شد
+e2e-duplicate: 25 قبول، 0 خطا
+=== e2e-receipt-restore start 20:11:14
+e2e-receipt EXIT 0
+✓ ثبت‌نام در فهرست مدیران با وضعیت پرداخت «رسید فرستاده شده» دیده می‌شود (200)
+e2e-receipt-restore: 11 قبول، 0 خطا
+=== e2e-deeplinks start 20:11:57
+e2e-deeplinks EXIT 0
+e2e-deeplinks: 36 قبول، 0 خطا
+=== e2e-roles start 20:17:45
+e2e-roles EXIT 0
+PASS owner person file: audit shows manual decision + attendance
+TOTAL PASS 26 / FAIL 0
+=== e2e-builder-return start 20:18:42
+e2e-builder EXIT 0
+page errors: []
+TOTAL PASS 24 / FAIL 0
+=== a11y start 20:22:59
+a11y EXIT 0
+errors []
+TOTAL PASS 31 / FAIL 0
+=== e2e-nav start 20:25:26
+e2e-nav EXIT 0
+PASS صفحه‌کلید: Enter روی «فرم‌ساز» به مرکز فرم‌ها می‌رود
+TOTAL PASS 41 / FAIL 0
+=== node-suite start 20:27:48
+node-suite done: 41/41 exit 0
+=== pytest start 20:34:39
+pytest EXIT 0
+SKIPPED [4] tests/test_migrations_postgres.py:50: requires an explicitly configured disposable NORA_TEST_POSTGRES_URL
+406 passed, 4 skipped, 3 warnings in 169.13s (0:02:49)
+=== mypy start 20:37:35
+mypy EXIT 0
+Success: no issues found in 78 source files
+PASS types
+=== pg-migrations start 20:37:36
+pg EXIT 0
+.....                                                                    [100%]
+5 passed in 2.88s
+=== ALL DONE 20:37:40

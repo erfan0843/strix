@@ -158,7 +158,7 @@ function makePublicApiMock({id='server-public-smoke',draft={answers:{},companion
     if(!payment)return false;payment={...payment,status,invoice_url:status==='pending'?payment.invoice_url:''};draft={...draft,payment_intent:payment};return true;
   }};
 }
-function makeFormsApiMock({authenticated=true,id='server-form-1',initialRecord=null,responses=[],readinessIssues=[]}={}){
+function makeFormsApiMock({authenticated=true,id='server-form-1',initialRecord=null,responses=[],readinessIssues=[],role='owner',permissions=['fm_create']}={}){
   const calls=[]; let loggedIn=authenticated, record=initialRecord;
   const response=(status,payload)=>({ok:status>=200&&status<300,status,json:async()=>payload});
   const fetch=async(path,init={})=>{
@@ -169,14 +169,19 @@ function makeFormsApiMock({authenticated=true,id='server-form-1',initialRecord=n
       version:1,source:'same_application_fastapi',api_configured:true,
       models:['registration','questionnaire','survey','contest','exam','attendance','datacollect','election'].map(id=>({id,status:id==='registration'?'server':'limited',publishable:true,reason:'پاسخ سروری آزمایشی'}))
         .concat([{id:'order',status:'unavailable',publishable:false,reason:'سفارش آماده نیست'}]),
-      field_types:{text:{status:'server',reason:''},fullname:{status:'server',reason:''},mobile:{status:'limited',reason:'بدون احراز شماره'},uni:{status:'limited',reason:'فهرست محلی'},image:{status:'unavailable',reason:'بارگذاری وصل نیست'},file:{status:'unavailable',reason:'بارگذاری وصل نیست'}},
+      /* آینهٔ قرارداد واقعی backend/form_capabilities.py (همهٔ ۳۶ نوع)؛ نوعِ بیرون از قرارداد در فرم‌ساز قابل‌افزودن نیست */
+      field_types:Object.assign(
+        Object.fromEntries(['text','area','number','choice','multi','dropdown','select','yesno','fullname','gender','marital','address','province','edu','date','rating','scale','bars'].map(t=>[t,{status:'server',reason:''}])),
+        Object.fromEntries(['amount','email','imgchoice','location','nid','slot','terms','time','datetime','job'].map(t=>[t,{status:'limited',reason:'پاسخ ثبت می‌شود؛ قابلیت کامل ندارد'}])),
+        {mobile:{status:'limited',reason:'بدون احراز شماره'},uni:{status:'limited',reason:'فهرست محلی'},image:{status:'unavailable',reason:'بارگذاری وصل نیست'},file:{status:'unavailable',reason:'بارگذاری وصل نیست'},
+         voice:{status:'unavailable',reason:'ضبط وصل نیست'},sign:{status:'unavailable',reason:'امضا وصل نیست'},price:{status:'unavailable',reason:'قیمت‌گذاری مستقل نیست'},coupon:{status:'unavailable',reason:'کد تخفیف پرسش نیست'}}),
       settings:{response_list:{status:'server',page_size_max:100},schedule:{status:'unavailable'},one_response_per_person:{status:'unavailable'}}
     });
-    if(path==='/api/auth/me') return loggedIn
+    if(path==='/api/auth/me') return loggedIn&&role==='owner'
       ?response(200,{authenticated:true,owner_id:'owner-smoke',role:'owner'})
       :response(401,{detail:'authentication_required'});
     if(path==='/api/account/me') return loggedIn
-      ?response(200,{authenticated:true,account_id:'owner-smoke',role:'owner',permissions:['fm_create']})
+      ?response(200,{authenticated:true,account_id:role==='owner'?'owner-smoke':'manager-smoke',role,permissions:role==='owner'?permissions:permissions.filter(p=>p!=='finance')})
       :response(401,{detail:'authentication_required'});
     if(path==='/api/auth/login'){
       const body=JSON.parse(init.body||'{}');
@@ -206,6 +211,14 @@ function makeFormsApiMock({authenticated=true,id='server-form-1',initialRecord=n
     }
     if(path==='/api/forms/'+id+'/pause'&&method==='POST'){
       record={...record,status:'paused',version:(record.version||1)+1};return response(200,record);
+    }
+    if(path==='/api/forms/'+id+'/duplicate'&&method==='POST'){
+      const key=(init.headers||{})['Idempotency-Key']||'';
+      if(!/^[A-Za-z0-9_-]{16,80}$/.test(key))return response(428,{detail:'idempotency_key_required'});
+      const body=JSON.parse(init.body||'{}');
+      const copy={...record,id:id+'-copy',name:body.name||('نسخهٔ جدید از '+record.name),status:'draft',version:1,response_count:0,
+        settings:{...(record.settings||{}),source_form_id:id,source_form_version:record.version||1}};
+      return response(201,copy);
     }
     if(path==='/api/forms'&&method==='GET'){
       const item=record?{...record,response_count:Number(record.response_count??responses.length)}:null;
@@ -314,6 +327,17 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   ok(p.doc.querySelector('#evTop .mi-partner[data-partner="partner-live-1"]')?.textContent.includes('نهاد همکار منتشرشده'),
     'کارت عمومی رویداد، نهاد همکارِ متصل به همان شناسه را نمایش می‌دهد');
   ok(p.window.NORA_UI.clockState()==='local','ساعت محلی بدون نیاز به سرویس بیرونی کار می‌کند');
+  /* زبانهٔ «فرم‌ساز» نوار پایین: فقط با آرایهٔ مجوز حاوی fm_create (از پاسخ سرور) ساخته می‌شود؛ آرایهٔ خالی برمی‌دارد؛ فراخوانی بی‌آرگومان/رویدادی دست نمی‌زند؛ تکراری نمی‌سازد */
+  const bar=p.doc.querySelector('.tabbar'), tabsBefore=bar.querySelectorAll('a').length;
+  ok(!bar.querySelector('[data-forms-nav]'),'بدون مجوز سروری، زبانهٔ «فرم‌ساز» در نوار پایین نیست');
+  p.window.NORA_UI.updateAccountNavigation(['fm_view']); ok(!bar.querySelector('[data-forms-nav]'),'مجوز بدون fm_create زبانه نمی‌سازد');
+  p.window.NORA_UI.updateAccountNavigation(['fm_view','fm_create']); p.window.NORA_UI.updateAccountNavigation(['fm_create']); p.window.NORA_UI.updateAccountNavigation();
+  const formsTab=bar.querySelectorAll('[data-forms-nav]');
+  ok(formsTab.length===1&&formsTab[0].getAttribute('href')==='builder.html'&&formsTab[0].textContent.trim()==='فرم‌ساز'
+    &&formsTab[0].nextElementSibling===bar.querySelector('[data-account-nav]')&&bar.getAttribute('data-tabs')===String(tabsBefore+1),
+    'با fm_create دقیقاً یک زبانهٔ «فرم‌ساز» به builder.html کنار «حساب» ساخته می‌شود و شمار زبانه‌ها به‌روز است');
+  p.window.NORA_UI.updateAccountNavigation([]);
+  ok(!bar.querySelector('[data-forms-nav]')&&bar.getAttribute('data-tabs')===String(tabsBefore),'با آرایهٔ خالی (خروج/انقضا) زبانه برداشته و شمار زبانه‌ها برگردانده می‌شود');
   ok(p.network.length===1&&p.network[0]==='/api/public/site-content','خانه فقط snapshot عمومیِ هم‌مبدأ را درخواست کرد');
   const external=p.window.document.createElement('a'); external.href='https://example.org/cta'; external.textContent='دکمهٔ بیرونی';
   p.doc.body.appendChild(external); await wait(40);
@@ -341,15 +365,19 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
       &&p.all('#shMenu .mrow').length===19,'منوی کامل پنج‌گروهی، بدون ردیف‌های اتصالِ حذف‌شده، حفظ شده است');
   ok(p.all('#shMenu .mrow').every(row=>!row.textContent.includes('نشست')),
     'برچسب‌های ناوبری عمومی برای برنامه‌های منتشرشده از اصطلاح مبهم «نشست» استفاده نمی‌کنند');
-  ok(p.all('#quick .tile').length===5&&!p.all('#quick a[href*="cooperation"]').length
+  /* پذیرش ۱۴۰۵/۰۸/۰۳: چهار میان‌بر؛ کاشی «رویدادها و آرشیو» برداشته شد چون همان مقصدِ بنر/«همهٔ رویدادها»/tabbar بود */
+  ok(p.all('#quick .tile').length===4&&!p.all('#quick a[href*="cooperation"]').length
+      &&!p.all('#quick a[href="events.html"]').length
       &&p.all('#quick a[href="support.html"]').length===1,
-    'پنج میان‌بر جامع‌اند و پیوند همکاری فقط در بخش پشتیبانی است، نه خانه');
-  const partialQuick=await load('home.html',makeStore({'nora-uiset':JSON.stringify({v:1,quick:['events']})}));
-  ok(partialQuick.all('#quick .tile').some(tile=>tile.textContent.includes('رویدادها و آرشیو')),
+    'چهار میان‌بر جامع‌اند، هیچ‌کدام مسیر تکراری رویدادها نیست و پیوند همکاری فقط در بخش پشتیبانی است');
+  ok(p.doc.querySelector('#evSec a.more[href="events.html#list"]')&&p.doc.querySelector('.tabbar a[href="events.html#list"]'),
+    'مقصد رویدادها از پیوند ویترین و tabbar در دسترس می‌ماند');
+  const partialQuick=await load('home.html',makeStore({'nora-uiset':JSON.stringify({v:1,quick:['club']})}));
+  ok(partialQuick.all('#quick .tile').some(tile=>tile.textContent.includes('مطالب و مطالعه')),
     'دستهٔ میان‌بر ترکیبی با پنهان‌کردن فقط یکی از دو کلیدش همچنان می‌ماند');
-  const hiddenQuick=await load('home.html',makeStore({'nora-uiset':JSON.stringify({v:1,quick:['events','past']})}));
-  ok(!hiddenQuick.all('#quick .tile').some(tile=>tile.textContent.includes('رویدادها و آرشیو'))
-      &&hiddenQuick.all('#quick .tile').length===4,
+  const hiddenQuick=await load('home.html',makeStore({'nora-uiset':JSON.stringify({v:1,quick:['club','articles']})}));
+  ok(!hiddenQuick.all('#quick .tile').some(tile=>tile.textContent.includes('مطالب و مطالعه'))
+      &&hiddenQuick.all('#quick .tile').length===3,
     'دستهٔ میان‌بر ترکیبی فقط وقتی هر دو کلید پنهان‌اند برداشته می‌شود');
   const homeNav=p.all('#tabs a').map(link=>link.getAttribute('href'));
   ok(homeNav.length===3&&homeNav[0]==='home.html'&&homeNav[1]==='events.html#list'
@@ -380,25 +408,53 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   ok(p.all('#shMenu .mrow[data-uijump]').every(row=>{
     const section=p.doc.getElementById(row.dataset.uijump); return !!section&&!section.hidden;
   }), 'هیچ ردیف منو به بخش پنهان یا خالی هدایت نمی‌شود');
-  p.click('#logoWall [data-partner="partner-live-1"]'); await wait(40);
-  ok(!p.doc.querySelector('#partnerBody a[href*="cooperation"]')&&p.doc.querySelector('#partnerBody [data-close]')!==null,
-    'کارت نهاد به بخش حذف‌شده پیوند نمی‌دهد و دکمهٔ بستن دارد');
-  ok(/همراه برنامه‌های آموزشی/.test(p.txt('#partnerBody'))&&/برگزاری کارگاه/.test(p.txt('#partnerBody'))
-      &&/مهر ۱۴۰۵/.test(p.txt('#partnerBody'))&&/آموزش/.test(p.txt('#partnerBody'))
-      &&/شرح همکاری/.test(p.txt('#partnerBody')),
-    'ورقهٔ نهاد معرفی، نوع و زمان همکاری، حوزه‌ها و شرح کامل را نشان می‌دهد');
-  ok(p.doc.querySelector('#partnerBody a[data-partner-site][aria-disabled="true"]')
-      &&p.doc.querySelector('#partnerBody a[data-partner-contact="mail"][aria-disabled="true"]'),
-    'وبگاه و رایانامهٔ نهاد در پیش‌نمایش محلی زیر نگهبان پیوند بیرونی‌اند');
-  ok(!p.doc.querySelector('#partnerBody a[href^="javascript:"]')
-      &&!p.doc.querySelector('#partnerBody a[data-partner-contact="other"]'),
-    'نشانی ناامنِ راه تماس به پیوند اجرایی تبدیل نمی‌شود');
-  p.click('#partnerBody [data-close]');
-  p.click('#evTop .mi-partner[data-partner="partner-live-1"]'); await wait(40);
-  ok(p.txt('#partnerBody').includes('نهاد همکار منتشرشده')
-      &&p.doc.querySelector('#partnerBody [data-close]'),
-    'پیوند روی کارت رویداد، برگهٔ همان نهاد همکار را باز می‌کند');
-  p.click('#partnerBody [data-close]');
+  ok(p.doc.querySelector('#logoWall a.logo[href="partner.html?id=partner-live-1"]')!==null
+      &&p.doc.querySelector('#footLogos a[href="partner.html?id=partner-live-1"]')!==null
+      &&p.doc.querySelector('#evTop a.mi-partner[href="partner.html?id=partner-live-1"]')!==null
+      &&!p.doc.querySelector('#shPartner')&&!p.doc.querySelector('#logoWall button'),
+    'کارت نهاد در خانه، نشان پایین صفحه و برچسب نهاد روی کارت رویداد همگی پیوند واقعی به صفحهٔ اختصاصی همان نهادند؛ ورقهٔ قدیمی حذف شده');
+  const partnerPage=await load('partner.html',store,'?id=partner-live-1',serverFetch,{fixtureMode:false});
+  ok(partnerPage.errors.length===0&&partnerPage.window.NORA_PUBLIC_SOURCE==='server'
+      &&partnerPage.doc.querySelector('.partner-profile h1')?.textContent==='نهاد همکار منتشرشده'
+      &&partnerPage.all('h1').length===1&&partnerPage.window.document.title.includes('نهاد همکار منتشرشده'),
+    'صفحهٔ اختصاصی نهاد از snapshot عمومی سرور همان شناسه را می‌خواند و یک h1 معنادار دارد');
+  ok(/نهاد فرهنگی/.test(partnerPage.txt('.partner-heading'))&&/همراه برنامه‌های آموزشی/.test(partnerPage.txt('.partner-lead'))
+      &&/برگزاری کارگاه/.test(partnerPage.txt('.partner-facts'))&&/مهر ۱۴۰۵/.test(partnerPage.txt('.partner-facts'))
+      &&partnerPage.all('.partner-tags .tag').map(tag=>tag.textContent).join()==='آموزش,کارگاه'
+      &&/شرح همکاری/.test(partnerPage.txt('.partner-desc')),
+    'نوع، معرفی کوتاه، نوع و زمان همکاری، حوزه‌ها و شرح کامل نهاد نمایش داده می‌شوند');
+  const siteLink=partnerPage.doc.querySelector('[data-partner-site]'), mailLink=partnerPage.doc.querySelector('[data-partner-contact="mail"]');
+  ok(siteLink&&mailLink&&(siteLink.getAttribute('aria-disabled')==='true'||(siteLink.getAttribute('href')==='https://partner.example.org/'
+      &&siteLink.getAttribute('rel')==='noopener noreferrer'&&siteLink.getAttribute('target')==='_blank')),
+    'وبگاه رسمی و رایانامهٔ نهاد ساخته می‌شوند و پیوند بیرونی یا با noopener است یا زیر نگهبان پیوند بیرونی پیش‌نمایش محلی');
+  ok(!partnerPage.doc.querySelector('a[href^="javascript:"]')&&!partnerPage.doc.querySelector('[data-partner-contact="other"]'),
+    'نشانی ناامن راه تماس در صفحهٔ نهاد به پیوند اجرایی تبدیل نمی‌شود');
+  ok(partnerPage.doc.querySelector('a.partner-event[href="event.html?id=event-live-1"]')!==null
+      &&partnerPage.all('a.partner-event').length===1,
+    'فقط رویدادی که در داده صریحاً partnerId همین نهاد را دارد به‌عنوان رویداد مرتبط فهرست می‌شود');
+  ok(partnerPage.doc.querySelector('.partner-breadcrumb a[href="home.html#partners"]')!==null
+      &&partnerPage.doc.querySelector('.partner-footer-nav a[href="home.html#partners"]')!==null
+      &&partnerPage.doc.querySelector('.topbar a[href="home.html#partners"]')!==null,
+    'مسیر بازگشت به خانه و بخش نهادهای همکار در بالای صفحه، مسیر صفحه و پایین مقاله وجود دارد');
+  const xssPartnerContent={...serverContent,partners:[{id:'partner-xss',n:'<img src=x onerror=alert(1)>',type:'<b>نوع</b>',
+    d:'<script>alert(1)</script>',logo:'javascript:alert(1)',href:'javascript:alert(1)',g:'url(javascript:alert(1))',
+    links:[{k:'web',v:'javascript:alert(1)'},{k:'mail',v:'<svg onload=alert(1)>@x.y'}]}]};
+  const xssPage=await load('partner.html',makeStore({}),'?id=partner-xss',async path=>path==='/api/public/site-content'
+    ?{ok:true,json:async()=>({content:xssPartnerContent})}:{ok:false,status:404,json:async()=>({})},{fixtureMode:false});
+  ok(xssPage.errors.length===0&&xssPage.doc.querySelector('.partner-profile h1')?.textContent==='<img src=x onerror=alert(1)>'
+      &&!xssPage.doc.querySelector('.partner-profile img')&&!xssPage.doc.querySelector('.partner-profile script')
+      &&!xssPage.doc.querySelector('[data-partner-site]')&&xssPage.all('.partner-contact').length===0
+      &&xssPage.doc.querySelector('.partner-logo').getAttribute('style')==='--g:linear-gradient(135deg,#2E6B7A,#0B2447)'
+      &&xssPage.txt('.partner-logo')==='<i',
+    'نام/شرح/لوگو/پیوند مخرب نهاد فقط به‌صورت متن امن نمایش داده می‌شود؛ هیچ تصویر، اسکریپت یا پیوند اجرایی ساخته نمی‌شود');
+  const missingPartner=await load('partner.html',store,'?id=partner-does-not-exist',serverFetch,{fixtureMode:false});
+  ok(missingPartner.errors.length===0&&missingPartner.doc.querySelector('.partner-not-found[role="status"] h1')?.textContent==='این نهاد همکار در دسترس نیست'
+      &&missingPartner.doc.querySelector('.partner-not-found a[href="home.html#partners"]')!==null,
+    'شناسهٔ ناموجود در صفحهٔ نهاد، وضعیت «در دسترس نیست» با مسیر بازگشت نشان می‌دهد');
+  const offlinePartner=await load('partner.html',makeStore({}),'?id=partner-live-1','',{fixtureMode:false});
+  ok(offlinePartner.errors.length===0&&offlinePartner.window.NORA_PUBLIC_SOURCE==='unavailable'
+      &&offlinePartner.doc.querySelector('.partner-not-found h1')?.textContent==='محتوای زنده در دسترس نیست',
+    'خطای API در صفحهٔ نهاد پیام انسانی متفاوت از «پیدا نشد» می‌دهد و خطای JavaScript ندارد');
   const eventDetail=await load('event.html',store,'?id=event-live-1',serverFetch,{fixtureMode:false});
   ok(eventDetail.errors.length===0&&eventDetail.doc.querySelector('.event-detail'),'صفحهٔ اختصاصی رویداد منتشرشده سالم رندر شد');
   const eventLayout=eventDetail.doc.querySelector('.event-layout'),eventChildren=[...eventLayout.children],
@@ -409,8 +465,8 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
       &&!/\.event-register\{[^}]*order\s*:\s*-1/i.test(eventStyles)
       &&eventStyles.includes('#ctabar{display:none!important}'),
     'جزئیات کامل پیش از پنل ثبت‌نام دیده می‌شوند و ثبت‌نام همان رویداد پس از آن در دسترس است');
-  ok(eventDetail.doc.querySelector('a.event-partner-link[href="home.html#partner=partner-live-1"]')?.textContent.includes('نهاد همکار منتشرشده'),
-    'صفحهٔ عمومی رویداد، پیوند نهاد همکار را به برگهٔ همان نهاد می‌رساند');
+  ok(eventDetail.doc.querySelector('a.event-partner-link[href="partner.html?id=partner-live-1"]')?.textContent.includes('نهاد همکار منتشرشده'),
+    'صفحهٔ عمومی رویداد، پیوند نهاد همکار را به صفحهٔ اختصاصی همان نهاد می‌رساند');
   const certContent={...serverContent,events:[{id:'event-cert-live',t:'رویداد آرشیوی دارای گواهی',
     kind:'کارگاه',privacy:'public',past:true,cert:true,certMin:85,certNote:'حضور در جلسهٔ پایانی',media:[]}]};
   const certFetch=async path=>path==='/api/public/site-content'
@@ -438,7 +494,7 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   const updatedFetch=async path=>path==='/api/public/site-content'
     ?{ok:true,json:async()=>({content:updatedContent})}:{ok:false,status:404,json:async()=>({})};
   const editedPublic=await load('event.html',editedPublicStore,'?id=event-edit-public',updatedFetch,{fixtureMode:false});
-  ok(editedPublic.doc.querySelector('a.event-partner-link[href="home.html#partner=partner-live-1"]')!==null,
+  ok(editedPublic.doc.querySelector('a.event-partner-link[href="partner.html?id=partner-live-1"]')!==null,
     'صفحهٔ عمومی تغییر نهاد را از snapshot سروریِ منتشرشده می‌خواند');
   const teacherProfile=await load('person.html',store,'?id=person-live-1',serverFetch,{fixtureMode:false});
   ok(teacherProfile.errors.length===0&&teacherProfile.doc.querySelector('.person-profile')
@@ -466,11 +522,111 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   }), 'در نبود محتوای منتشرشده، منو پیوندی به بخش پنهان نمی‌سازد');
   ok(!emptyHome.txt('#shMenu').includes('· نمونه')&&!emptyHome.txt('#shMenu').includes('پیش‌نمایش'),
     'منوی عمومی عنوان یا دادهٔ نمونه نشان نمی‌دهد');
+  const noBannerContent={...serverContent,banners:[]};
+  const introHome=await load('home.html',makeStore({
+    'nora-uiset':JSON.stringify({v:1,home:{bnr:0},bnr:{on:0},bnrAdd:[{t:'بنر محلی ساختگی'}]})
+  }),'',async path=>path==='/api/public/site-content'
+    ?{ok:true,json:async()=>({content:noBannerContent})}:{ok:false,status:404,json:async()=>({})},{fixtureMode:false});
+  const introSlide=introHome.doc.querySelector('#bsdeck .bs');
+  ok(introHome.errors.length===0&&introHome.window.NORA_PUBLIC_SOURCE==='server'&&introHome.doc.querySelector('#bnr').hidden===false
+      &&introHome.doc.querySelector('#bnr').classList.contains('is-intro')&&introSlide?.classList.contains('bs-intro')
+      &&introHome.all('#bsdeck .bs').length===1&&introHome.doc.querySelector('#bdots').hidden&&introHome.doc.querySelector('#bnr .bnav').hidden,
+    'وقتی سرور بنر منتشرشده ندارد، بنر معرفی نورا (تک‌اسلاید، بدون کنترل چرخش) دیده می‌شود');
+  ok(!introHome.txt('#bsdeck').includes('بنر محلی')&&!/\d/.test(introHome.txt('#bsdeck').replace(/[۰-۹]/g,'0').replace(/0/g,''))
+      &&JSON.stringify(introHome.all('#bsdeck .bacts a').map(a=>a.getAttribute('href')))===JSON.stringify(['events.html','home.html#articles'])
+      &&introSlide.querySelector('.bs-media img')?.getAttribute('src')==='home-banner.webp',
+    'بنر معرفی فقط به مسیرهای واقعی نورا پیوند می‌دهد و از تنظیم محلی مرورگر یا دادهٔ ساختگی تأثیر نمی‌گیرد');
+  const disabledContent={...noBannerContent,banner_settings:{...serverContent.banner_settings,enabled:false}};
+  const disabledHome=await load('home.html',makeStore({}),'',async path=>path==='/api/public/site-content'
+    ?{ok:true,json:async()=>({content:disabledContent})}:{ok:false,status:404,json:async()=>({})},{fixtureMode:false});
+  ok(disabledHome.errors.length===0&&disabledHome.doc.querySelector('#bnr').hidden&&disabledHome.all('#bsdeck .bs').length===0,
+    'خاموش‌کردن بنر از تنظیمات مالک، بنر معرفی را هم پنهان می‌کند');
+  const kindContent={...serverContent,banners:[
+    {id:'banner-ad',status:'published',active:true,order:0,t:'بنر حامی‌شده',kind:'sponsored',theme:'amber'},
+    {id:'banner-partner',status:'published',active:true,order:1,t:'بنر نهاد همکار',kind:'partner'},
+    {id:'banner-plain',status:'published',active:true,order:2,t:'اطلاعیهٔ ساده',kind:'javascript:x'}]};
+  const kindHome=await load('home.html',makeStore({}),'',async path=>path==='/api/public/site-content'
+    ?{ok:true,json:async()=>({content:kindContent})}:{ok:false,status:404,json:async()=>({})},{fixtureMode:false});
+  ok(kindHome.errors.length===0&&!kindHome.doc.querySelector('#bnr').classList.contains('is-intro')
+      &&JSON.stringify(kindHome.all('#bsdeck .bs').map(slide=>[slide.classList.contains('bs-sponsored')||slide.classList.contains('bs-partner'),
+        slide.querySelector('.btag-kind')?.textContent||'']))===JSON.stringify([[true,'تبلیغ'],[true,'حامی'],[false,'']])
+      &&!kindHome.doc.querySelector('#bdots').hidden,
+    'نوع بنر (تبلیغ/حامی) با برچسب شفاف نمایش داده می‌شود و نوع نامعتبر برچسبی نمی‌سازد');
+  const unpublishedHome=await load('home.html',makeStore({}),'',async()=>({ok:false,status:404,json:async()=>({detail:'site_content_not_published'})}),{fixtureMode:false});
+  ok(unpublishedHome.errors.length===0&&unpublishedHome.window.NORA_PUBLIC_SOURCE==='empty'
+      &&unpublishedHome.doc.querySelector('#bnr').hidden===false&&unpublishedHome.doc.querySelector('#bnr').classList.contains('is-intro')
+      &&unpublishedHome.doc.querySelector('#publicContentStatus').hidden===false
+      &&unpublishedHome.txt('#publicContentStatus').includes('هنوز محتوای عمومی منتشر نشده'),
+    'سرور سالم ولی بدون محتوای منتشرشده: وضعیت «خالی» با بنر معرفی و کارت توضیح نمایش داده می‌شود');
   const preserved=await load('home.html',makeStore({'nora-uiset':JSON.stringify({v:1,home:{about:0,events:0}})}));
   ok(preserved.window.NORA_UI.uiSet().home.about===0&&preserved.window.NORA_UI.uiSet().home.events===0
       &&!preserved.doc.getElementById('about')&&preserved.doc.querySelector('#evSec').hidden,
     'تنظیم‌های ذخیره‌شده حفظ می‌شوند و بخش حذف‌شده در خانه ساخته نمی‌شود');
 
+  /* ── فاز ۷: خانه با وضعیت ثبت‌نام سرور، گروه‌بندی، شمارشگر مشترک و بنر وصل به رویداد ── */
+  {
+    const serverNow=new Date('2026-11-01T10:00:00Z');
+    const iso=h=>new Date(serverNow.getTime()+h*3600_000).toISOString();
+    const content={events:[
+      {id:'p7-open',t:'کارگاه با ثبت‌نام باز',kind:'کارگاه',privacy:'public',when:'۱۲ آبان',on:'۱۴۰۵/۰۸/۱۲',d:'شرح',price:0,forms:[{id:'f-open',need:'reg',n:'ثبت‌نام'}],
+        startsAt:iso(48),regClosesAt:iso(26.5),registration:{state:'open',reason:'',lifecycle:'scheduled',closesAt:iso(26.5),countdownTo:iso(26.5),startsAt:iso(48),startsIn:iso(48)}},
+      {id:'p7-wait',t:'نشست با ثبت‌نام آینده',kind:'نشست',privacy:'public',when:'۲۰ آبان',on:'۱۴۰۵/۰۸/۲۰',d:'شرح',price:0,forms:[{id:'f-wait',need:'reg',n:'ثبت‌نام'}],
+        startsAt:iso(240),regOpensAt:iso(72),registration:{state:'not_started',reason:'time',lifecycle:'scheduled',opensAt:iso(72),countdownTo:iso(72),startsAt:iso(240),startsIn:iso(240)}},
+      {id:'p7-full',t:'اردوی پر',kind:'اردو',privacy:'public',when:'۲۵ آبان',on:'۱۴۰۵/۰۸/۲۵',d:'شرح',price:0,forms:[{id:'f-full',need:'reg',n:'ثبت‌نام'}],
+        startsAt:iso(400),registration:{state:'full',reason:'capacity',lifecycle:'scheduled',countdownTo:'',startsAt:iso(400),startsIn:iso(400)}},
+      {id:'p7-cancel',t:'جلسهٔ لغوشده',kind:'نشست',privacy:'public',when:'۲۸ آبان',on:'۱۴۰۵/۰۸/۲۸',d:'شرح',price:0,lifecycle:'cancelled',
+        startsAt:iso(500),registration:{state:'cancelled',reason:'cancelled',lifecycle:'cancelled',countdownTo:''}},
+      {id:'p7-ended',t:'کارگاه تمام‌شده',kind:'کارگاه',privacy:'public',when:'۱ مهر',on:'۱۴۰۵/۰۷/۰۱',d:'شرح',price:0,
+        registration:{state:'ended',reason:'time',lifecycle:'scheduled',countdownTo:''}}
+    ],people:[],partners:[],articles:[],library:[],cooperation:[],banners:[
+      {id:'p7-banner-event',status:'published',active:true,order:1,t:'بنر رویداد',eventId:'p7-open',countdown:'reg_close',countdownTo:iso(26.5),countdownEnded:false,
+        afterEnd:'details',href:'event.html?id=p7-open',primaryLabel:'جزئیات',event:{id:'p7-open',t:'کارگاه با ثبت‌نام باز',when:'۱۲ آبان',startsAt:iso(48),regClosesAt:iso(26.5),state:'open',lifecycle:'scheduled'}},
+      {id:'p7-banner-ended',status:'published',active:true,order:2,t:'بنر تمام‌شده',eventId:'p7-full',countdown:'reg_close',countdownTo:'',countdownEnded:true,
+        afterEnd:'message',afterEndText:'ظرفیت این دوره تکمیل شد',href:'event.html?id=p7-full',primaryLabel:'جزئیات',event:{id:'p7-full',t:'اردوی پر',when:'۲۵ آبان',state:'full',lifecycle:'scheduled'}},
+      {id:'p7-banner-hidden',status:'published',active:true,order:3,t:'بنر پایان‌یافتهٔ پنهان',eventId:'p7-full',countdown:'reg_close',countdownTo:'',countdownEnded:true,afterEnd:'hide'}
+    ],banner_settings:{enabled:true,auto_rotate:false,interval_seconds:7,show_controls:true}};
+    const fetch7=async path=>path==='/api/public/site-content'
+      ?{ok:true,json:async()=>({content,server_time:serverNow.toISOString()})}:{ok:false,status:404,json:async()=>({})};
+    const p=await load('home.html',makeStore(),'',fetch7);
+    ok(p.errors.length===0,'خانهٔ فاز ۷ بی‌خطا بار شد'+(p.errors.length?': '+p.errors[0]:''));
+    ok(p.window.NORA_SERVER_CLOCK&&Math.abs(p.window.NORA_COUNTDOWN.serverNow()-serverNow.getTime())<5000,
+      'ساعت مرجع خانه از server_time پاسخ گرفته می‌شود، نه از ساعت مرورگر');
+    const card=id=>p.doc.querySelector(`#evSec .evc-cov[data-ev="${id}"]`)?.closest('.evcard');
+    const openCard=card('p7-open');
+    ok(openCard&&openCard.querySelector('.reg-state.live')?.textContent==='ثبت‌نام باز است'
+        &&/تا پایان ثبت‌نام/.test(openCard.querySelector('[data-countdown]')?.textContent||'')
+        &&/۱ روز و ۲ ساعت/.test(openCard.querySelector('.nora-countdown-value')?.textContent||''),
+      'کارت ثبت‌نام باز: نشان وضعیت و شمارشگر تا مهلت، محاسبه‌شده با ساعت سرور');
+    ok(openCard.querySelector('.evc-cta')?.getAttribute('href')==='event.html?id=p7-open'&&/ثبت‌نام و جزئیات/.test(openCard.querySelector('.evc-cta').textContent),
+      'دکمهٔ کارت باز به صفحهٔ جزئیات می‌رود، نه مستقیم به فرم');
+    ok(card('p7-wait')?.querySelector('.reg-state.wait')&&/تا آغاز ثبت‌نام/.test(card('p7-wait').textContent),
+      'کارت ثبت‌نام آغازنشده: نشان انتظار و شمارش تا آغاز ثبت‌نام');
+    ok(card('p7-full')?.querySelector('.reg-state.stop')?.textContent==='ظرفیت تکمیل شد'&&/تا شروع رویداد/.test(card('p7-full').textContent)
+        &&!/ثبت‌نام و جزئیات/.test(card('p7-full').querySelector('.evc-cta').textContent),
+      'کارت ظرفیت تکمیل: نشان توقف، فقط شمارش تا شروع، بدون دعوت به ثبت‌نام');
+    ok(card('p7-cancel')?.querySelector('.reg-state.stop')?.textContent==='لغو شد'&&!card('p7-cancel').querySelector('[data-countdown]'),
+      'رویداد لغوشده: نشان لغو و هیچ شمارشگری');
+    ok(!card('p7-ended')&&p.doc.querySelector('#pastList .evc-cov[data-ev="p7-ended"]'),
+      'پایان‌یافته طبق سرور از ویترین خارج و در برگزارشده‌ها است');
+    ok(p.all('#evTop .evcard').length===3&&p.all('#evTop .evc-cov')[0].dataset.ev==='p7-open',
+      'ویترین: اول ثبت‌نام باز، سپس بقیه؛ حداکثر سه کارت');
+    ok(p.doc.querySelector('#evSoonGroup').hidden===false&&p.all('#evSoon .evc-cov').map(e=>e.dataset.ev).join(',')==='p7-cancel'
+        &&p.doc.querySelector('#evOpenGroup').hidden===true,
+      'گروه «پیش رو» فقط کارت‌های باقی‌مانده به ترتیب تاریخ؛ گروه خالی «ثبت‌نام باز» پنهان است');
+    const banners=p.all('#bsdeck .bs');
+    ok(banners.length===2&&!p.doc.querySelector('#bsdeck').textContent.includes('بنر پایان‌یافتهٔ پنهان'),
+      'بنر پایان‌یافته با رفتار «پنهان» ساخته نمی‌شود');
+    ok(/تا پایان ثبت‌نام/.test(banners[0].querySelector('.btimer [data-countdown]')?.textContent||'')&&banners[0].querySelector('.bmeta')?.textContent==='۱۲ آبان',
+      'بنر وصل به رویداد: شمارشگر از مهلت خود رویداد و زمان رویداد از رکورد رویداد');
+    ok(banners[1].querySelector('.bnote')?.textContent==='ظرفیت این دوره تکمیل شد'&&banners[1].querySelector('.nora-countdown.is-ended')
+        &&banners[1].querySelector('.bacts a')?.getAttribute('href')==='event.html?id=p7-full'&&!banners[1].querySelector('a[href*="form.html"]'),
+      'بنر پایان‌یافته با رفتار «متن»: متن پایان، نشان پایان‌یافته و دکمه فقط به جزئیات');
+    const shares=[]; p.window.shareItem=async item=>{shares.push(item); return true};
+    const shareBtn=p.doc.createElement('button'); shareBtn.dataset.share='p7-open'; p.doc.body.appendChild(shareBtn); shareBtn.click(); await wait(20);
+    ok(shares.length===1&&shares[0].title==='کارگاه با ثبت‌نام باز'&&!/نمونه/.test(shares[0].title+shares[0].text)&&/event\.html\?id=p7-open$/.test(shares[0].url),
+      'اشتراک رویداد از خانه با عنوان و نشانی واقعی، بدون واژهٔ «نمونه»');
+    p.window.close();
+  }
 }
 
 /* ── ۲) فرم: پاسخ محلی، بدون روش پرداخت/رسید/بلیت ── */
@@ -480,6 +636,14 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
     cards:[{id:'smoke-card',bank:'بانک نمونه',no:'4111111111111111',name:'دارندهٔ نمونه',cap:5,dailyMax:500000,used:0,usedAmount:0}]};
   const store=makeStore({'nora-finance':JSON.stringify(finance)}), p=await load('form.html',store,'?guests=0');
   ok(p.errors.length===0,'فرم بی‌خطا بار شد');
+  {
+    const t=p.doc.getElementById('toast'), icon=t&&t.querySelector('svg.i');
+    p.window.toast('ذخیره انجام نشد؛ دوباره تلاش کن.','error');
+    const errorHidesCheck=!!icon&&icon.style.display==='none'&&t.classList.contains('is-error')&&t.textContent.includes('ذخیره انجام نشد');
+    p.window.toast('پاسخت بازیابی شد');
+    const successRestoresCheck=icon.style.display===''&&!t.classList.contains('is-error');
+    ok(errorHidesCheck&&successRestoresCheck,'توست خطا نشانهٔ ✓ موفقیت را نشان نمی‌دهد و توست بعدی آن را برمی‌گرداند');
+  }
   const visibleLandingText=[p.txt('#topTitle'),p.txt('#evTitle'),p.txt('#next'),
     ...['formLead','evMeta','landingCount','footerLocalNotice','formMeta'].map(id=>{const el=p.doc.getElementById(id);return el&&(el.hidden||el.style.display==='none')?'':el?.textContent||''})].join(' ');
   ok(p.doc.querySelector('#prev').hidden&&p.doc.querySelector('#botbar').classList.contains('start-mode')
@@ -867,10 +1031,14 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
     'nora-regs':JSON.stringify([{form:'fake-local-form',code:'FAKE-1',demo:true,ans:[{l:'نام',v:'کاربر ساختگی'}]}])
   });
   const page=await load('builder.html',store,'',null,{fixtureMode:false});
+  await wait(60);
+  /* در تولید، فهرست خودکار از سرور خواسته می‌شود؛ وقتی شبکه در دسترس نیست حالت خطا با «تلاش دوباره» می‌آید، نه فهرست محلی */
   ok(page.errors.length===0&&!page.doc.querySelector('#formCards [data-form]')
     &&!page.txt('#formCards').includes('فرم محلی نباید بیاید')
-    &&page.txt('#serverFormsMessageText').includes('هنوز فهرست سروری دریافت نشده'),
-    'فهرست پیش‌فرض خالی است و فرم ذخیره‌شدهٔ محلی به‌جای سرور نشان داده نمی‌شود');
+    &&page.doc.querySelector('#serverFormsMessage').dataset.state==='error'
+    &&page.doc.querySelector('#serverFormsRetry').hidden===false
+    &&page.txt('#formCards').includes('تلاش دوباره'),
+    'فهرست پیش‌فرض خالی است، فرم ذخیره‌شدهٔ محلی به‌جای سرور نشان داده نمی‌شود و بدون شبکه حالت خطا با تلاش دوباره دیده می‌شود');
   page.click('[data-go="fReports"]');
   ok(page.txt('#formReportCount').includes('۰ سرور')&&!page.txt('#formReportList').includes('نمونهٔ مرورگر')
     &&!page.txt('#formReportList').includes('فرم محلی نباید بیاید'),
@@ -879,15 +1047,75 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   ok(page.txt('#formSettingsCount').includes('۰ فرم')&&page.txt('#formSettingsList').includes('هنوز فرمی نیست'),
     'تنظیمات فرم بدون فرم سروری در وضعیت خالی می‌ماند');
   page.click('[data-go="fTeam"]');
-  ok(page.txt('#teamBox').includes('از API این صفحه پشتیبانی نمی‌شود')
+  ok(page.txt('#teamBox').includes('هیچ حساب یا نقش نمونه‌ای نشان نمی‌دهد')&&!!page.doc.querySelector('#teamBox a[href="admin.html#users"]')
     &&!page.txt('#teamBox').includes('خانم رستگار'),'فهرست کارشناسان ساختگی در تجربهٔ تولیدی نمایش داده نمی‌شود');
   page.click('[data-go="fKartabl"]');
-  ok(page.txt('#kartabl').includes('به API متصل نیست')&&!page.txt('#kartabl').includes('سارا محمدی'),
-    'کارتابل فاقد API توضیح روشن دارد و رسید نمونه نشان نمی‌دهد');
+  ok(page.txt('#kartabl').includes('کارتابل مشترک پنل مدیران')&&!!page.doc.querySelector('#kartabl a[href="admin.html#inbox"]')
+    &&!page.txt('#kartabl').includes('سارا محمدی'),
+    'کارتابل فاقد API به کارتابل مشترک پنل پیوند می‌دهد و رسید نمونه نشان نمی‌دهد');
   page.click('[data-go="fAttend"]');
-  ok(page.txt('#attBody').includes('هیچ داده یا صندلی نمونه‌ای نمایش داده نمی‌شود')
-    &&page.txt('#attBody').includes('تا اتصال API حضور'),'حضور و غیاب بدون API به‌جای صندلی و حضور نمونه توضیح می‌دهد');
+  ok(page.txt('#attBody').includes('هیچ دادهٔ نمونه‌ای نشان نمی‌دهد')
+    &&!!page.doc.querySelector('#attBody a[href="admin.html#attendance"]'),'حضور و غیاب بدون API به‌جای صندلی و حضور نمونه توضیح می‌دهد');
   page.dom.window.close();
+}
+
+/* ── ۲پ) کارت‌های حالت واقعی (تیم/کارتابل/حضور): عبارت‌های ثابت، پیوند واقعی به پنل مدیران، بدون دکمهٔ بی‌پشتوانه ── */
+{
+  console.log('\n── کارت‌های حالت واقعی مرکز فرم‌ها ──');
+  const record={id:'cards-form-1',name:'فرم کارت‌ها',model:'registration',need:'reg',slug:'cards/one',ev:'',fields:[{id:'q1',t:'text',l:'پرسش'}],
+    settings:{},status:'published',version:1,response_count:0,created_at:'2026-01-01T00:00:00+00:00',updated_at:'2026-10-01T00:00:00+00:00'};
+  const PIN_TEAM='هیچ حساب یا نقش نمونه‌ای نشان نمی‌دهد', PIN_KARTABL='کارتابل مشترک پنل مدیران', PIN_ATT='هیچ دادهٔ نمونه‌ای نشان نمی‌دهد';
+  const liveControls=(page,sel)=>[...page.doc.querySelectorAll(sel+' button, '+sel+' input, '+sel+' select')].filter(el=>!el.hidden&&!el.disabled&&!el.closest('[hidden]')&&!el.closest('.topbar'));
+  /* الف) مالک: پیوند واقعی «حساب‌های ورود و نقش‌ها» (#staff) + «فهرست کاربران و پرونده‌ها» (#users)؛ برچسب گمراه‌کنندهٔ قدیمی نیست */
+  {
+    const api=makeFormsApiMock({id:'cards-form-1',initialRecord:record,role:'owner'});
+    const page=await load('builder.html',makeStore(),'',api.fetch,{fixtureMode:false});
+    await wait(80);
+    page.click('[data-go="fTeam"]');
+    const team=page.txt('#teamBox');
+    ok(page.errors.length===0&&team.includes(PIN_TEAM)&&team.includes('در فرم‌ساز فعال نیست')
+      &&!!page.doc.querySelector('#teamBox a[href="admin.html#users"]')&&page.doc.querySelector('#teamBox a[href="admin.html#users"]').textContent.includes('فهرست کاربران و پرونده‌ها')
+      &&!!page.doc.querySelector('#teamBox a[href="admin.html#staff"]')&&page.doc.querySelector('#teamBox a[href="admin.html#staff"]').textContent.includes('حساب‌های ورود و نقش‌ها')
+      &&!team.includes('مدیریت مدیران و مجوزها')&&!team.includes('خانم رستگار')
+      &&page.doc.getElementById('invite').hidden===true&&liveControls(page,'#teamBox').length===0
+      &&page.txt('#fTeam .head').includes('تیم و دسترسی‌ها')&&page.txt('[data-team-nav-label]').includes('تیم و دسترسی‌ها'),
+      'کارت تیم (مالک): عبارت ثابت حفظ شد، #users با برچسب دقیق «فهرست کاربران و پرونده‌ها» و #staff برای نقش‌ها؛ هیچ دکمهٔ عملیاتی بی‌پشتوانه نیست');
+    page.click('[data-go="fKartabl"]');
+    const kartabl=page.txt('#kartabl');
+    ok(kartabl.includes(PIN_KARTABL)&&kartabl.includes('در فرم‌ساز فعال نیست')&&!!page.doc.querySelector('#kartabl a[href="admin.html#inbox"]')
+      &&page.doc.getElementById('kFilters').hidden===true&&page.doc.getElementById('kTop').hidden===true
+      &&!kartabl.includes('سارا محمدی')&&liveControls(page,'#kartabl').length===0,
+      'کارت کارتابل: عبارت ثابت و پیوند #inbox حفظ شد؛ فیلتر بخش‌ها و شمارندهٔ نمونه پنهان‌اند');
+    page.click('[data-go="fAttend"]');
+    const att=page.txt('#attBody');
+    ok(att.includes(PIN_ATT)&&att.includes('در فرم‌ساز فعال نیست')&&!!page.doc.querySelector('#attBody a[href="admin.html#attendance"]')
+      &&!att.includes('مجوز «حضور و غیاب» ندارد')
+      &&page.txt('#attSub').includes('در فرم‌ساز انجام نمی‌شود')
+      &&[...page.doc.querySelectorAll('#fAttend #attCode,#fAttend #attGo,#fAttend [data-attmode],#fAttend #attQ')].every(el=>el.disabled),
+      'کارت حضور (مالک): عبارت ثابت و پیوند #attendance حفظ شد؛ کنترل‌های ثبت حضور نمونه غیرفعال‌اند');
+    /* ظرف جدول نمونه در حالت واقعی لایهٔ تودرتو نمی‌سازد: سرستون‌ها و جست‌وجو پنهان، کارت میزبان بی‌چهارچوب؛ #attBody و کارت حالت می‌مانند */
+    const attHost=page.doc.getElementById('attBody').closest('.card.paper');
+    ok(!!attHost&&attHost.classList.contains('state-host')&&attHost.querySelector('thead').hidden===true&&attHost.querySelector(':scope > .row').hidden===true
+      &&!!page.doc.querySelector('#attBody .state p')&&!page.doc.querySelector('#attBody .state[style]'),
+      'کارت حضور (مالک): ظرف جدول نمونه به میزبان ساده تبدیل شده و کارت حالت بدون استایل درون‌خطی داخل #attBody است');
+    page.dom.window.close();
+  }
+  /* ب) مدیر بدون مجوز حضور: پیوند #staff نشان داده نمی‌شود (سرور هم آن را رد می‌کند)، یادداشت «فقط با مالک»، یادداشت نبود مجوز حضور */
+  {
+    const api=makeFormsApiMock({id:'cards-form-1',initialRecord:record,role:'manager',permissions:['fm_create','fm_responses']});
+    const page=await load('builder.html',makeStore(),'',api.fetch,{fixtureMode:false});
+    await wait(80);
+    page.click('[data-go="fTeam"]');
+    const team=page.txt('#teamBox');
+    ok(page.errors.length===0&&team.includes(PIN_TEAM)&&!!page.doc.querySelector('#teamBox a[href="admin.html#users"]')
+      &&!page.doc.querySelector('#teamBox a[href="admin.html#staff"]')&&team.includes('فقط با مالک'),
+      'کارت تیم (مدیر): فقط پیوند فهرست کاربران؛ تعیین نقش «فقط با مالک» اعلام می‌شود');
+    page.click('[data-go="fAttend"]');
+    ok(page.txt('#attBody').includes(PIN_ATT)&&page.txt('#attBody').includes('مجوز «حضور و غیاب» ندارد')
+      &&!!page.doc.querySelector('#attBody a[href="admin.html#attendance"]'),
+      'کارت حضور (مدیر بدون مجوز): پیوند می‌ماند و نبود مجوز صادقانه گفته می‌شود');
+    page.dom.window.close();
+  }
 }
 
 /* ── ۲ت) پاسخ‌های سروری و جواب‌های همراه در گزارش مدیر ── */
@@ -924,7 +1152,7 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
       &&page.txt('#answersBox').includes('مریم همراه')
       &&page.txt('#answersBox').includes('افزوده‌شده توسط لیلا پاسخ‌دهنده')
       &&page.txt('#answersBox').includes('ثبت‌شده در سرور')
-      &&page.txt('#formCards').includes('پاسخ سروری'),
+      &&/[۰-۹]+ پاسخ/.test(page.txt('#formCards')),
     'گزارش پاسخ‌ها از endpoint مجاز سروری پر شد؛ همراه ردیف مستقل و یادداشت «افزوده‌شده توسط» دارد');
   page.click('#answersBox tr[data-person="server:response-companion-001"]');
   ok(page.txt('#usSub').includes('شناسهٔ پاسخ سروری')
@@ -1013,6 +1241,21 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   const draft=await load('form.html',draftStore,'?fid=f-route-draft');
   ok(draft.visible('.screen').join()==='uUnavailable'&&draft.txt('#unavailableTitle')==='فرم هنوز منتشر نشده',
     'فرم پیش‌نویس به‌جای نمایش فرم قابل‌ارسال، پیام وضعیت می‌دهد');
+  /* فاز ۷: سرور فرم منتشرشده را به‌خاطر بستهٔ بودن پنجرهٔ ثبت‌نام رویداد با registration-closed:<event> برمی‌گرداند */
+  const gatedHtml=fs.readFileSync(DIR+'form.html','utf8')
+    .replace('<!--nora-public-form-->','null').replace('<!--nora-public-draft-->','null')
+    .replace('<!--nora-public-error-->',safeScriptJSON('registration-closed:ev-gated-1'));
+  const gated=await loadHtml('form.html',gatedHtml,makeStore(),'?fid=f-gated');
+  ok(gated.errors.length===0&&gated.visible('.screen').join()==='uUnavailable'
+      &&gated.txt('#unavailableTitle')==='ثبت‌نام این رویداد باز نیست'&&gated.txt('#unavailableText').includes('ساعت و وضعیت سرور')
+      &&gated.doc.querySelector('#unavailableBack')?.getAttribute('href')==='event.html?id=ev-gated-1'
+      &&gated.doc.querySelector('#botbar').style.display==='none',
+    'بستهٔ بودن ثبت‌نام رویداد (دروازهٔ سرور) با پیام مشخص و بازگشت به صفحهٔ همان رویداد نمایش داده می‌شود؛ فرم باز نمی‌شود');
+  const injected=fs.readFileSync(DIR+'form.html','utf8')
+    .replace('<!--nora-public-form-->','null').replace('<!--nora-public-draft-->','null')
+    .replace('<!--nora-public-error-->',safeScriptJSON('registration-closed:javascript:alert(1)'));
+  const injectedPage=await loadHtml('form.html',injected,makeStore(),'?fid=f-gated');
+  ok(injectedPage.doc.querySelector('#unavailableBack')?.getAttribute('href')==='home.html','شناسهٔ رویداد نامعتبر در خطای مسیر، پیوند بازگشت را تغییر نمی‌دهد');
   const preview=await load('form.html',draftStore,'?fid=f-route-draft&preview=1');
   ok(!!preview.window.__NORA_FORM_PREVIEW&&preview.visible('.screen').join()==='u1',
     'پیش‌نمایش صریح سازنده می‌تواند پیش‌نویس را بدون انتشار باز کند');
@@ -1420,6 +1663,31 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   ok(p.network.length===0,'امتیاز ستاره‌ای هیچ پیام یا داده‌ای بیرون نمی‌فرستد');
 }
 
+/* ── ۴ب۰۱ب) ستاره با بازهٔ سفارشی ۲ تا ۴: یک الگوریتم برای کلیک، پاک‌کردن و بازیابی؛ مقدار خارج از بازه خالی می‌شود ── */
+{
+  console.log('\n── ستارهٔ ۲ تا ۴ ──');
+  const fields=[{id:'rating-custom',t:'rating',l:'ستارهٔ ۲ تا ۴',req:true,min:2,max:4},{id:'rating-single',t:'rating',l:'تک‌ستاره',req:false,min:3,max:3}],
+    store=makeStore({'nora-forms':JSON.stringify([{id:'f-rating-range',name:'ستارهٔ سفارشی',model:'survey',need:'survey',display:'all',fields,fin:[]}])}),
+    p=await load('form.html',store,'?fid=f-rating-range&kind=survey'),group=p.doc.querySelector('[data-qrate="0"]'),stars=[...group.querySelectorAll('[role="radio"]')],
+    lit=()=>stars.filter(s=>s.classList.contains('on')).map(s=>s.dataset.qv).join(','),checked=()=>stars.filter(s=>s.getAttribute('aria-checked')==='true').map(s=>s.dataset.qv).join(',');
+  ok(p.errors.length===0&&stars.map(s=>s.dataset.qv).join(',')==='2,3,4'&&group.dataset.min==='2'&&group.dataset.max==='4'&&stars[0].tabIndex===0,
+    'فقط ستاره‌های ۲ تا ۴ ساخته می‌شوند و فوکوس اولیه روی اولین ستارهٔ بازه است');
+  p.click('[data-qrate="0"] [data-qv="3"]');
+  ok(group.dataset.val==='3'&&checked()==='3'&&lit()==='2,3'&&p.doc.querySelector('#qa0').value==='۳'&&group.querySelector('[data-qrate-label]').textContent==='۳ ستاره',
+    'انتخاب ۳ در بازهٔ ۲ تا ۴: دو ستاره روشن (۲ و ۳)، فقط ۳ aria-checked، مقدار ۳ و برچسب «۳ ستاره»');
+  p.click('[data-qrate="0"] [data-qv="2"]');
+  ok(group.dataset.val==='2'&&checked()==='2'&&lit()==='2','برگشت به ۲: فقط یک ستاره روشن می‌ماند (نه بر اساس اندیس)');
+  p.window.restoreDraft({cur:'qall',inputs:{qa0:'۵'},picks:{},guests:[],fin:[],picked:[]});
+  ok(group.dataset.val===''&&checked()===''&&lit()===''&&p.doc.querySelector('#qa0').value===''&&group.querySelector('[data-qrate-clear]').hidden
+      &&p.window.__NORA_FORM_PREVIEW.validate().includes('اجباری'),
+    'مقدار بازیابی‌شدهٔ ۵ خارج از بازهٔ ۲ تا ۴ خالی می‌شود؛ ستاره‌ای که وجود ندارد روشن نمی‌ماند و اجباری‌بودن دور زده نمی‌شود');
+  p.window.restoreDraft({cur:'qall',inputs:{qa0:'۴'},picks:{},guests:[],fin:[],picked:[]});
+  ok(group.dataset.val==='4'&&checked()==='4'&&lit()==='2,3,4'&&p.window.__NORA_FORM_PREVIEW.validate()===null,'مقدار ۴ داخل بازه درست بازیابی می‌شود');
+  const single=p.doc.querySelector('[data-qrate="1"]');p.click('[data-qrate="1"] [data-qv="3"]');
+  ok(single.querySelectorAll('[role="radio"]').length===1&&single.dataset.val==='3'&&single.querySelector('[role="radio"]').getAttribute('aria-checked')==='true','بازهٔ تک‌مقداری یک ستاره دارد و انتخاب می‌شود');
+  ok(p.network.length===0,'بدون ارسال شبکه در پیش‌نمایش');
+}
+
 /* ── ۴ب۰۲) بازهٔ لغزندهٔ ۰ تا ۱۰ بدون ثبت پیش‌فرض ── */
 {
   console.log('\n── بازهٔ لغزندهٔ ۰ تا ۱۰ ──');
@@ -1500,9 +1768,13 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   const builder=await load('create.html',makeStore());
   builder.window.eval("S.fields=[];addField('terms');editField(S.fields[0].id)");
   ok(builder.window.eval("S.fields.length===1&&S.fields[0].t==='terms'&&S.fields[0].req===false")
-      &&builder.doc.querySelector('#fdStruct').textContent.includes('پاسخ فقط محلی')
-      &&builder.doc.querySelector('#fdHelp').value.includes('پذیرش این پیش‌نمایش فقط محلی است'),
-    'سازنده پذیرش را اختیاری می‌سازد و صریح می‌گوید پاسخ محلی است؛ متن قوانین را مالک فرم می‌نویسد');
+      &&builder.doc.querySelector('#fdStruct').textContent.includes('در سرور ذخیره')
+      &&builder.doc.querySelector('#fdStruct').textContent.includes('امضا، احراز هویت یا سند رضایت نیست')
+      &&!builder.doc.querySelector('#fdStruct').textContent.includes('فقط محلی')
+      &&builder.doc.querySelector('#fdHelp').value.includes('«پذیرفتم» برای این مورد ثبت می‌شود')
+      &&!builder.doc.querySelector('#fdHelp').value.includes('فقط محلی')
+      &&builder.doc.querySelector('#fdHelp').placeholder.includes('متن قوانین'),
+    'سازنده پذیرش را اختیاری می‌سازد و درست می‌گوید پاسخ «پذیرفتم» سروری ذخیره می‌شود و تیک به‌معنای امضا یا احراز هویت نیست؛ متن قوانین را مالک در راهنما می‌نویسد');
   const fields=[{id:'terms-required',t:'terms',l:'شرایط شرکت',req:true,help:'متن نمونهٔ شرایط'},
       {id:'terms-optional',t:'terms',l:'دریافت خبرنامه',req:false,help:'عضویت اختیاری است.'}],
     store=makeStore({'nora-forms':JSON.stringify([{id:'f-terms',name:'فرم پذیرش',model:'datacollect',need:'other',display:'all',fields,fin:[]}])}),
@@ -1592,8 +1864,9 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
 /* ── ۴ب۰۷) فایل تصویر، محلی و با سقف روشن ── */
 {
   console.log('\n── فایل تصویر ──');
+  /* نوع‌های بارگذاری/مالی در کاتالوگ قابل‌افزودن نیستند (فرم عمومی سرور آن‌ها را ندارد)؛ این بلوک‌ها رفتار ویرایشگر و پیش‌نمایش را برای فیلدِ قدیمیِ بازیابی‌شده می‌سنجند. */
   const builder=await load('create.html',makeStore());
-  builder.window.eval("S.fields=[];addField('image');editField(S.fields[0].id)");
+  builder.window.eval("S.fields=[];S.fields.push(restoreField({t:'image'},S.uid++));renderCanvas();editField(S.fields[0].id)");
   ok(builder.window.eval("S.fields.length===1&&S.fields[0].t==='image'&&S.fields[0].count===1")
       &&builder.doc.querySelector('#fdCountBox').style.display==='block'
       &&builder.doc.querySelector('#fdAccept').value==='image/*',
@@ -1634,7 +1907,7 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
 {
   console.log('\n── فایل PDF یا JPG ──');
   const builder=await load('create.html',makeStore());
-  builder.window.eval("S.fields=[];addField('file');editField(S.fields[0].id);window.fileAcceptDefault=$('#fdAccept').value;$('#fdAccept').value='application/pdf,image/jpeg';$('#fdCount').value='2';$('#fdMaxSize').value='2';saveField()");
+  builder.window.eval("S.fields=[];S.fields.push(restoreField({t:'file'},S.uid++));renderCanvas();editField(S.fields[0].id);window.fileAcceptDefault=$('#fdAccept').value;$('#fdAccept').value='application/pdf,image/jpeg';$('#fdCount').value='2';$('#fdMaxSize').value='2';saveField()");
   ok(builder.window.eval("S.fields.length===1&&S.fields[0].t==='file'&&S.fields[0].accept==='application/pdf,image/jpeg'&&S.fields[0].count===2&&S.fields[0].maxSize===2")
       &&builder.window.fileAcceptDefault==='.pdf,.jpg,.jpeg,.png,.doc,.docx',
     'سازنده نوع، تعداد و حجم مجاز فایل را می‌پذیرد؛ پیش‌فرض عمومی سند هم روشن است');
@@ -1672,7 +1945,7 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
 {
   console.log('\n── فایل صدا ──');
   const builder=await load('create.html',makeStore());
-  builder.window.eval("S.fields=[];addField('voice');editField(S.fields[0].id)");
+  builder.window.eval("S.fields=[];S.fields.push(restoreField({t:'voice'},S.uid++));renderCanvas();editField(S.fields[0].id)");
   ok(builder.window.eval("S.fields.length===1&&S.fields[0].t==='voice'&&S.fields[0].accept==='audio/*'&&S.fields[0].count===1")
       &&builder.doc.querySelector('#fdStruct').textContent.includes('ضبط/ارسال ندارد')
       &&builder.doc.querySelector('#fdHelp').value.includes('میکروفون، ضبط و ارسال وصل نیست'),
@@ -1705,7 +1978,7 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
 {
   console.log('\n── تصویر امضا ──');
   const builder=await load('create.html',makeStore());
-  builder.window.eval("S.fields=[];addField('sign');editField(S.fields[0].id)");
+  builder.window.eval("S.fields=[];S.fields.push(restoreField({t:'sign'},S.uid++));renderCanvas();editField(S.fields[0].id)");
   ok(builder.window.eval("S.fields.length===1&&S.fields[0].t==='sign'&&S.fields[0].accept==='image/*'")
       &&builder.doc.querySelector('#fdStruct').textContent.includes('ابزار رسم/ارسال ندارد')
       &&builder.doc.querySelector('#fdHelp').value.includes('رسم، تأیید یا ارسال واقعی وصل نیست'),
@@ -1869,7 +2142,7 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
 {
   console.log('\n── فیلد قیمتِ نمایشی ──');
   const builder=await load('create.html',makeStore());
-  builder.window.eval("S.fields=[];addField('price');editField(S.fields[0].id);$('#fdMin').value='1000';$('#fdMax').value='2000';saveField()");
+  builder.window.eval("S.fields=[];S.fields.push(restoreField({t:'price'},S.uid++));renderCanvas();editField(S.fields[0].id);$('#fdMin').value='1000';$('#fdMax').value='2000';saveField()");
   ok(builder.window.eval("S.fields.length===1&&S.fields[0].t==='price'&&S.fields[0].min===1000&&S.fields[0].max===2000")
       &&builder.doc.querySelector('#fdBoundsBox').style.display==='block'
       &&builder.doc.querySelector('#fdStruct').textContent.includes('قیمت‌گذاری مالی نیست')
@@ -1902,7 +2175,7 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
 {
   console.log('\n── کد تخفیفِ متنی ──');
   const builder=await load('create.html',makeStore());
-  builder.window.eval("S.fields=[];addField('coupon');editField(S.fields[0].id)");
+  builder.window.eval("S.fields=[];S.fields.push(restoreField({t:'coupon'},S.uid++));renderCanvas();editField(S.fields[0].id)");
   ok(builder.window.eval("S.fields.length===1&&S.fields[0].t==='coupon'&&S.fields[0].help.includes('اعتبارسنجی یا تخفیف واقعی ندارد')")
       &&builder.doc.querySelector('#fdStruct').textContent.includes('اعتبارسنجی تخفیف ندارد'),
     'سازنده هشدار می‌دهد کد فقط ورودی متنی است و تخفیف واقعی اعمال نمی‌شود');
@@ -2848,7 +3121,7 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   ok(saved&&saved.fields[0].col===false&&saved.fields[0].req===true&&saved.introMediaNote==='یادداشت پوستر'&&saved.notify.on===false,
     'ویژگی‌های فیلد و رسانه حفظ شدند و اعلان بیرونی همچنان خاموش ماند');
   const builderText=fs.readFileSync(DIR+'create.html','utf8');
-  ok(builderText.includes('رسید را در همین فرم بارگذاری می‌کند')&&builderText.includes('بلیت فقط پس از تأیید دستی از backend آماده می‌شود')
+  ok(builderText.includes('رسید را در همین فرم بارگذاری می‌کند')&&builderText.includes('بلیت فقط پس از تأیید دستی در سرور آماده می‌شود')
       &&!builderText.includes('فیش در ربات بله به کارتابل مدیر می‌رود'),
     'متن واقعی فرم‌ساز می‌گوید فیش داخل فرم است و بلیت پیش از بررسی مدیر به Bale می‌آید');
   const createCall=apiMock.calls.find(call=>call.path==='/api/forms'&&call.method==='POST');
@@ -3052,9 +3325,9 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
     'نمایش در کارت رویداد با کلید مستقل خاموش می‌شود');
   ok(!p.doc.querySelector('#syncCapDates')&&!p.doc.querySelector('#syncLimitTop')
       &&!p.doc.querySelector('#syncLimitLive')&&!p.doc.querySelector('#onePerPerson')
-      &&p.txt('#s2').includes('همگام‌سازی ظرفیت و تاریخ‌ها با رویداد')
-      &&p.txt('#s2').includes('غیرفعال · ظرفیت را اینجا تنظیم کنید')
-      &&p.txt('#s2').includes('هویت پاسخ‌دهنده ناشناس است'),
+      &&p.txt('#s3').includes('همگام‌سازی خودکار ظرفیت با رویداد')
+      &&p.txt('#s3').includes('سرور هنوز ظرفیت رویداد و فرم را به هم وصل نمی‌کند')
+      &&p.txt('#s3').includes('در سرور احراز هویت نمی‌شود'),
     'همگام‌سازی رویداد و تضمین یک پاسخ حذف شده‌اند و دلیل نبود احراز هویت کنارشان مانده است');
   ok(p.txt('#review').includes('همه در یک صفحه')&&p.txt('#review').includes('چپ‌به‌راست')
       &&p.txt('#review').includes('فقط مشاهده')&&p.txt('#review').includes('غیرفعال')
@@ -3119,7 +3392,7 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
       &&p.txt('#limitModeHelp').includes('در سرور احراز نمی‌شوند'),
     'ثبت‌نام رویداد، حضور و کد دعوت از کاتالوگ انتخاب قابل‌انتشار نیستند و دلیل به‌روشنی نوشته شده');
   ok(!p.doc.querySelector('#syncLimitLive')&&!p.doc.querySelector('#onePerPerson')
-      &&p.txt('#s2').includes('یک پاسخ برای هر شخص')&&p.txt('#s2').includes('هویت پاسخ‌دهنده ناشناس است'),
+      &&p.txt('#s3').includes('یک پاسخ برای هر شخص')&&p.txt('#s3').includes('در سرور احراز هویت نمی‌شود'),
     'تضمین یک پاسخ و همگام‌سازی محدودیت به‌جای کلید ظاهری، غیرفعال با علت نشان داده می‌شوند');
   p.window.eval("S.limit='invite';S.inviteCodes=['SAMPLE-1','SAMPLE-2'].join(String.fromCharCode(10));renderReview()");
   ok(p.txt('#review').includes('محدودیت رویداد/دعوت در سرور احراز نمی‌شود')
@@ -3159,7 +3432,7 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   ok(p.window.eval('firstInvalidFormDateRange()?.target==="#pkEnd"')
       &&p.window.eval('validateBeforeSave()===false')&&p.txt('#toast').includes('پایان را کامل'),
     'تاریخ غیرممکنِ سال غیرکبیسه با دست‌کاری گزینه هم به ذخیره راه پیدا نمی‌کند');
-  ok(p.txt('#s2').includes('محلی و غیرقابل‌انتشار')&&p.txt('#s2').includes('همگام‌سازی خودکار رویداد هنوز فعال نیست')&&p.network.length===0,
+  ok(p.txt('#s3').includes('فقط پیش‌نمایش محلی')&&p.txt('#s3').includes('سرور هنوز بازهٔ زمانی فرم را اجرا نمی‌کند')&&p.network.length===0,
     'تاریخ فقط محلی است، ظرفیت/صف سروری‌اند و همگام‌سازی رویداد ادعای اجرا ندارد');
   p.click('#clearSchedule');
   ok(p.window.eval("S.start===''&&S.end===''&&firstInvalidFormDateRange()===null")
@@ -3343,6 +3616,10 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
     'بستهٔ نام‌دار با گزینه‌ها و شرط وابسته فقط در localStorage ذخیره شد');
   p.window.eval("S.fields[0].l='موقت';renderCanvas()");
   p.click('[data-quick="saved:'+pack.id+'"]');
+  ok(p.doc.querySelector('#shPackConfirm').classList.contains('on')&&p.txt('#packConfirmNote').includes('۲ پرسش فعلی')
+      &&p.window.eval("S.fields[0].l==='موقت'"),
+    'با وجود پرسش‌های فعلی، اعمال بسته اول تأیید می‌گیرد و چیزی را بی‌صدا جایگزین نمی‌کند');
+  p.click('#packReplace');
   const fields=JSON.parse(p.window.eval('JSON.stringify(S.fields)'));
   packs=JSON.parse(store.getItem('nora-form-packs')||'[]');pack=packs[0];
   ok(fields.length===2&&fields[0].l==='حوزه'&&String(fields[0].id)!=='pack-source'
@@ -3370,11 +3647,11 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   }
   ok(allSelected&&p.window.eval('cardPaymentReady()===false&&centralFormMethods().length===0'),
     'انتخاب هر مدل نیاز فرم و کاشی فعال را هماهنگ می‌کند؛ هیچ‌کدام درگاه یا کارت فعال نمی‌کند');
-  ok(p.doc.querySelector('[data-model="survey"]').textContent.includes('ناشناس‌بودن یا آمار کامل تضمین نیست')
-      &&p.doc.querySelector('[data-model="contest"]').textContent.includes('رتبه‌بندی/قرعه‌کشی فعال نیست')
-      &&p.doc.querySelector('[data-model="exam"]').textContent.includes('زمان‌سنجی و نمره‌دهی فعال نیست')
-      &&p.doc.querySelector('[data-model="attendance"]').textContent.includes('حضور واقعی تأیید نمی‌شود')
-      &&p.doc.querySelector('[data-model="election"]').textContent.includes('رأی یکتا/محرمانه تضمین نمی‌شود'),
+  ok(p.doc.querySelector('[data-model="survey"]').textContent.includes('ناشناس‌بودن و آمار کامل تضمین نمی‌شود')
+      &&p.doc.querySelector('[data-model="contest"]').textContent.includes('رتبه‌بندی و قرعه‌کشی هنوز ساخته نشده است')
+      &&p.doc.querySelector('[data-model="exam"]').textContent.includes('زمان‌سنجی و نمره‌دهی خودکار هنوز ساخته نشده است')
+      &&p.doc.querySelector('[data-model="attendance"]').textContent.includes('حضور واقعی را تأیید نمی‌کند')
+      &&p.doc.querySelector('[data-model="election"]').textContent.includes('یکتا و محرمانه‌بودن رأی تضمین نمی‌شود'),
     'مدل‌های حساس، نبود تضمین ناشناس‌بودن، رتبه‌بندی، زمان‌سنجی، حضور و رأی یکتا را پنهان نمی‌کنند');
   ok(p.network.length===0,'جابه‌جایی مدل‌ها فقط در مرورگر انجام می‌شود');
 }
@@ -3447,24 +3724,83 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   page.set('#fdMinSelect','۲');page.set('#fdMaxSelect','۳');page.window.eval('saveField()');
   ok(page.window.eval("S.fields.find(f=>f.id==='multi-list').minSelect===2&&S.fields.find(f=>f.id==='multi-list').maxSelect===3&&firstInvalidOptionSettings()===null"),
     'محدودیت انتخاب، رقم فارسی را به عدد صحیح تبدیل و سازگاری آن با تعداد گزینه‌ها را تأیید می‌کند');
-  page.set('#fdMinSelect','۰');page.window.eval('saveField()');
-  ok(page.window.eval("firstInvalidOptionSettings()?.target==='#fdMinSelect'"),
-    'حداقل صفر به‌عنوان عدد صحیح مثبت نامعتبر شناخته می‌شود');
-  page.set('#fdMinSelect','۴');page.set('#fdMaxSelect','۳');page.window.eval('saveField()');
-  ok(page.window.eval("firstInvalidOptionSettings()?.target==='#fdMinSelect'"),
-    'حداقل بزرگ‌تر از تعداد گزینه‌های موجود رد می‌شود');
-  page.set('#fdMinSelect','۳');page.set('#fdMaxSelect','۲');page.window.eval('saveField()');
-  ok(page.window.eval("firstInvalidOptionSettings()?.target==='#fdMinSelect'"),
-    'حداقل بیشتر از حداکثر رد می‌شود');
-  page.set('#fdMinSelect','۱٫۵');page.set('#fdMaxSelect','۳');page.window.eval('saveField()');
-  ok(page.window.eval("firstInvalidOptionSettings()?.target==='#fdMinSelect'"),
-    'مقدار اعشاری حد انتخاب پذیرفته نمی‌شود');
-  page.set('#fdMinSelect','');page.set('#fdMaxSelect','۴');page.window.eval('saveField()');
-  ok(page.window.eval("firstInvalidOptionSettings()?.target==='#fdMaxSelect'"),
-    'حداکثر بیشتر از تعداد گزینه‌ها رد می‌شود');
+  /* مقدار نامعتبر همان‌جا در ویرایشگر رد می‌شود (saveField=false، پیام در #fdIssues، فوکوس روی کنترل) و در فیلد ذخیره نمی‌شود؛
+     همان قاعده (optionSettingsIssue) برای دادهٔ ذخیره‌شده/واردشده هم از firstInvalidOptionSettings گزارش می‌شود */
+  const rejectedAt=(target)=>page.window.eval('saveField()')===false&&page.doc.querySelector('#fdIssues').hidden===false
+    &&page.doc.activeElement===page.doc.querySelector(target)
+    &&page.window.eval("S.fields.find(f=>f.id==='multi-list').minSelect===2&&S.fields.find(f=>f.id==='multi-list').maxSelect===3&&firstInvalidOptionSettings()===null");
+  page.set('#fdMinSelect','۰');
+  ok(rejectedAt('#fdMinSelect'),'حداقل صفر به‌عنوان عدد صحیح مثبت نامعتبر شناخته می‌شود (در ویرایشگر، بدون تغییر فیلد)');
+  page.set('#fdMinSelect','۴');page.set('#fdMaxSelect','۳');
+  ok(rejectedAt('#fdMinSelect'),'حداقل بزرگ‌تر از تعداد گزینه‌های موجود رد می‌شود');
+  page.set('#fdMinSelect','۳');page.set('#fdMaxSelect','۲');
+  ok(rejectedAt('#fdMinSelect')&&page.txt('#fdIssues').includes('حداقل انتخاب نمی‌تواند از حداکثر بیشتر باشد'),'حداقل بیشتر از حداکثر رد می‌شود');
+  page.set('#fdMinSelect','۱٫۵');page.set('#fdMaxSelect','۳');
+  ok(rejectedAt('#fdMinSelect'),'مقدار اعشاری حد انتخاب پذیرفته نمی‌شود');
+  page.set('#fdMinSelect','');page.set('#fdMaxSelect','۴');
+  ok(rejectedAt('#fdMaxSelect'),'حداکثر بیشتر از تعداد گزینه‌ها رد می‌شود');
+  ok(page.window.eval("(()=>{const f=S.fields.find(f=>f.id==='multi-list');const keep=[f.minSelect,f.maxSelect];f.minSelect=4;f.maxSelect=3;const r=firstInvalidOptionSettings();[f.minSelect,f.maxSelect]=keep;return r&&r.target==='#fdMinSelect'&&r.field===f})()"),
+    'دادهٔ نامعتبرِ ذخیره‌شده (بدون ویرایشگر) همچنان در بررسی کل فرم با همان هدف گزارش می‌شود');
   page.set('#fdMinSelect','');page.set('#fdMaxSelect','۳');page.window.eval('saveField()');
   ok(page.window.eval("S.fields.find(f=>f.id==='multi-list').minSelect===null&&S.fields.find(f=>f.id==='multi-list').maxSelect===3&&firstInvalidOptionSettings()===null"),
     'خالی‌گذاشتن حداقل مجاز است و حداکثر مستقل به‌درستی ذخیره می‌شود');
+}
+
+/* ── ۶ت) مرکز فرم‌ها در تولید: دریافت خودکار فهرست با نشست معتبر؛ مهمان بدون درخواست محافظت‌شده ── */
+{
+  console.log('\n── مرکز فرم‌ها: بارگیری خودکار ──');
+  const formsCalls=api=>api.calls.filter(call=>call.path==='/api/forms'&&call.method==='GET').length;
+  /* الف) نشست معتبر مالک: دقیقاً یک بار health → auth/me → /api/forms؛ کارت‌ها بدون کلیک دیده می‌شوند */
+  const record={id:'auto-form-1',name:'فرم خودکار',model:'registration',need:'reg',slug:'auto/one',ev:'',fields:[{id:'q1',t:'text',l:'پرسش'}],
+    settings:{display:'one'},status:'published',version:2,response_count:3,created_at:'2026-01-01T00:00:00+00:00',updated_at:'2026-10-01T00:00:00+00:00'};
+  const api=makeFormsApiMock({id:'auto-form-1',initialRecord:record});
+  const page=await load('builder.html',makeStore(),'',api.fetch,{fixtureMode:false});
+  await wait(80);
+  ok(page.errors.length===0&&page.doc.querySelector('#formCards [data-form="auto-form-1"]')
+      &&page.doc.querySelector('#serverFormsMessage').dataset.state==='loaded'
+      &&page.txt('#serverFormsMessageText').includes('۱ فرم از API دریافت شد')
+      &&formsCalls(api)===1&&api.calls.filter(call=>call.path==='/api/auth/me').length===1
+      &&page.doc.querySelector('#serverFormsRetry').hidden===true&&page.doc.querySelector('#syncServerForms').disabled===false,
+    'با نشست معتبر، فهرست بدون کلیک و فقط با یک درخواست /api/forms از سرور آمد');
+  const requestsBefore=page.network.length;
+  page.window.dispatchEvent(new page.window.Event('pageshow'));await wait(40);
+  ok(page.network.length===requestsBefore&&formsCalls(api)===1,'رندر دوباره یا بازگشت به صفحه درخواست تکراری نمی‌فرستد');
+  /* ب) تازه‌سازی دستی: همان دکمه دوباره می‌گیرد؛ دو کلیک پشت‌سرهم فقط یک درخواست */
+  page.click('#syncServerForms');page.click('#syncServerForms');await wait(80);
+  ok(formsCalls(api)===2&&page.doc.querySelector('#serverFormsMessage').dataset.state==='loaded',
+    'تازه‌سازی دستی یک درخواست تازه می‌فرستد و کلیک تکراری در حین دریافت، درخواست دوم نمی‌سازد');
+  /* پ) بدون نشست: مهمان فقط بررسی نشست می‌بیند؛ /api/forms هرگز صدا زده نمی‌شود؛ پیوند ورود دیده می‌شود */
+  const guestApi=makeFormsApiMock({authenticated:false,id:'auto-form-1',initialRecord:record});
+  const guest=await load('builder.html',makeStore(),'',guestApi.fetch,{fixtureMode:false});
+  await wait(80);
+  ok(guest.errors.length===0&&formsCalls(guestApi)===0&&guest.doc.querySelector('#serverFormsMessage').dataset.state==='unauthenticated'
+      &&guest.doc.querySelector('#serverFormsLogin').style.display!=='none'&&!guest.doc.querySelector('#formCards [data-form]')
+      &&guest.txt('#formCards').includes('وارد شوید'),
+    'مهمان درخواست محافظت‌شدهٔ فهرست نمی‌گیرد و پیوند ورود می‌بیند');
+  /* ت) فهرست واقعاً خالی: حالت خالی فقط پس از پاسخ موفق */
+  const emptyApi=makeFormsApiMock({id:'none'});
+  const empty=await load('builder.html',makeStore(),'',emptyApi.fetch,{fixtureMode:false});
+  await wait(80);
+  ok(formsCalls(emptyApi)===1&&empty.doc.querySelector('#serverFormsMessage').dataset.state==='loaded'
+      &&empty.txt('#formCards').includes('هنوز فرمی در فهرست سرور نیست')&&!empty.doc.querySelector('[data-forms-loading]'),
+    'فهرست خالی سرور پس از پاسخ موفق، حالت خالی درست را نشان می‌دهد');
+  /* ث) شکست API و تلاش دوباره: اولین /api/forms خطای ۵۰۰ می‌دهد؛ «تلاش دوباره» فهرست را می‌آورد */
+  let failOnce=true;
+  const flakyApi=makeFormsApiMock({id:'auto-form-1',initialRecord:record});
+  const flakyFetch=async(path,init={})=>{
+    if(path==='/api/forms'&&String(init.method||'GET').toUpperCase()==='GET'&&failOnce){failOnce=false;flakyApi.calls.push({path,method:'GET'});
+      return {ok:false,status:500,json:async()=>({detail:'server_error'})}}
+    return flakyApi.fetch(path,init);
+  };
+  const flaky=await load('builder.html',makeStore(),'',flakyFetch,{fixtureMode:false});
+  await wait(80);
+  ok(flaky.doc.querySelector('#serverFormsMessage').dataset.state==='error'&&flaky.doc.querySelector('#serverFormsRetry').hidden===false
+      &&!flaky.doc.querySelector('#formCards [data-form]')&&flaky.txt('#formCards').includes('تلاش دوباره'),
+    'شکست API پیام روشن و دکمهٔ تلاش دوباره می‌دهد و حالت خالی را جعل نمی‌کند');
+  flaky.click('#serverFormsRetry');await wait(80);
+  ok(flaky.doc.querySelector('#serverFormsMessage').dataset.state==='loaded'&&flaky.doc.querySelector('#formCards [data-form="auto-form-1"]')
+      &&flaky.doc.querySelector('#serverFormsRetry').hidden===true&&formsCalls(flakyApi)===2,
+    'تلاش دوباره فهرست را از سرور می‌گیرد و دکمهٔ تلاش پنهان می‌شود');
 }
 
 /* ── ۷) پیش‌نویس‌های سرور در فهرست مرکزی فرم‌ها ── */
@@ -3474,7 +3810,7 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   await api.fetch('/api/forms',{method:'POST',body:JSON.stringify({name:'فرم سروری آزمایشی',model:'registration',need:'reg',slug:'test/form',ev:'ev-server',fields:[{id:'q1',t:'text',l:'پرسش'}],settings:{kind:'ثبت‌نام',eventVisible:true}})});
   const store=makeStore(),page=await load('builder.html',store,'',api.fetch);
   ok(page.errors.length===0,'فهرست فرم‌ها بی‌خطا بار شد');
-  ok(page.network.length===0,'فهرست تا اقدام مالک هیچ API سروری را صدا نزد');
+  ok(page.network.length===0,'در حالت fixture آزمون، فهرست تا اقدام مالک هیچ API سروری را صدا نزد (در تولید خودکار است؛ بخش ۶ت)');
   page.click('#syncServerForms');await wait(100);
   const cached=JSON.parse(store.getItem('nora-forms')||'[]').find(row=>row.id==='server-builder-1');
   ok(cached&&cached.serverDraft===true&&cached.status==='draft'&&cached.on===0,
@@ -3488,13 +3824,24 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
       &&page.all('[data-copy="#pLink"][disabled]').length===2,
     'پیش‌نویس پیوند عمومی نشان نمی‌دهد و کنترل‌های کپی پیوند غیرفعال‌اند');
   ok(panelText.includes('پیش‌نویس سرور')&&!panelText.includes('منتشرشده')
-      &&panelText.includes('اعتبارسنجی نهایی با backend')
-      &&panelText.includes('شمارش endpoint'),
+      &&panelText.includes('اعتبار نهایی با سرور')
+      &&panelText.includes('شمارش سرور'),
     'پنل وضعیت واقعی پیش‌نویس و شمار API را نشان می‌دهد و قابلیت تخصصیِ اجرا‌نشده را ادعا نمی‌کند');
   ok(page.doc.querySelector('#editFormLink')?.getAttribute('href')==='create.html?fid=server-builder-1'
       &&page.doc.querySelector('#previewFormLink')?.getAttribute('href')==='form.html?fid=server-builder-1&kind=reg&preview=1'
       &&page.txt('#openSettings').includes('ویرایش و ذخیرهٔ پیش‌نویس'),
     'ویرایش پیش‌نویس به فرم‌ساز برمی‌گردد و پیش‌نمایش به همان فرم محلی وصل است');
+  /* «ساخت از روی این فرم» از منوی «بیشتر» ردیف: برگهٔ تأیید، نام پیش‌فرض، فراخوانی سروری با کلید یکتا */
+  page.click('#formCards [data-duplicate-form="server-builder-1"]');
+  ok(page.doc.querySelector('#shDuplicate')?.classList.contains('on')&&page.doc.querySelector('#dupName')?.value.includes('فرم سروری آزمایشی'),
+    'گزینهٔ «ساخت نسخهٔ تازه» برگهٔ تأیید را با نام پیشنهادی باز می‌کند');
+  page.doc.querySelector('#dupName').value='ثبت‌نام دورهٔ بعد';
+  page.click('#dupGo');await wait(120);
+  const dupCall=api.calls.find(call=>call.path==='/api/forms/server-builder-1/duplicate'&&call.method==='POST');
+  ok(!!dupCall&&/^[A-Za-z0-9_-]{16,80}$/.test(dupCall.headers['Idempotency-Key']||'')&&JSON.parse(dupCall.body).name==='ثبت‌نام دورهٔ بعد'
+      &&!page.doc.querySelector('#shDuplicate').classList.contains('on')&&page.txt('#toast').includes('نسخهٔ تازه ساخته شد'),
+    'نسخهٔ تازه با POST /duplicate و Idempotency-Key ساخته می‌شود و برگه بسته می‌شود (مبدأ و پاسخ‌ها دست نمی‌خورند)');
+  page.dom.window.close();
   const legacy=await load('builder.html',makeStore({'nora-forms':JSON.stringify([
     {id:'legacy-draft',name:'پیش‌نویس قدیمی',status:'draft',slug:'/old/public/path',fields:[{id:'q',t:'text',l:'پرسش'}]}
   ])}));
@@ -3582,9 +3929,9 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   ok(p.window.eval('S.model')==='survey'&&p.window.eval('S.need')==='survey'&&p.all('.tile.on')[0]?.dataset.model==='survey'
       &&p.doc.querySelector('#ticketingPanel').hidden,
     'انتخاب مدل نظرسنجی، نوع فرم و کاشی را هماهنگ می‌کند و تنظیم بلیت را پنهان می‌سازد');
-  ok(p.doc.querySelector('[data-model="survey"]').textContent.includes('ناشناس‌بودن یا آمار کامل تضمین نیست')&&
-     p.doc.querySelector('[data-model="registration"]').textContent.includes('پرداخت فقط با مسیر امن backend'),
-    'توضیح مدل‌ها ناشناس‌بودن را تضمین نمی‌کند و پرداخت را به مسیر امن backend مشروط می‌کند');
+  ok(p.doc.querySelector('[data-model="survey"]').textContent.includes('ناشناس‌بودن و آمار کامل تضمین نمی‌شود')&&
+     p.doc.querySelector('[data-model="registration"]').textContent.includes('پرداخت فقط از مسیر امن سرور'),
+    'توضیح مدل‌ها ناشناس‌بودن را تضمین نمی‌کند و پرداخت را به مسیر امن سرور مشروط می‌کند');
   p.click('#publish'); await wait(80);
   let rows=JSON.parse(store.getItem('nora-forms')||'[]'), survey=rows.find(x=>x.model==='survey');
   ok(survey&&survey.need==='survey'&&survey.scoring.enabled===true&&!apiMock.record.settings.ticketing,
@@ -3913,12 +4260,12 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
 /* ── ۱۰) صفحه‌های عمومی و مدیریتی: نمایه‌پذیری و فقط API هم‌مبدأ ── */
 {
   console.log('\n── metadata، پنل و انتشار عمومی ──');
-  const files=['account.html','events.html','event.html','person.html','form.html','login.html','support.html','post.html','admin.html'];
+  const files=['account.html','events.html','event.html','person.html','partner.html','form.html','login.html','support.html','post.html','admin.html'];
   const publicFiles=new Set(['events.html']);
-  const serverSeoFiles=new Set(['event.html','person.html']);
+  const serverSeoFiles=new Set(['event.html','person.html','partner.html']);
   let checked=0;
   for(const file of files){
-    const p=await load(file,makeStore(),file==='event.html'?'?id=e1':file==='person.html'?'?id=p1':'');
+    const p=await load(file,makeStore(),file==='event.html'?'?id=e1':file==='person.html'?'?id=p1':file==='partner.html'?'?id=o1':'');
     const robots=p.doc.querySelector('meta[name="robots"]')?.content||'';
     const publicPage=publicFiles.has(file),serverSeoPage=serverSeoFiles.has(file);
     const correctRobots=publicPage?/index/.test(robots)&&!/noindex/.test(robots):/noindex/.test(robots);
@@ -4001,7 +4348,7 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   builder.click('[data-go="s3"]');await wait(80);
   ok(builder.doc.querySelector('#formPaymentMethodsCard').hidden===false
       &&builder.doc.querySelector('#enableBaleWallet').getAttribute('aria-disabled')==='true'
-      &&builder.txt('#createPaymentStatus').includes('backend امن آماده نیست'),
+      &&builder.txt('#createPaymentStatus').includes('سرور امن آماده نیست'),
     'سازنده پیش از پیکربندی امن backend، کیف پول بله را غیرفعال نگه می‌دارد');
   builder.click('#enableBaleWallet');builder.click('#receiptReviewRequired');
   ok(builder.window.eval("S.enabledPaymentMethods.length===1&&S.enabledPaymentMethods[0]==='card_transfer'&&S.receiptReviewRequired===true")

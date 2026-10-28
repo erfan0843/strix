@@ -19,6 +19,7 @@ from backend.app import _form_payment_registered_webhook_url, _form_payment_webh
 from backend.config import Settings  # noqa: E402
 from backend.models import FormPaymentRecord, FormPaymentTransactionRecord, FormResponseRecord  # noqa: E402
 from backend.security import hash_password  # noqa: E402
+from site_content_seed import seed_site_events  # noqa: E402
 
 
 PAYMENT_BOT_TOKEN = "1234567890:" + "A" * 32
@@ -55,6 +56,7 @@ def payment_app(monkeypatch):
         poolclass=StaticPool,
     )
     backend_app.Base.metadata.create_all(engine)
+    seed_site_events(engine, ["event-wallet-01"])
     settings = valid_settings()
     state = {
         "webhook_url": "",
@@ -449,3 +451,99 @@ def test_pending_provider_transaction_never_confirms_payment(payment_app):
     with owner.app.state.session_factory() as db:
         assert db.scalar(select(func.count(FormResponseRecord.id))) == 0
         assert db.scalar(select(func.count(FormPaymentTransactionRecord.id))) == 0
+
+
+def _install_web_account_session(client: TestClient, account_id: str) -> None:
+    import uuid
+    from datetime import datetime, timedelta, timezone
+
+    from backend.models import AccountRecord, AccountSessionRecord, PlatformIdentityRecord
+    from backend.security import token_digest
+
+    raw_session = "test-web-session-" + account_id
+    raw_csrf = "test-web-csrf-" + account_id
+    with client.app.state.session_factory() as db:
+        db.add(AccountRecord(id=account_id))
+        db.add(PlatformIdentityRecord(
+            id=str(uuid.uuid4()), account_id=account_id, provider="phone",
+            provider_user_id=token_digest("verified-phone:" + account_id),
+        ))
+        db.add(AccountSessionRecord(
+            id=str(uuid.uuid4()), account_id=account_id, auth_provider="phone",
+            token_hash=token_digest(raw_session), csrf_hash=token_digest(raw_csrf),
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        ))
+        db.commit()
+    settings = client.app.state.settings
+    client.cookies.set(settings.account_cookie_name, raw_session, path="/")
+    client.cookies.set(settings.account_csrf_cookie_name, raw_csrf, path="/")
+
+
+def test_cancelled_and_expired_wallet_intents_never_register_and_account_history_stays_clean(payment_app):
+    """بازگشت از پرداخت لغوشده/منقضی: نه ثبت‌نامی ساخته می‌شود، نه در «حساب من» چیزی می‌نشیند؛
+    تلاش دوباره صورتحساب تازه می‌سازد و پرداخت دیرهنگام روی صورتحساب منقضی قرنطینه می‌شود."""
+    from datetime import datetime, timedelta, timezone
+
+    owner, settings, state = payment_app
+    form_id, visitor = create_published_wallet_form(owner)
+    _install_web_account_session(visitor, "web-account-wallet-01")
+    # the signed-in member re-opens the draft so the server binds it to the account
+    assert visitor.get(f"/api/public/forms/{form_id}/draft").status_code == 200
+
+    first = create_payment_intent(visitor, form_id)
+    assert first.status_code == 201, first.text
+    first_id = first.json()["payment_id"]
+    assert first.json()["status"] == "pending" and first.json()["invoice_url"]
+
+    # another visitor (own draft cookie) can neither read nor cancel this intent
+    stranger = TestClient(owner.app)
+    assert stranger.get(f"/api/public/forms/{form_id}/draft").status_code == 200
+    assert stranger.get(f"/api/public/forms/{form_id}/payment-intents/{first_id}").status_code == 404
+    assert stranger.delete(f"/api/public/forms/{form_id}/payment-intents/{first_id}", headers=ORIGIN).status_code == 404
+
+    # user cancels (returns from Bale without paying) → cancelled, invoice hidden, draft restores the same state
+    cancelled = visitor.delete(f"/api/public/forms/{form_id}/payment-intents/{first_id}", headers=ORIGIN)
+    assert cancelled.status_code == 200, cancelled.text
+    assert cancelled.json() == {"payment_id": first_id, "status": "cancelled"}
+    view = visitor.get(f"/api/public/forms/{form_id}/payment-intents/{first_id}").json()
+    assert view["status"] == "cancelled" and view["invoice_url"] is None and view["response_status"] is None
+    assert visitor.get(f"/api/public/forms/{form_id}/draft").json()["payment_intent"]["status"] == "cancelled"
+    # cancelling again is idempotent and never resurrects the invoice
+    assert visitor.delete(f"/api/public/forms/{form_id}/payment-intents/{first_id}", headers=ORIGIN).json()["status"] == "cancelled"
+
+    # retry → a fresh pending intent (not the cancelled one)
+    second = create_payment_intent(visitor, form_id)
+    assert second.status_code == 201, second.text
+    second_id = second.json()["payment_id"]
+    assert second_id != first_id and second.json()["status"] == "pending"
+
+    # invoice expires while the user is away → status flips to expired on return (GET), invoice hidden
+    with owner.app.state.session_factory() as db:
+        payment = db.get(FormPaymentRecord, second_id)
+        payment.expires_at = datetime.now(timezone.utc) - timedelta(minutes=1)
+        invoice_payload = payment.invoice_payload
+        db.commit()
+    expired = visitor.get(f"/api/public/forms/{form_id}/payment-intents/{second_id}").json()
+    assert expired["status"] == "expired" and expired["invoice_url"] is None
+    # cancel on an expired intent does not change it
+    assert visitor.delete(f"/api/public/forms/{form_id}/payment-intents/{second_id}", headers=ORIGIN).json()["status"] == "expired"
+
+    # a late successful payment for the expired invoice is quarantined, never turned into a registration
+    state["transaction"] = {"id": "bale-tx-late", "status": "paid", "userID": 73421, "amount": 650000}
+    late = owner.post(
+        webhook_path(settings),
+        json=success_update(invoice_payload, transaction_id="bale-tx-late", charge_id="provider-charge-late"),
+    )
+    assert late.status_code == 200, late.text
+    with owner.app.state.session_factory() as db:
+        assert db.scalar(select(func.count(FormResponseRecord.id))) == 0
+        assert db.get(FormPaymentRecord, second_id).status == "paid_review"
+        assert db.get(FormPaymentRecord, first_id).status == "cancelled"
+        assert [row.status for row in db.scalars(select(FormPaymentTransactionRecord)).all()] == ["needs_review"]
+    assert visitor.get(f"/api/public/forms/{form_id}/payment-intents/{second_id}").json()["status"] == "paid_review"
+
+    # «حساب من»: no registration and no payment row for the member — nothing is guessed from unpaid intents
+    history = visitor.get("/api/account/registrations")
+    assert history.status_code == 200, history.text
+    assert history.json()["total"] == 0 and history.json()["items"] == []
+    assert owner.get(f"/api/forms/{form_id}/responses").json()["total"] == 0

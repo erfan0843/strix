@@ -7,7 +7,7 @@
 <title>تکمیل درخواست | پیش‌نمایش نورا</title>
 <link rel="preload" href="fonts/Vazirmatn-UI-FD-Regular.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="fonts/Estedad-Variable.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="stylesheet" href="glass.css?v=99">
+<link rel="stylesheet" href="glass.css?v=112">
 <style>
   body{min-height:100vh;background:radial-gradient(ellipse at 50% 0,#e5f4ec 0,transparent 48%),#f5f7f6}
   .final-page{width:min(560px,calc(100% - 28px));margin:0 auto;padding:clamp(28px,8vh,76px) 0 calc(34px + var(--safe-b,0px));direction:rtl}
@@ -68,6 +68,9 @@
     .final-link{min-height:52px;padding:8px 11px}
   }
   @media(max-width:350px){.download-copy small{font-size:9px}.final-link{font-size:12px}}
+  .final-home{margin:18px 0 0;text-align:center}
+  .final-home-link{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 18px;border:1px solid #dbe6de;border-radius:14px;background:#fff;color:#34513e;font-size:13px;font-weight:750;text-decoration:none}
+  .final-home-link:focus-visible{outline:3px solid #7fb39a;outline-offset:2px}
   @media(prefers-reduced-motion:reduce){.download-cta,.final-link{transition:none}}
 </style>
 <meta name="description" content="پیش‌نمایش صفحهٔ تکمیل درخواست نورا؛ این صفحه نتیجهٔ تراکنش یا پرداخت را تأیید نمی‌کند."/>
@@ -96,6 +99,7 @@
   </a>
 
   <p class="completion-message" id="endText" data-form-setting="endText" data-form-output="endText">از اینکه این فرم را تکمیل کردی، سپاسگزاریم.</p>
+  <p class="final-home"><a class="final-home-link" href="home.html">بازگشت به خانهٔ نورا</a></p>
   <nav class="final-links" id="endLinks" data-form-output="links" aria-label="پیوندهای پایانی" hidden>
     <h2 class="final-links-heading" id="endLinksHeading" hidden>پیوندها و شبکه‌های اجتماعی</h2>
     <div class="final-links-list" id="endLinksList"></div>

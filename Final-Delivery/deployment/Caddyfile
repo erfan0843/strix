@@ -2,10 +2,37 @@
 # دامنه‌ی زیر فقط نمونه است؛ قبل از استفاده، رکورد DNS را به IP سرور اشاره دهید.
 lifeline1.ir, www.lifeline1.ir {
     encode zstd gzip
-    reverse_proxy 127.0.0.1:8000
+    # فاز ۹.۴ — بارگذاری فایل منابع رویداد (PUT /api/admin/events/*/resources/*/file) استریمی است و سقف آن
+    # در backend با NORA_PRIVATE_STORAGE_MAX_MIB (پیش‌فرض ۵۱۲ MiB) تعیین می‌شود. Caddy به‌طور پیش‌فرض بدنه را
+    # محدود نمی‌کند؛ اگر خواستید سقف proxy بگذارید، باید ≥ همان مقدار باشد وگرنه آپلودهای معتبر با 413 رد می‌شوند:
+    # request_body {
+    #     max_size 512MB
+    # }
+    # پاسخ‌های فایل با Content-Encoding: identity می‌آیند تا encode روی ویدیو/Range اعمال نشود.
+    reverse_proxy 127.0.0.1:8000 {
+        # آپلود/پخش ویدیوی طولانی: مهلت‌های پیش‌فرض برای فایل‌های چندصد مگابایتی روی پیوند کند کافی نیست.
+        transport http {
+            response_header_timeout 5m
+        }
+        flush_interval -1
+    }
     header {
         Strict-Transport-Security "max-age=31536000"
         X-Content-Type-Options "nosniff"
         Referrer-Policy "strict-origin-when-cross-origin"
+        # فاز ۹.۲ — CSP پیشنهادی برای قاب‌های ویدیو (فعال نیست؛ در این مخزن در مرورگر واقعی آزموده نشده).
+        # پخش‌کنندهٔ محتوای ضبط‌شده فقط از دو مبدأ رسمی قاب می‌سازد (event-interaction.js → EMBED_ORIGINS):
+        #   youtube-nocookie.com و aparat.com. 'self' برای پیش‌نمایش PDF و loading-preview.html لازم است.
+        # پیش از فعال‌کردن، صفحه‌های رویداد/حساب/پنل را با ویدیوی یوتیوب و آپارات در مرورگر آزمایش کنید.
+        # Content-Security-Policy "frame-src 'self' https://www.youtube-nocookie.com https://www.aparat.com"
+        # فاز ۹.۴ — همین سیاست را خود backend می‌تواند بفرستد: NORA_CSP_FRAME_SRC (+ NORA_CSP_REPORT_ONLY=1 برای
+        # شروع). یکی از دو جا را انتخاب کنید (backend ترجیح دارد: فقط HTML، نه پاسخ‌های فایل)؛ هر دو با هم تکرار می‌شود.
+        # فاز ۹.۳ — فهرست کامل قاب‌های واقعی پروژه (اگر هر کدام در دادهٔ واقعی استفاده می‌شود باید در frame-src باشد):
+        #   event-interaction.js و admin.js: youtube-nocookie.com, aparat.com
+        #   ui.js پخش‌کنندهٔ قدیمی رسانهٔ رویداد: همان دو + player.vimeo.com + www.dailymotion.com
+        #   ui.js نمایش PDF رسانه: نشانی خود رسانه (ممکن است بیرونی باشد) · loading-preview.html: 'self'
+        # روش آزمون پیش از فعال‌سازی: در مرورگر واقعی با سرآیند Content-Security-Policy-Report-Only همین مقدار را
+        # بگذارید، صفحه‌های event.html (ویدیوی یوتیوب + آپارات + PDF)، account.html، admin.html (پیش‌نمایش منبع) را
+        # باز کنید و رویدادهای securitypolicyviolation (کنسول) را بررسی کنید؛ فقط پس از صفر شدن گزارش‌ها Enforce کنید.
     }
 }

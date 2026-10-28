@@ -1,0 +1,105 @@
+{
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "fid": "76806ca4-5b7b-48cd-a509-007b5b65a598",
+  "results": [
+    {
+      "name": "form: load",
+      "ok": true,
+      "detail": "cur=u1 title=نورا · ثبت‌نام آزمایشی پولی (کارت‌به‌کارت) hscroll=false notice=فرم آنلاین. پاسخ‌ها ذخیره می‌شوند؛ ورود لازم نیست. | net=GET /api/public/forms/<fid>/draft → 200"
+    },
+    {
+      "name": "form: empty required on qp0 blocked",
+      "ok": true,
+      "detail": "after=qp0 markers=[\"\",\"«نام کامل» اجباری است\"]"
+    },
+    {
+      "name": "form: empty required on qp1 blocked",
+      "ok": true,
+      "detail": "after=qp1 markers=[\"\",\"«موبایل» اجباری است\"]"
+    },
+    {
+      "name": "form: invalid mobile on qp1 blocked",
+      "ok": true,
+      "detail": "cur=qp1"
+    },
+    {
+      "name": "form: reached billing step",
+      "ok": true,
+      "detail": "trail=qp0:qa0/text/ | qp1:qa1/text/tel | u8:coupon/text/"
+    },
+    {
+      "name": "form: coupon row visible without exposing code",
+      "ok": true,
+      "detail": "{\"code\":\"\",\"off\":20,\"all\":false,\"server\":true}"
+    },
+    {
+      "name": "form: wrong coupon rejected by server",
+      "ok": true,
+      "detail": "note=این کد معتبر نیست. | net=POST /api/public/forms/<fid>/coupon-check → 200; PATCH /api/public/forms/<fid>/draft → 200"
+    },
+    {
+      "name": "form: valid coupon applied via server check",
+      "ok": true,
+      "detail": "tamperedPreview=100000 calc={\"per\":1000000,\"count\":1,\"sub\":1000000,\"dis\":200000,\"sum\":800000,\"discount\":20,\"couponApplied\":true} | net=POST /api/public/forms/<fid>/coupon-check → 200; PATCH /api/public/forms/<fid>/draft → 200"
+    },
+    {
+      "name": "form: payment method reachable above sticky bar at page bottom",
+      "ok": true,
+      "detail": "{\"methodBottom\":583.875,\"barTop\":722,\"overlap\":false}"
+    },
+    {
+      "name": "form: amount step shows discounted total",
+      "ok": true,
+      "detail": "cur=u9 payAmount=۸۰۰٬۰۰۰ ریال card="
+    },
+    {
+      "name": "form: receipt step reached",
+      "ok": true,
+      "detail": "cur=u11"
+    },
+    {
+      "name": "form: receipt required before continue",
+      "ok": true,
+      "detail": "msg=فیش را انتخاب کن. net="
+    },
+    {
+      "name": "form: receipt upload + response submit",
+      "ok": false,
+      "detail": "cur=u11 | net=POST /api/public/forms/<fid>/receipt → 200; GET /api/public/forms/<fid>/draft → 200; POST /api/public/forms/<fid>/ticket-link → 503 | review=ثبت پاسخ دریافت شد پیوند شروع بازبینی هنوز آماده نیست؛ دوباره وضعیت را بررسی کن. رفتن به بله برای بازبینی بررسی وضعیت | msg="
+    },
+    {
+      "name": "form: client state after submit",
+      "ok": true,
+      "detail": "{\"submitted\":true,\"server\":{\"status\":\"accepted\",\"trackingCode\":\"NORA-0048AD59C73E4D98BC60\",\"ticketType\":null,\"receiptUploaded\":true,\"paymentMethod\":\"card_transfer\",\"paymentStatus\":\"receipt_submitted\",\"ticketDeliveryUrl\":\"\",\"ticketReviewUrl\":\"\",\"ticketMessage\":\"\",\"ticketReviewLoading\":false,\"ticketReviewMessage\":\"پیوند شروع بازبینی هنوز آماده نیست؛ دوباره وضعیت را بررسی کن.\"},\"intent\":{\"status\":\"receipt_submitted\",\"amount\":800000}}"
+    },
+    {
+      "name": "form: DB record exists with server-calculated amount",
+      "ok": true,
+      "detail": "status=200 total=1 first={\"id\":\"0048ad59-c73e-4d98-bc60-10c3c4c2e629\",\"status\":\"accepted\",\"form_version\":2,\"answers\":{\"name\":\"آزمون ممیزی نورا\",\"mobile\":\"09121234567\"},\"companions\":[],\"registrant_name\":null,\"registrant_mobile\":null,\"companion_index\":null,\"added_by_response_id\":null,\"added_by_name\":null,\"form_snapshot\":{\"id\":\"76806ca4-5b7b-48cd-a509-007b5b65a598\",\"name\":\"ثبت‌نام آزمایشی پولی (کارت‌به‌کارت)\",\"model\":\"registration\",\"need\":\"reg\",\"version\":2,\"receipt_review_required\":true,\"fields\":[{\"id\":\"name\",\"type\":\"text\",\"label\":\"نام کامل\"},{\"id\":\"mobile\",\"type\":\"mobile\",\"label\":\"موبایل\"}],\"payment\":{\"amount\":800000,\"currency\":\"IRR\",\"party_count\":1,\"items\":[{\"index\":0,\"name\":\"شهریهٔ آزمایشی\",\"amount\":1000000}],\"subto"
+    },
+    {
+      "name": "form: reload keeps submitted state (no second submission offered)",
+      "ok": true,
+      "detail": "{\"cur\":\"u11\",\"submitted\":true,\"server\":{\"status\":\"accepted\",\"receipt\":true,\"pay\":\"receipt_submitted\"},\"draftStatus\":\"پاسخ قبلی از سرور بازیابی شد.\"} | net=GET /api/public/forms/<fid>/draft → 200; POST /api/public/forms/<fid>/ticket-link → 503"
+    },
+    {
+      "name": "form: resubmission does not create a second record",
+      "ok": true,
+      "detail": "dup={\"ok\":false,\"status\":422,\"code\":\"payment_method_required\",\"payload\":{\"detail\":{\"code\":\"payment_method_required\"}}} total=1"
+    },
+    {
+      "name": "form: receipt review card shown",
+      "ok": true,
+      "detail": "cur=u11 review=ثبت پاسخ دریافت شد پیوند شروع بازبینی هنوز آماده نیست؛ دوباره وضعیت را بررسی کن. رفتن به بله برای بازبینی بررسی وضعیت end=تکمیل شد! پاسخت ثبت شد؛ وضعیت بلیت هنوز آماده نیست. ثبت‌شده بلیتت آماده‌ستثبت‌نام آزمایشی پولی (کارت‌به‌کارت) در حال آماده‌سازی مدل بلیت شمارهٔ بلیت دانلود بلیت در بله پیش‌نمایش محلی؛ پرداخت، رسید و بلیت واقعی صادر نشده. ویرایش پاسخ پاسخ فقط برای مشاهده است. پایان پیش‌نمایش پاسخ‌های شما نام کاملآزمو"
+    },
+    {
+      "name": "no JS errors",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "jsErrors": []
+}

@@ -1,0 +1,88 @@
+{
+ "duplicate_ach_changed_balance": false,
+ "ledger_rows": 9,
+ "balances": {
+  "910001": 70,
+  "910002": 20,
+  "910999": 15
+ },
+ "sync_1": {
+  "mirrored": 8,
+  "unmapped": 1,
+  "failed": 0,
+  "skipped": 0
+ },
+ "sync_2_retry_including_unmapped": {
+  "mirrored": 0,
+  "unmapped": 1,
+  "failed": 0,
+  "skipped": 0
+ },
+ "shared_status": [
+  {
+   "shared_status": "mirrored",
+   "n": 8
+  },
+  {
+   "shared_status": "unmapped",
+   "n": 1
+  }
+ ],
+ "replay_entry_1": {
+  "id": "0eb12b8a-1ac5-42b5-8912-ebffe291799b",
+  "created": false
+ },
+ "reconcile": {
+  "installed": true,
+  "guard_installed": true,
+  "users_total": 3,
+  "users_nonzero": 3,
+  "users_with_ledger": 3,
+  "users_without_opening": 0,
+  "mismatched": 0,
+  "negative_balances": 0,
+  "invalid_user_ids": 0,
+  "entries": 9,
+  "chain_breaks": 0,
+  "missing_business_ref": 7,
+  "orphan_entries": 0,
+  "sync": {
+   "pending": 0,
+   "mirrored": 8,
+   "unmapped": 1,
+   "failed": 0
+  },
+  "by_entry_type": {
+   "award": {
+    "count": 4,
+    "sum": 115
+   },
+   "manual_adjust": {
+    "count": 1,
+    "sum": 5
+   },
+   "refund": {
+    "count": 1,
+    "sum": 40
+   },
+   "reversal": {
+    "count": 1,
+    "sum": -5
+   },
+   "spend": {
+    "count": 2,
+    "sum": -50
+   }
+  },
+  "examples": {
+   "mismatched": [],
+   "without_opening": [],
+   "chain_breaks": []
+  },
+  "meta": {
+   "installed_at": "2026-10-21T09:50:17Z",
+   "schema_version": "1"
+  },
+  "ok": true
+ }
+}

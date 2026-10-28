@@ -1,0 +1,19 @@
+public resource list (guest): [('پیوند جلسهٔ معرفی ', 'public', True, 'public'), ('جزوهٔ کارگاه (ویژه', 'registered', False, 'login_required'), ('نقشهٔ آسمان شب (وی', 'attended', False, 'login_required')]
+staff-only/draft/scheduled rows visible to guest: []
+guest → registered file: 401 {"detail":{"code":"resource_access_denied","reason":"login_required"}}
+guest → attended file: 401 {"detail":{"code":"resource_access_denied","reason":"login_required"}}
+mina(registered) → registered file: 200 application/pdf 142B attachment; filename="jozve-kargah.pdf";
+mina(registered) → attended file: 403 {"detail":{"code":"resource_access_denied","reason":"attendance_required"}}
+omid(attended) → attended file: 200 application/pdf 142B attachment; filename="naghshe-aseman.pdf
+omid → tampered id: 404 {"detail":"resource_not_found"}
+scheduled resource in guest list: []
+qa-member → admin questions list: 403 {"detail":"manager_password_required"}
+qa-member → answer: 403 {"detail":"manager_password_required"}
+mina(not attended) → review: 403 {"detail":{"code":"review_not_eligible","reason":"attendance_required","register
+mina → question on qaClosed event: 409 {"detail":{"code":"qa_closed","reason":"closed"}}
+qa-member staff-login: 200 manager-password
+qa-member(staff pw, club-supervisor) → admin questions: 200
+qa-member → admin resources: 200
+qa-member → summary: 200
+# توجه: نقش club-supervisor در roles.py = _MANAGER_PERMISSIONS | _CLUB_PERMISSIONS؛ بنابراین qa-member یک حساب کارکنان است و ۲۰۰ درست است.
+# حساب‌های عضو ساده (مینا/امید) فقط با نشست امضاشدهٔ مینی‌اپ ساخته شدند؛ با نشست مینی‌اپ به API مدیریتی: 403 manager_password_required (بالا).

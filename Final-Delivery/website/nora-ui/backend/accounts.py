@@ -83,3 +83,24 @@ def get_or_create_phone_account(
     if phone is None or phone != verified_phone or not pepper:
         raise ValueError("invalid_verified_phone")
     return _get_or_create_verified_account(db, _PHONE_PROVIDER, phone_digest(pepper, phone))
+
+
+def phone_account_exists(db: Session, verified_phone: str, *, pepper: str) -> bool:
+    """True when a verified phone identity is already linked to an account.
+
+    Only called *after* the OTP has been verified, so the answer is never
+    disclosed to an unauthenticated caller; it lets the login page tell a
+    returning member apart from a brand-new account without a second request.
+    """
+    phone = normalize_iran_phone(verified_phone)
+    if phone is None or phone != verified_phone or not pepper:
+        raise ValueError("invalid_verified_phone")
+    return (
+        db.scalar(
+            select(PlatformIdentityRecord.id).where(
+                PlatformIdentityRecord.provider == _PHONE_PROVIDER,
+                PlatformIdentityRecord.provider_user_id == phone_digest(pepper, phone),
+            )
+        )
+        is not None
+    )

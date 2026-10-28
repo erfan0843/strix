@@ -1,0 +1,63 @@
+{
+ "generated_at": "2026-10-22T08:55:50.018298+00:00",
+ "read_only": true,
+ "max_bytes": 536870912,
+ "inline": {
+  "rows": 5,
+  "bytes": 392,
+  "max_bytes": 8388608
+ },
+ "upload_sessions": {},
+ "markers": {
+  "storage_restore": {
+   "at": "2026-10-22T08:54:35.713957Z",
+   "ok": true,
+   "restored": 0,
+   "skipped_existing": 1,
+   "corrupt": 0
+  },
+  "storage_snapshot": {
+   "at": "2026-10-22T08:54:35.265024Z",
+   "ok": true,
+   "files": 1,
+   "bytes": 4096
+  },
+  "storage_verify": {
+   "at": "2026-10-22T08:54:34.795934Z",
+   "ok": true,
+   "referenced": 1,
+   "missing": 0,
+   "size_mismatch": 0,
+   "orphans": 0,
+   "stale_parts": 0,
+   "hash_checked": true
+  }
+ },
+ "configured": true,
+ "backend": "local_disk",
+ "free_bytes": 19057799168,
+ "writable": true,
+ "referenced": {
+  "rows": 1,
+  "bytes": 4096
+ },
+ "missing": {
+  "count": 0,
+  "resource_ids": []
+ },
+ "size_mismatch": {
+  "count": 0,
+  "resource_ids": []
+ },
+ "orphans": {
+  "count": 0,
+  "bytes": 0
+ },
+ "incomplete": {
+  "parts": 0,
+  "bytes": 0,
+  "stale_parts": 0,
+  "open_sessions": 0
+ },
+ "state": "ok"
+}

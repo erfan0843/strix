@@ -8,7 +8,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from dataclasses import dataclass
-from urllib.parse import unquote, urlsplit
+from urllib.parse import unquote
 
 import config
 import requests
@@ -56,13 +56,11 @@ def _api_base() -> str:
     if len(token) < 32:
         raise SharedAPIError(503, "shared_api_token_too_short")
 
-    parsed = urlsplit(base)
-    local_hosts = {"localhost", "127.0.0.1", "::1"}
-    secure_scheme = parsed.scheme == "https"
-    local_http = parsed.scheme == "http" and (parsed.hostname or "").lower() in local_hosts
-    if (not (secure_scheme or local_http) or not parsed.hostname or parsed.username or parsed.password
-            or parsed.path not in ("", "/") or parsed.query or parsed.fragment):
-        raise SharedAPIError(503, "shared_api_url_invalid")
+    # The base must be an origin only; the same rule is used by check_config so
+    # startup validation and request-time validation cannot drift apart.
+    error = config.shared_api_url_error(base)
+    if error:
+        raise SharedAPIError(503, error)
     return base.rstrip("/")
 
 
@@ -1131,6 +1129,73 @@ def submit_workflow(
     if not isinstance(result.get("created"), bool):
         raise SharedAPIError(502, "shared_api_invalid_workflow")
     return {"task": task, "created": result["created"]}
+
+
+def submit_certificate(
+    bale_user_id: int | str,
+    external_key: str,
+    certificate: dict,
+    file_refs: dict | None = None,
+) -> dict:
+    """Mirror one bot-issued certificate to the shared registry (idempotent on ``external_key``).
+
+    The server resolves the owner from ``bale_user_id`` and answers 404
+    ``owner_identity_not_found`` when that person has no server identity; the
+    caller must treat that as "not mirrored", never create an identity for it.
+    """
+    raw_user_id = _validated_user_id(bale_user_id)
+    if not isinstance(external_key, str) or not re.fullmatch(r"[A-Za-z0-9:_-]{3,120}", external_key):
+        raise SharedAPIError(422, "invalid_external_key")
+    if not isinstance(certificate, dict) or not certificate:
+        raise SharedAPIError(422, "invalid_certificate_data")
+    if file_refs is not None and (
+        not isinstance(file_refs, dict)
+        or set(file_refs) - {"pdf", "png"}
+        or any(value is not None and (not isinstance(value, str) or not re.fullmatch(r"[0-9a-fA-F-]{36}", value))
+               for value in file_refs.values())
+    ):
+        raise SharedAPIError(422, "invalid_file_refs")
+    payload = {"bale_user_id": raw_user_id, "external_key": external_key, "certificate": certificate}
+    if file_refs:
+        payload["file_refs"] = {slot: value for slot, value in file_refs.items() if value}
+    result = _request_json("POST", "/api/bot/certificates", payload=payload)
+    record_id = result.get("id") if isinstance(result, dict) else None
+    if (not isinstance(record_id, str) or not re.fullmatch(r"[0-9a-fA-F-]{36}", record_id)
+            or not isinstance(result.get("created"), bool)
+            or result.get("status") not in {"issued", "revoked"}):
+        raise SharedAPIError(502, "shared_api_invalid_certificate")
+    return {
+        "id": record_id,
+        "created": result["created"],
+        "status": result["status"],
+        "has_file": bool(result.get("has_file")),
+        "has_preview": bool(result.get("has_preview")),
+    }
+
+
+def submit_points_entry(bale_user_id: int | str, external_key: str, entry: dict) -> dict:
+    """Mirror one immutable row of the bot's points ledger (idempotent on ``external_key``).
+
+    The server resolves the owner from ``bale_user_id`` and answers 404
+    ``owner_identity_not_found`` when that person has no server identity; the
+    caller keeps the row as ``unmapped`` and retries after account linking.
+    409 ``points_entry_conflict`` means the key already exists with different
+    data — the bot never overwrites a mirrored row.
+    """
+    raw_user_id = _validated_user_id(bale_user_id)
+    if not isinstance(external_key, str) or not re.fullmatch(r"[0-9a-fA-F-]{36}:[1-9][0-9]{0,17}", external_key):
+        raise SharedAPIError(422, "invalid_external_key")
+    if not isinstance(entry, dict) or not entry:
+        raise SharedAPIError(422, "invalid_points_entry")
+    result = _request_json(
+        "POST", "/api/bot/club/points",
+        payload={"bale_user_id": raw_user_id, "external_key": external_key, "entry": entry},
+    )
+    record_id = result.get("id") if isinstance(result, dict) else None
+    if (not isinstance(record_id, str) or not re.fullmatch(r"[0-9a-fA-F-]{36}", record_id)
+            or not isinstance(result.get("created"), bool)):
+        raise SharedAPIError(502, "shared_api_invalid_points_entry")
+    return {"id": record_id, "created": result["created"]}
 
 
 def list_workflows(bale_user_id: int | str, *, limit: int = 50, offset: int = 0) -> dict:

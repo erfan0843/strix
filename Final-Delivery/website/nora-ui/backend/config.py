@@ -74,6 +74,44 @@ def _bounded_int_env(name: str, default: int, minimum: int, maximum: int) -> int
     return value
 
 
+_CSP_SOURCE_RE = re.compile(r"\Ahttps://[a-z0-9.-]+(?::\d{1,5})?\Z")
+
+
+def _csp_frame_src_env() -> str:
+    """NORA_CSP_FRAME_SRC: explicit allowlist for ``frame-src`` (phase 9.4, opt-in; default off).
+
+    Space-separated sources; each must be ``'self'`` or an ``https://host`` origin (no paths,
+    wildcards, schemes other than https, or CSP punctuation). An invalid value aborts startup
+    instead of silently shipping a wrong policy. Empty ⇒ no frame-src header at all (unchanged).
+    """
+    raw = os.getenv("NORA_CSP_FRAME_SRC", "").strip()
+    if not raw:
+        return ""
+    sources: list[str] = []
+    for token in raw.split():
+        lowered = token.lower()
+        if lowered == "'self'":
+            sources.append("'self'")
+        elif _CSP_SOURCE_RE.fullmatch(lowered):
+            sources.append(lowered)
+        else:
+            raise ValueError("NORA_CSP_FRAME_SRC accepts only 'self' and https://host origins separated by spaces")
+    return " ".join(dict.fromkeys(sources))
+
+
+def _cookie_samesite_env(cookie_secure: bool) -> str:
+    """NORA_COOKIE_SAMESITE ∈ {strict, lax, none}; پیش‌فرض و هر مقدار نامعتبر → strict.
+
+    «none» بدون کوکی امن را مرورگرها رد می‌کنند؛ در آن حالت هم strict می‌ماند (fail-safe).
+    """
+    value = (os.getenv("NORA_COOKIE_SAMESITE") or "strict").strip().lower()
+    if value not in {"strict", "lax", "none"}:
+        return "strict"
+    if value == "none" and not cookie_secure:
+        return "strict"
+    return value
+
+
 def _bool_env(name: str, default: bool) -> bool:
     value = os.getenv(name)
     if value is None:
@@ -102,6 +140,9 @@ class Settings:
     seo_business_description: str = ""
     session_ttl_seconds: int = 8 * 60 * 60
     cookie_secure: bool = True
+    # SameSite کوکی‌های نشست/CSRF. پیش‌فرض strict. «none» فقط برای پیش‌نمایش داخل iframe
+    # (مثل محیط آزمایشی) و فقط همراه cookie_secure معنا دارد؛ در تولید دست نزنید.
+    cookie_samesite: str = "strict"
     cookie_name: str = "nora_session"
     csrf_cookie_name: str = "nora_csrf"
     account_cookie_name: str = "nora_account_session"
@@ -134,6 +175,21 @@ class Settings:
     otp_ttl_seconds: int = 180
     otp_max_attempts: int = 5
     otp_resend_seconds: int = 90
+    # Data-management staging lives outside UI_ROOT so the static mount can never
+    # serve an uploaded backup. Empty means "<nora-ui>/../var/nora-data-staging".
+    data_staging_dir: str = ""
+    data_upload_max_bytes: int = 256 * 1024 * 1024
+    # Phase 9.4: private file storage outside the web root for event resources larger than the
+    # in-database limit. Empty = not configured (uploads stay ≤ EVENT_RESOURCE_MAX_BYTES in the DB).
+    private_storage_dir: str = ""
+    private_storage_max_bytes: int = 512 * 1024 * 1024
+    # Phase 9.4: CSP frame-src allowlist for the external video embeds. Empty = header not sent.
+    # ``csp_report_only`` (default True) sends Content-Security-Policy-Report-Only so staging can
+    # watch securitypolicyviolation events before anything is enforced.
+    csp_frame_src: str = ""
+    csp_report_only: bool = True
+    data_staging_retention_hours: int = 72
+    legacy_audit_script: str = ""
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "public_base_url", normalize_public_base_url(self.public_base_url))
@@ -156,6 +212,12 @@ class Settings:
             ("seo_business_description", "description"),
         ):
             object.__setattr__(self, field_name, business.get(key, "") if business else "")
+        if not self.data_staging_dir:
+            object.__setattr__(
+                self,
+                "data_staging_dir",
+                str(UI_ROOT.parent / "var" / "nora-data-staging"),
+            )
 
     @property
     def seo_local_business(self) -> dict[str, str] | None:
@@ -236,6 +298,9 @@ class Settings:
         draft_write_limit = _bounded_int_env("NORA_RESPONSE_DRAFT_WRITE_LIMIT_PER_MINUTE", 120, 1, 10000)
         submit_limit = _bounded_int_env("NORA_RESPONSE_SUBMIT_LIMIT_PER_MINUTE", 10, 1, 1000)
         cooperation_limit = _bounded_int_env("NORA_COOPERATION_SUBMIT_LIMIT_PER_MINUTE", 5, 1, 100)
+        # MiB in the environment (1 MiB … 8 GiB); the production value must follow the real disk,
+        # reverse-proxy body limit and backup window — see deployment/PRIVATE-STORAGE-OPERATIONS.fa.md.
+        private_storage_max_mib = _bounded_int_env("NORA_PRIVATE_STORAGE_MAX_MIB", 512, 1, 8192)
         form_payment_ttl = _bounded_int_env("NORA_FORM_PAYMENT_TTL_SECONDS", 1800, 60, 24 * 60 * 60)
         form_payment_timeout = _bounded_int_env("NORA_FORM_PAYMENT_TIMEOUT_SECONDS", 8, 1, 8)
         form_payment_max_amount = _bounded_int_env(
@@ -277,6 +342,7 @@ class Settings:
             seo_business_description=os.getenv("NORA_SEO_BUSINESS_DESCRIPTION", "").strip(),
             session_ttl_seconds=ttl,
             cookie_secure=_bool_env("NORA_COOKIE_SECURE", True),
+            cookie_samesite=_cookie_samesite_env(_bool_env("NORA_COOKIE_SECURE", True)),
             bale_bot_token=os.getenv("NORA_BALE_BOT_TOKEN", "").strip(),
             bale_bot_username=bale_bot_username,
             bot_service_token=bot_service_token,
@@ -293,6 +359,10 @@ class Settings:
             response_draft_write_limit_per_minute=draft_write_limit,
             response_submit_limit_per_minute=submit_limit,
             cooperation_submit_limit_per_minute=cooperation_limit,
+            private_storage_dir=os.getenv("NORA_PRIVATE_STORAGE_DIR", "").strip(),
+            private_storage_max_bytes=private_storage_max_mib * 1024 * 1024,
+            csp_frame_src=_csp_frame_src_env(),
+            csp_report_only=_bool_env("NORA_CSP_REPORT_ONLY", True),
             safir_api_key=safir_api_key,
             safir_bot_id=safir_bot_id,
             safir_url=safir_url or "https://safir.bale.ai/api/v3/send_message",
@@ -301,4 +371,12 @@ class Settings:
             otp_ttl_seconds=otp_ttl_minutes * 60,
             otp_max_attempts=otp_max_attempts,
             otp_resend_seconds=otp_resend_seconds,
+            data_staging_dir=os.getenv("NORA_DATA_STAGING_DIR", "").strip(),
+            data_upload_max_bytes=_bounded_int_env(
+                "NORA_DATA_UPLOAD_MAX_BYTES", 256 * 1024 * 1024, 1024 * 1024, 4 * 1024 * 1024 * 1024
+            ),
+            data_staging_retention_hours=_bounded_int_env(
+                "NORA_DATA_STAGING_RETENTION_HOURS", 72, 1, 24 * 90
+            ),
+            legacy_audit_script=os.getenv("NORA_LEGACY_AUDIT_SCRIPT", "").strip(),
         )

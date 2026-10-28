@@ -1,0 +1,46 @@
+PASS capability contract ready
+PASS server contract publishes length + integer settings with types and caps
+PASS text: length box visible, integer row hidden, validation section shown
+PASS text: note states the type cap (۱۰۰۰)
+PASS text: min > max rejected, sheet stays open, focus on #fdMinLen
+PASS text: max above the type cap rejected with the cap in the message
+PASS text: valid length saved and editor closed
+PASS text: canvas summary shows the length
+PASS number: integer row visible inside bounds, no length box
+PASS number: integer switch off by default and labelled
+PASS number: toggling integer counts as an unsaved change
+PASS number: integer:true + min stored on the field
+PASS amount: integer key absent when the switch is off
+PASS first save pinned fid and «ذخیره شد»
+form id: 004414c0-50ca-4fd1-abe3-d0da8d64d3bf
+PASS server record: text minLen=3 maxLen=8, area maxLen=20, number integer=true, amount without integer
+PASS reopened as «ذخیره شد»
+PASS reopen text: controls show 3 / 8
+PASS reopen number: integer switch on, min 1
+PASS type change number→amount keeps «فقط عدد صحیح» (no removal notice)
+PASS type change text→email announces that the length limit is removed
+PASS PUT with an inverted length range is stored (validation happens at publish)
+PASS readiness reports invalid_length_range with the field id
+PASS publish step offers «بازکردن پرسش» for the length issue
+PASS jump opens the editor on that field with focus on #fdMinLen
+PASS after fixing in the builder, readiness is clean again
+PASS form published
+PASS API: partial draft keeps a too-short text (minLen only at final submit)
+PASS API: draft rejects text above maxLen with the field id
+PASS API: area above maxLen rejected
+PASS API: decimal rejected for integer-only number
+PASS API: integer accepted (Persian digits)
+PASS API: amount without integer flag accepts a decimal
+PASS API: final submit rejects text below minLen with «دست‌کم»
+PASS public form received minLen/maxLen/integer in the question model
+PASS public text input maxlength = owner max (8) and hint shows both limits
+PASS public textarea maxlength = 20
+PASS public integer number uses inputmode=numeric with an integer placeholder and note
+PASS browser: 2-char answer blocked with «دست‌کم ۳ نویسه»
+PASS browser: decimal blocked with «عدد صحیح»
+PASS browser: integer below min 1 still blocked by the bound
+PASS browser: valid answers submit without field errors
+PASS public submission completed
+PASS owner sees the stored answers (text «سارا», number 7)
+PASS no page errors in the browser during the whole chain
+e2e-length-integer: 44 قبول، 0 خطا

@@ -1,0 +1,27 @@
+# فاز ۹.۶ §۴.۳–۴.۵ — بازبینی کد پخش بیرونی در برابر قرارداد رسمی (بدون اینترنت؛ هیچ پخش واقعی آزموده نشد)
+وضعیت کلی: BLOCKED_EXTERNAL_NETWORK (سندباکس فقط github/pypi/npm را می‌بیند؛ curl به youtube/aparat → 000).
+
+## یوتیوب (event-interaction.js، خطوط ~303–410) — AUDITED, UNCHANGED
+- src قاب = embed_url سرور (`https://www.youtube-nocookie.com/embed/<id>`) + `enablejsapi=1` (+ `origin=` فقط وقتی مبدأ صفحه http(s) واقعی است) — مطابق مستند IFrame Player API (پارامترهای enablejsapi/origin).
+- دست‌دادن: پس از `load` قاب، پیام `{"event":"listening","id":…,"channel":"widget"}` با targetOrigin دقیق `https://www.youtube-nocookie.com` فرستاده می‌شود — همان پیامی که اسکریپت رسمی iframe_api می‌فرستد تا پخش‌کننده رویدادها را به والد بفرستد.
+- دریافت: فقط پیام‌هایی با `event.origin === 'https://www.youtube-nocookie.com'` و `event.source === frame.contentWindow`. رویدادها: `onReady` → playback=ready/api=ready؛ `onStateChange`/`infoDelivery.playerState` با نگاشت رسمی (-1 unstarted→ready، 0 ended، 1 playing، 2 paused، 3 buffering، 5 cued→ready)؛ `onError` با کدهای رسمی 2، 5، 100، 101، 150 (+153 پیام مبدأ نامعتبر) → playback=error و متن قابل‌فهم؛ کد ناشناخته «یوتیوب خطای N را گزارش کرد».
+- `load` به‌تنهایی: `data-embed-state=ready` یعنی «قاب پاسخ داد و پوشش بارگذاری برداشته شد» (وضعیت قاب)، ولی `data-embed-playback=unverified` می‌ماند و متن می‌گوید «تا وقتی یوتیوب آمادگی را اعلام نکند پخش تأییدنشده است». هیچ‌جا «پخش شد/موفق» از load نتیجه نمی‌شود. (تمایز: state=قاب، playback=پخش، api=کانال.)
+- بدون autoplay؛ بدون `sandbox` روی قاب (شکستن پخش‌کننده)؛ `allow`/`referrerpolicy` دست‌نخورده.
+- تصمیم مالک: بارگذاری اسکریپت رسمی `https://www.youtube.com/iframe_api` (شخص‌ثالث در همهٔ صفحات) در برابر کانال postMessage فعلی که همان رویدادها را بدون اسکریپت بیرونی می‌گیرد. تا تصمیم، وضعیت فعلی می‌ماند.
+
+## آپارات — AUDITED, UNCHANGED
+- فقط `https://www.aparat.com/video/video/embed/videohash/<hash>/vt/frame` با hash اعتبارسنجی‌شده در سرور (video_sources.py)؛ هیچ HTML/iframe ذخیره‌شده‌ای وجود ندارد.
+- آپارات API رویداد شروع/پایان ندارد ⇒ پس از load فقط «قاب بارگذاری شد؛ پخش تأییدنشده» و خطاهای آپارات داخل قاب دیده می‌شود. هیچ حدسی زده نمی‌شود.
+
+## محصول پولی با منبع بیرونی (§4.5) — VERIFIED over HTTP (purchase-e2e-http.txt S8)
+- انتشار منبع youtube/aparat با access=purchased روی محصول پولی بدون `acknowledge_external_exposure: true` ⇒ 409 `external_exposure_acknowledgement_required`؛ تأیید در ممیزی با actor/time ثبت می‌شود (test_video_sources.py).
+- یادداشت کاربر زیر قاب: «میزبانی بیرونی؛ بدون حفاظت یا DRM از سوی نورا»؛ عمومی/فهرست‌نشدهٔ بیرونی ≠ کنترل دسترسی نورا.
+
+## CSP (§8) — کد: AUTOMATED_TEST_ONLY؛ جمع‌آوری نقض: STAGING_REQUIRED
+- تغییر ۹.۶: سیاست frame-src (Report-Only پیش‌فرض) اکنون `report-uri /api/csp-report` دارد؛ نقطهٔ دریافت فقط یک خط لاگ بدون PII می‌نویسد (directive، مبدأ مسدود، مسیر سند، disposition)؛ بدنهٔ >16 KiB → 413، JSON نامعتبر → 400؛ هیچ ذخیره‌سازی. آزمون: tests/test_csp_frame_src.py (۵ آزمون).
+- enforce (`NORA_CSP_REPORT_ONLY=0`) فقط پس از جمع‌آوری واقعی روی staging؛ در این فاز ممنوع.
+
+## دستور staging برای ثبت رفتار واقعی
+1. env: NORA_CSP_FRAME_SRC="'self' https://www.youtube-nocookie.com https://www.aparat.com"، NORA_CSP_REPORT_ONLY=1.
+2. با حساب دارنده، event.html محصولی با یک منبع یوتیوب (عمومی قابل‌جاسازی)، یک یوتیوب «غیرقابل‌جاسازی» (انتظار onError 101/150) و یک آپارات را در Chrome و Firefox باز کنید؛ در کنسول `document.querySelectorAll('.ei-embed')` و صفات `data-embed-state/playback/api/error` را در لحظات load / onReady / play / pause / end ثبت کنید (اسکرین‌شات + تاریخ + شناسهٔ ویدیو).
+3. `journalctl -u nora-web | grep csp_violation | sort | uniq -c` را پس از هر سناریو ضمیمه کنید.

@@ -46,6 +46,13 @@
     return publicPath(path);
   };
   const deliveryCode = value => /^[0-9a-f]{32}$/i.test(String(value || '')) ? String(value).toLowerCase() : '';
+  /* ساعت مرجع: اختلاف ساعت سرور با مرورگر؛ تا پاسخ سرور نرسد صفر است */
+  const serverNow = () => Date.now() + ((root.NORA_SERVER_CLOCK && Number.isFinite(root.NORA_SERVER_CLOCK.offsetMs)) ? root.NORA_SERVER_CLOCK.offsetMs : 0);
+  const rememberServerClock = value => {
+    const ms = Date.parse(String(value || ''));
+    if (!Number.isFinite(ms)) return;
+    root.NORA_SERVER_CLOCK = { serverTime: new Date(ms).toISOString(), offsetMs: ms - Date.now(), receivedAt: Date.now() };
+  };
   const publicBotUrl = value => { const url = text(value, 256); return /^https:\/\/ble[.]ir\/[A-Za-z0-9_]{3,64}$/i.test(url) ? url : ''; };
   const fileMedia = item => {
     const kind = text(item && (item.k || item.kind), 24).toLowerCase();
@@ -162,12 +169,47 @@
       }
       return row;
     }).filter(item => item.t || item.src || item.url || item.delivery_id);
+    const registrationRaw = record.registration && typeof record.registration === 'object' ? record.registration : {};
+    const REG_STATES = ['open', 'not_started', 'full', 'closed', 'ended', 'cancelled', 'none'];
+    const LIFECYCLES = ['scheduled', 'cancelled', 'postponed'];
+    const isoText = value => { const raw = text(value, 40); return raw && Number.isFinite(Date.parse(raw)) ? raw : ''; };
+    const lifecycle = LIFECYCLES.includes(record.lifecycle) ? record.lifecycle : 'scheduled';
+    /* وضعیت ثبت‌نام فقط از سرور می‌آید؛ اگر سرور قدیمی باشد و چیزی نفرستد، «نامشخص» می‌ماند و شمارشگری ساخته نمی‌شود */
+    const registration = REG_STATES.includes(registrationRaw.state) ? {
+      state: registrationRaw.state,
+      reason: text(registrationRaw.reason, 24),
+      lifecycle: LIFECYCLES.includes(registrationRaw.lifecycle) ? registrationRaw.lifecycle : lifecycle,
+      opensAt: isoText(registrationRaw.opensAt),
+      closesAt: isoText(registrationRaw.closesAt),
+      startsAt: isoText(registrationRaw.startsAt),
+      endsAt: isoText(registrationRaw.endsAt),
+      countdownTo: isoText(registrationRaw.countdownTo),
+      startsIn: isoText(registrationRaw.startsIn)
+    } : null;
+    /* فاز ۹: کارت محصول ضبط‌شده فقط از سرور (بدون شمارنده/تخفیف)؛ فقط کلیدهای شناخته‌شده عبور می‌کنند */
+    const recRaw = record.recording && typeof record.recording === 'object' ? record.recording : null;
+    const recording = recRaw && text(recRaw.id, 100) && text(recRaw.title, 240) ? {
+      id: text(recRaw.id, 100),
+      status: ['draft', 'ready', 'published', 'sales_paused', 'archived'].includes(recRaw.status) ? recRaw.status : '',
+      sellable: recRaw.sellable === true && recRaw.status === 'published',
+      title: text(recRaw.title, 240),
+      summary: text(recRaw.summary, 300),
+      price: Number.isFinite(+recRaw.price) && +recRaw.price >= 0 ? Math.trunc(+recRaw.price) : 0,
+      currency: text(recRaw.currency, 8) || 'IRR',
+      free: recRaw.free === true || !(Number.isFinite(+recRaw.price) && +recRaw.price > 0),
+      accessDays: Number.isFinite(+recRaw.access_days) && +recRaw.access_days > 0 ? Math.trunc(+recRaw.access_days) : 0,
+      coverUrl: publicMediaPath(recRaw.cover_url),
+      sessionCount: Number.isFinite(+recRaw.session_count) && +recRaw.session_count > 0 ? Math.trunc(+recRaw.session_count) : 0,
+      totalMinutes: Number.isFinite(+recRaw.total_minutes) && +recRaw.total_minutes > 0 ? Math.trunc(+recRaw.total_minutes) : 0,
+      publishedAt: isoText(recRaw.published_at)
+    } : null;
     const normalized = Object.assign({}, record, {
       id,
       t: title,
       kind: text(record.kind || 'رویداد', 80),
       d: text(record.d || record.about || record.description || record.rep, 10000),
       when: text(record.when || record.d, 120),
+      on: text(record.on, 40),
       time: text(record.time, 120),
       place: text(record.place, 240),
       mode: text(record.mode, 80),
@@ -181,11 +223,21 @@
       forms,
       price: Number.isFinite(+record.price) && +record.price >= 0 ? +record.price : 0,
       cap: Number.isFinite(+record.cap) && +record.cap >= 0 ? +record.cap : 0,
-      past,
+      /* پایان‌یافته طبق ساعت سرور (endsAt گذشته) همان «برگزارشده» است؛ بدون این، کارت می‌توانست فعال به نظر برسد */
+      past: past || !!(registration && registration.state === 'ended'),
       media,
       cert: record.cert === true,
       certMin: Number.isFinite(+record.certMin) ? Math.max(0, Math.min(100, +record.certMin)) : 0,
       certNote: text(record.certNote, 1000),
+      startsAt: isoText(record.startsAt),
+      endsAt: isoText(record.endsAt),
+      regOpensAt: isoText(record.regOpensAt),
+      regClosesAt: isoText(record.regClosesAt),
+      regMode: ['auto', 'closed', 'full'].includes(record.regMode) ? record.regMode : 'auto',
+      lifecycle,
+      conditions: text(record.conditions, 1000),
+      registration,
+      recording,
       privacy
     });
     ['code', 'regs', 'reg', 'taken', 'spots', 'sold', 'attendees', 'registrants'].forEach(key => delete normalized[key]);
@@ -209,12 +261,15 @@
         };
       }
       const playerBlock = ['img', 'vid', 'aud', 'gal'].includes(block.ty);
+      /* بلوک‌های فهرستی (ul/ol/tbl/gal) «x» آرایه‌ای دارند؛ post.html همان آرایه را می‌خواند. رشته‌شدنِ آرایه فهرست را خالی می‌کرد. */
+      const listX = Array.isArray(block.x) && ['ul', 'ol', 'tbl', 'gal'].includes(block.ty)
+        ? block.x.map(item => text(item, 1000)).filter(Boolean).slice(0, 100) : null;
       return Object.assign({}, block, {
-        x: text(block.x || block.text || block.title, 8000),
+        x: listX || text(block.x || block.text || block.title, 8000),
         src: playerBlock ? publicMediaPath(block.src || block.url) : publicPath(block.src || block.url),
         up: playerBlock ? publicMediaPath(block.up) : publicPath(block.up)
       });
-    }).filter(block => typeof block === 'string' ? block : (block.x || block.src || block.ty === 'file'));
+    }).filter(block => typeof block === 'string' ? block : ((Array.isArray(block.x) ? block.x.length : block.x) || block.src || block.up || block.ty === 'file' || block.ty === 'hr'));
     return Object.assign({}, record, {
       id, t: title,
       cat: text(record.cat || 'مطلب', 80),
@@ -256,9 +311,18 @@
     return Object.assign({}, record, {
       id, n: name,
       type: text(record.type, 160),
+      s: text(record.s || record.summary, 600),
+      collab: text(record.collab, 160),
+      since: text(record.since, 80),
+      focus: listField(record.focus).slice(0, 12),
       d: text(record.d || record.description, 4000),
       logo: publicPath(record.logo),
-      href: publicPath(record.href || record.url)
+      href: publicPath(record.href || record.url),
+      links: asList(record.links).slice(0, 12).map(link => ({
+        k: text(link && link.k, 24), v: text(link && link.v, 300)
+      })).filter(link => link.v),
+      mon: text(record.mon, 8),
+      g: text(record.g, 240)
     });
   }
 
@@ -270,7 +334,8 @@
     if (!title) return null;
     const startsAt = text(record.startsAt || record.starts_at, 40);
     const endsAt = text(record.endsAt || record.ends_at, 40);
-    const now = Date.now();
+    /* بازهٔ نمایش با ساعت سرور سنجیده می‌شود (public-data اختلاف را نگه می‌دارد)، نه ساعت مرورگر */
+    const now = serverNow();
     const start = startsAt ? Date.parse(startsAt) : NaN;
     const end = endsAt ? Date.parse(endsAt) : NaN;
     if ((startsAt && !Number.isFinite(start)) || (endsAt && !Number.isFinite(end))
@@ -283,9 +348,27 @@
     const theme = ['ocean', 'teal', 'amber', 'plum', 'night'].includes(record.theme) ? record.theme : 'ocean';
     const layout = ['cover', 'split', 'text'].includes(record.layout) ? record.layout : 'cover';
     const align = ['right', 'center'].includes(record.align) ? record.align : 'right';
+    // نوع بنر: «sponsored» و «partner» در خانه برچسب روشن «تبلیغ»/«حامی» می‌گیرند؛ هر مقدار دیگر اعلان عادی است.
+    const kind = ['sponsored', 'partner'].includes(record.kind) ? record.kind : 'notice';
     const overlay = Number.isFinite(+record.overlay) ? Math.max(0, Math.min(90, Math.round(+record.overlay))) : 48;
+    /* شمارشگر بنر: نوع و هدف فقط از سرور (رویداد یا کمپین)؛ پس از پایان، رفتار پیکربندی‌شده */
+    const countdown = ['reg_close', 'reg_open', 'event_start', 'campaign_end'].includes(record.countdown) ? record.countdown : '';
+    const countdownTo = text(record.countdownTo, 40);
+    const countdownEnded = record.countdownEnded === true;
+    const afterEnd = ['hide', 'message', 'details'].includes(record.afterEnd) ? record.afterEnd : 'hide';
+    if (countdownEnded && afterEnd === 'hide') return null;
+    const linked = record.event && typeof record.event === 'object' ? record.event : null;
+    const event = linked && text(linked.id, 100) ? {
+      id: text(linked.id, 100), t: text(linked.t, 240), when: text(linked.when, 120),
+      state: text(linked.state, 24), lifecycle: text(linked.lifecycle, 24) || 'scheduled'
+    } : null;
     return {
       id: text(record.id, 100), status: 'published', active: true,
+      eventId: text(record.eventId, 100), event,
+      countdown: countdown && (countdownEnded || Number.isFinite(Date.parse(countdownTo))) ? countdown : '',
+      countdownTo: countdown && !countdownEnded && Number.isFinite(Date.parse(countdownTo)) ? countdownTo : '',
+      countdownEnded: !!countdown && countdownEnded,
+      afterEnd, afterEndText: text(record.afterEndText, 160),
       order: Number.isFinite(+record.order) ? Math.max(0, Math.min(1000, Math.round(+record.order))) : 0,
       t: title,
       tag: text(record.eyebrow || record.tag, 80),
@@ -295,7 +378,7 @@
       imgAlt: text(record.imgAlt || record.alt, 240),
       href, primaryLabel: href && primaryLabel ? primaryLabel : '',
       secondaryHref, secondaryLabel: secondaryHref && secondaryLabel ? secondaryLabel : '',
-      theme, layout, align, overlay,
+      theme, layout, align, overlay, kind,
       focusX: Number.isFinite(+record.focusX) ? Math.max(0, Math.min(100, Math.round(+record.focusX))) : 50,
       focusY: Number.isFinite(+record.focusY) ? Math.max(0, Math.min(100, Math.round(+record.focusY))) : 50,
       startsAt, endsAt
@@ -356,8 +439,9 @@
     N.DAYS = [];
     N.QTAGS = [];
     N.TRUST = { row: [], short: {} };
+    /* پذیرش ۱۴۰۵/۰۸/۰۳: کاشی «رویدادها و آرشیو» برداشته شد؛ همان مقصد (events.html) از دکمهٔ اصلی بنر، پیوند «همهٔ رویدادها»ی ویترین،
+       «آرشیو رویدادها» و tabbar در دسترس است و کاشیِ چهارم مسیر تکراری بود. کلیدهای تنظیمات events/past همچنان بخش‌های خانه را کنترل می‌کنند. */
     const quick = [
-      { k: 'events', settingsKeys: ['events', 'past'], i: 'i-calendar', n: 'رویدادها و آرشیو', s: 'برنامه‌های پیش‌رو، برگزارشده و ثبت‌نام', href: 'events.html' },
       { k: 'articles', settingsKeys: ['club', 'articles'], i: 'i-book', n: 'مطالب و مطالعه', s: 'مطالب، رسانه و باشگاه کتاب‌خوانی', j: 'articles' },
       { k: 'people', settingsKeys: ['people', 'partners'], i: 'i-users', n: 'افراد و نهادها', s: 'اساتید، دست‌اندرکاران و همکاران', href: 'home.html#teachers' },
       { k: 'verify', settingsKeys: ['verify'], i: 'i-qr', n: 'استعلام گواهی', s: 'بررسی گواهی در سامانه', f: 'shVerify' },
@@ -433,7 +517,14 @@
         if (payload && payload.content && typeof payload.content === 'object' && !Array.isArray(payload.content)) {
           remote = payload.content;
           deliveryBotUrl = publicBotUrl(payload.delivery_bot_url);
+          rememberServerClock(payload.server_time);
         }
+      } else if (response.status === 404) {
+        // سرور سالم است ولی مالک هنوز چیزی منتشر نکرده؛ این «خالی» است، نه «در دسترس نبودن».
+        try {
+          const payload = await response.json();
+          if (payload && payload.detail === 'site_content_not_published') requestSucceeded = true;
+        } catch (_) { /* 404 غیرمنتظره همچنان «در دسترس نیست» می‌ماند */ }
       }
     } catch (_) { /* Production stays empty when the server cannot provide public content. */ }
     finally { clearTimeout(timeout); }
