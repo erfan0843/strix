@@ -1064,15 +1064,20 @@ let serverNavSession=false, serverNavPerms=[];
 function probeAccountNavigation(){
   if(NORA_TEST_FIXTURE_MODE||window.NORA_ACCOUNT_SOURCE==='server'||typeof fetch!=='function') return;
   if(!document.querySelector('.tabbar [data-account-nav-label]')) return;
-  if(/(?:^|\/)(?:account|login)\.html$/.test(location.pathname)||location.protocol==='file:') return;
-  sessionJson('/api/account/me').then(d=>d&&d.authenticated===true?d:sessionJson('/api/auth/me').then(o=>o&&o.authenticated===true&&o.role==='owner'?Object.assign(o,{staffOnly:true}):null))
+  if(/(?:^|\/)login\.html$/.test(location.pathname)||location.protocol==='file:') return;
+  /* صفحهٔ حساب نشست عضو را خودش می‌خواند و مجوزها را می‌دهد؛ این‌جا فقط نشست مالک (بدون حساب عضو) کاوش می‌شود */
+  const accountPage=/(?:^|\/)account\.html$/.test(location.pathname);
+  (accountPage?Promise.resolve(null):sessionJson('/api/account/me')).then(d=>d&&d.authenticated===true?d:sessionJson('/api/auth/me').then(o=>o&&o.authenticated===true&&o.role==='owner'?Object.assign(o,{staffOnly:true}):null))
     .then(d=>{ if(!d) return; if(!d.staffOnly) serverNavSession=true; serverNavPerms=Array.isArray(d.permissions)?d.permissions:[]; updateAccountNavigation() });
 }
 function sessionJson(path){
   return fetch(path,{method:'GET',credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}})
     .then(r=>r&&r.ok?r.json().catch(()=>null):null).catch(()=>null);
 }
-function updateAccountNavigation(){
+/* perms (اختیاری): صفحهٔ حساب که خودش /api/account/me را می‌خواند، مجوزهای همان پاسخ را می‌دهد تا زبانهٔ «فرم‌ساز»
+   آن‌جا هم از منبع سرور ساخته شود؛ آرایهٔ خالی (خروج/انقضا) زبانه را برمی‌دارد. فراخوانی از رویداد، آرایه نیست و دست نمی‌زند. */
+function updateAccountNavigation(perms){
+  if(Array.isArray(perms)) serverNavPerms=perms;
   const user=sessUser(), first=accountFirstName(user), authenticated=!!user||window.NORA_ACCOUNT_SOURCE==='server'||serverNavSession;
   const label=first||(authenticated?'حساب من':'ورود/ثبت‌نام'), destination=accountEntryHref('account.html');
   document.querySelectorAll('[data-account-nav-label]').forEach(node=>{node.textContent=label});
@@ -1080,11 +1085,14 @@ function updateAccountNavigation(){
     link.setAttribute('href',destination);
     link.setAttribute('aria-label',first?first+'، حساب کاربری':authenticated?'حساب من':'ورود/ثبت‌نام');
   });
-  if(serverNavPerms.includes('fm_create')) document.querySelectorAll('.tabbar:not(#admTabs)').forEach(bar=>{
-    if(bar.querySelector('[data-forms-nav]')) return;
-    const a=document.createElement('a'), small=document.createElement('small'); a.href='builder.html'; a.setAttribute('data-forms-nav','');
-    small.textContent='فرم‌ساز'; a.append(tabIcon('article'),small);
-    bar.insertBefore(a,bar.querySelector('[data-account-nav]')); bar.setAttribute('data-tabs',String(bar.querySelectorAll('a').length));
+  const forms=serverNavPerms.includes('fm_create');
+  document.querySelectorAll('.tabbar:not(#admTabs)').forEach(bar=>{
+    const have=bar.querySelector('[data-forms-nav]');
+    if(forms===!!have) return;
+    if(have) have.remove();
+    else{const a=document.createElement('a'), small=document.createElement('small'); a.href='builder.html'; a.setAttribute('data-forms-nav','');
+      small.textContent='فرم‌ساز'; a.append(tabIcon('article'),small); bar.insertBefore(a,bar.querySelector('[data-account-nav]'))}
+    bar.setAttribute('data-tabs',String(bar.querySelectorAll('a').length));
   });
   return label;
 }

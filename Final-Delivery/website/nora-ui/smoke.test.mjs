@@ -327,6 +327,17 @@ const externalAnchors=p=>p.all('a[href]').filter(a=>/^(?:https?:|mailto:|tel:|sm
   ok(p.doc.querySelector('#evTop .mi-partner[data-partner="partner-live-1"]')?.textContent.includes('نهاد همکار منتشرشده'),
     'کارت عمومی رویداد، نهاد همکارِ متصل به همان شناسه را نمایش می‌دهد');
   ok(p.window.NORA_UI.clockState()==='local','ساعت محلی بدون نیاز به سرویس بیرونی کار می‌کند');
+  /* زبانهٔ «فرم‌ساز» نوار پایین: فقط با آرایهٔ مجوز حاوی fm_create (از پاسخ سرور) ساخته می‌شود؛ آرایهٔ خالی برمی‌دارد؛ فراخوانی بی‌آرگومان/رویدادی دست نمی‌زند؛ تکراری نمی‌سازد */
+  const bar=p.doc.querySelector('.tabbar'), tabsBefore=bar.querySelectorAll('a').length;
+  ok(!bar.querySelector('[data-forms-nav]'),'بدون مجوز سروری، زبانهٔ «فرم‌ساز» در نوار پایین نیست');
+  p.window.NORA_UI.updateAccountNavigation(['fm_view']); ok(!bar.querySelector('[data-forms-nav]'),'مجوز بدون fm_create زبانه نمی‌سازد');
+  p.window.NORA_UI.updateAccountNavigation(['fm_view','fm_create']); p.window.NORA_UI.updateAccountNavigation(['fm_create']); p.window.NORA_UI.updateAccountNavigation();
+  const formsTab=bar.querySelectorAll('[data-forms-nav]');
+  ok(formsTab.length===1&&formsTab[0].getAttribute('href')==='builder.html'&&formsTab[0].textContent.trim()==='فرم‌ساز'
+    &&formsTab[0].nextElementSibling===bar.querySelector('[data-account-nav]')&&bar.getAttribute('data-tabs')===String(tabsBefore+1),
+    'با fm_create دقیقاً یک زبانهٔ «فرم‌ساز» به builder.html کنار «حساب» ساخته می‌شود و شمار زبانه‌ها به‌روز است');
+  p.window.NORA_UI.updateAccountNavigation([]);
+  ok(!bar.querySelector('[data-forms-nav]')&&bar.getAttribute('data-tabs')===String(tabsBefore),'با آرایهٔ خالی (خروج/انقضا) زبانه برداشته و شمار زبانه‌ها برگردانده می‌شود');
   ok(p.network.length===1&&p.network[0]==='/api/public/site-content','خانه فقط snapshot عمومیِ هم‌مبدأ را درخواست کرد');
   const external=p.window.document.createElement('a'); external.href='https://example.org/cta'; external.textContent='دکمهٔ بیرونی';
   p.doc.body.appendChild(external); await wait(40);

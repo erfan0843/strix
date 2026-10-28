@@ -1162,7 +1162,7 @@ function resetServerAccountData(){
 function serverAccountExpired(){
   const state=SERVER_ACCOUNT_STATE;
   delete window.NORA_ACCOUNT_SOURCE;
-  window.NORA_UI?.updateAccountNavigation?.();
+  window.NORA_UI?.updateAccountNavigation?.([]);
   state.account=null; state.checking=false; state.checked=true; state.error=''; resetServerAccountData();
   if(UI().clearProfileCache) UI().clearProfileCache();
   updateAccountBanner(); render(); toast('ورود حساب پایان یافته؛ برای دسترسی به اطلاعاتت دوباره وارد شو.');
@@ -1297,7 +1297,8 @@ async function checkServerAccount(){
     }
     window.NORA_ACCOUNT_SOURCE='server';
     state.account=identity; state.checked=true; state.checking=false; state.error='';
-    window.NORA_UI?.updateAccountNavigation?.();
+    /* زبانهٔ «فرم‌ساز» نوار پایین از مجوزهای همین پاسخ سرور (fm_create)؛ کاوش عمومی ui.js در صفحهٔ حساب اجرا نمی‌شود */
+    window.NORA_UI?.updateAccountNavigation?.(Array.isArray(identity.permissions)?identity.permissions:[]);
     resetServerAccountData(); updateAccountBanner(); render(); loadServerAccountData(false);
     if(window.NORA_UI&&window.NORA_UI.syncServerProfile) window.NORA_UI.syncServerProfile().then(()=>{ if(window.NORA_ACCOUNT_SOURCE==='server') render() });
     if(S.view==='events'||ACCOUNT_REGISTRATION_VIEWS[S.view]) loadAccountRegistrations();
@@ -1319,7 +1320,7 @@ async function logoutServerAccount(button){
   try{
     await api.accountLogout();
     delete window.NORA_ACCOUNT_SOURCE;
-    window.NORA_UI?.updateAccountNavigation?.();
+    window.NORA_UI?.updateAccountNavigation?.([]);
     SERVER_ACCOUNT_STATE.account=null; SERVER_ACCOUNT_STATE.checked=true; SERVER_ACCOUNT_STATE.checking=false;
     SERVER_ACCOUNT_STATE.error=''; resetServerAccountData();
     if(UI().clearProfileCache) UI().clearProfileCache();
