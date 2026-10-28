@@ -156,6 +156,12 @@ const html=readFileSync(DIR+'create.html','utf8');
   ok(first('شماره همراه')[0]==='mobile'&&first('کد ملی')[0]==='nid'&&first('پذیرش قوانین')[0]==='terms','عبارت‌های طبیعی (شماره همراه، کد ملی، پذیرش قوانین) اول نتیجه می‌آیند');
   ok(first('كد ملي')[0]==='nid'&&first('ايميل')[0]==='email'&&first('۰۹')[0]==='mobile'&&first('شماره‌همراه')[0]==='mobile','ی/ي، ک/ك، رقم فارسی و نیم‌فاصله در جست‌وجو یکسان‌سازی می‌شوند');
   ok(first('تاریخ').includes('birth-date')&&first('تاریخ').includes('jalali-date')&&p.txt('#catCount').includes('نتیجه'),'جست‌وجوی «تاریخ» هر دو الگوی هم‌نوع را با شمار نتیجه می‌آورد');
+  /* تکمیل جست‌وجو ۱۴۰۵/۰۸/۰۶: املای سرهم/جدا، جمعِ واژهٔ مترادف، و یک حرف تنها بدون نویزِ زیررشته */
+  const compact=first('چندگزینه');
+  ok(compact.length===2&&compact.includes('choice')&&compact.includes('multi')&&first('کدملی').join()==='nid','املای سرهم («چندگزینه»، «کدملی») همان الگوهای املای جدا را می‌آورد و نه بیشتر');
+  ok(first('توضیحات')[0]==='area'&&first('تعداد نفرات')[0]==='number'&&first('موافقم').includes('yesno'),'واژه‌های روزمره («توضیحات»، «تعداد نفرات»، «موافقم») به نوع درست می‌رسند');
+  const one=first('ا'), names=p.all('#catList [data-cat-item]').map(x=>p.ev('CATALOG.find(c=>c.k==="'+x.dataset.catItem+'").n'));
+  ok(one.length>0&&one.length<10&&names.every(n=>/^[اآ]/.test(n)),'یک حرف تنها فقط نام‌های آغازشونده با همان حرف را می‌آورد ('+one.length+')');
   p.input('#catSearch','xyzناموجود');
   ok(!p.all('#catList [data-add]').length&&p.txt('#catList').includes('پیدا نشد')&&p.doc.querySelector('#catList [data-cat-reset]'),'نتیجهٔ خالی راه‌حل (نمایش همه) دارد');
   p.click('#catList [data-cat-reset]');

@@ -961,13 +961,13 @@ const categoryName=id=>(FIELD_CATEGORIES.find(c=>c.id===id)||{n:String(id||'')})
    placeholder (متن داخل کادر)، bounds (حداقل/حداکثر عددی؛ سرور در انتشار بررسی می‌کند)، options، multiLimits، upload، verify */
 const FIELD_TYPES={
   text:{n:'متن کوتاه',ic:'i-text',g:'basic',ans:'متن یک‌خطی',ctl:['placeholder'],tags:'نوشتاری,یک خطی,پاسخ کوتاه,اسم,عنوان,نام مستعار',ex:'نام مستعار شما؟'},
-  area:{n:'متن بلند',ic:'i-lines',g:'basic',ans:'متن چندخطی',ctl:['placeholder'],tags:'نوشتاری,توضیح,چند خطی,پاراگراف,نظر,پیشنهاد,انتقاد,شرح',ex:'توضیح بدهید چرا…'},
+  area:{n:'متن بلند',ic:'i-lines',g:'basic',ans:'متن چندخطی',ctl:['placeholder'],tags:'نوشتاری,توضیح,چند خطی,پاراگراف,نظر,پیشنهاد,انتقاد,شرح,توضیحات,یادداشت,متن آزاد',ex:'توضیح بدهید چرا…'},
   number:{n:'عدد',ic:'i-number',g:'basic',ans:'عدد',ctl:['placeholder','bounds'],tags:'عددی,رقم,تعداد,سن,مقدار,شمارش,عدد صحیح,اعشاری,کمیت',ex:'چند نفر می‌آیید؟'},
   amount:{n:'مبلغ',ic:'i-wallet',g:'basic',ans:'عدد (تومان)',ctl:['placeholder','bounds'],tags:'پول,تومان,ریال,هزینه,قیمت,مبلغ پیشنهادی,کمک مالی,عدد صحیح',ex:'مبلغ پیشنهادی شما؟'},
   choice:{n:'تک‌انتخاب',ic:'i-radio',g:'choice',ans:'یک گزینه',ctl:['options'],opts:1,tags:'رادیو,یکی از,انتخاب یک گزینه,چندگزینه ای,تست,گزینه',ex:'کدام روز مناسب‌تر است؟'},
   multi:{n:'چندانتخاب',ic:'i-checkbox',g:'choice',ans:'چند گزینه',ctl:['options','multiLimits'],opts:1,tags:'چک باکس,تیک,چند گزینه,چند مورد,انتخاب چند مورد,علاقه مندی,چندتایی',ex:'به کدام موضوع‌ها علاقه دارید؟'},
   dropdown:{n:'فهرست کشویی',ic:'i-chev-down',g:'choice',ans:'یک گزینه از فهرست',ctl:['options'],opts:1,tags:'کشویی,لیست,منو,سلکت,انتخاب از فهرست',ex:'سطح آشنایی با موضوع؟'},
-  yesno:{n:'بله / خیر',ic:'i-check',g:'choice',ans:'بله یا خیر',ctl:['options'],fixedOpts:[{l:'بله',score:5},{l:'خیر',score:0}],tags:'دو گزینه,آری,نه,موافق,مخالف,درست,غلط',ex:'قبلاً شرکت کرده‌اید؟'},
+  yesno:{n:'بله / خیر',ic:'i-check',g:'choice',ans:'بله یا خیر',ctl:['options'],fixedOpts:[{l:'بله',score:5},{l:'خیر',score:0}],tags:'دو گزینه,آری,نه,موافق,موافقم,مخالف,درست,غلط',ex:'قبلاً شرکت کرده‌اید؟'},
   imgchoice:{n:'انتخاب کارتی (بدون تصویر)',ic:'i-image',g:'choice',ans:'یک گزینه',ctl:['options'],opts:1,tags:'انتخاب تصویری,کارت,عکس,تصویر گزینه',ex:'کدام طرح را می‌پسندید؟'},
   fullname:{n:'نام و نام خانوادگی',ic:'i-users',g:'person',ans:'متن',ctl:['placeholder'],prof:1,tags:'اسم,نام کامل,نام خانوادگی,فامیلی,هویت',ex:'نام و نام خانوادگی'},
   nid:{n:'کد ملی',ic:'i-idcard',g:'person',ans:'۱۰ رقم',ctl:['placeholder'],prof:1,tags:'شماره ملی,کدملی,شناسه ملی,هویت,کارت ملی',ex:'کد ملی ۱۰ رقمی'},
@@ -2310,13 +2310,16 @@ function catalogScore(c,q){
     words=q.split(' ').filter(Boolean), hay=[name,normFa(c.ans),normFa(c.ex),normFa(categoryName(c.g)),c.t,c.k].concat(tags);
   if(name===q)return 100;
   let score=0;
-  if(name.startsWith(q))score=Math.max(score,80);else if(name.includes(q))score=Math.max(score,60);
+  if(name.startsWith(q))score=Math.max(score,80);else if(q.length>=2&&name.includes(q))score=Math.max(score,60);  /* یک حرف تنها فقط آغاز نام را می‌گیرد، نه هر زیررشته‌ای */
   /* مترادف: برابر با کل عبارت، دربرگیرندهٔ آن، یا برابر با یکی از واژه‌های عبارت (نه زیررشتهٔ تصادفی مثل «اری» در «تاریخ») */
   /* مترادف: برابر با کل عبارت (۵۵)؛ واژهٔ کامل در مترادف یا مترادف برابر یکی از واژه‌های عبارت (۴۰)؛ زیررشتهٔ آزاد فقط برای عبارت‌های ≥۳ نویسه */
   const wordIn=(t,w)=>t===w||t.startsWith(w+' ')||t.endsWith(' '+w)||t.includes(' '+w+' ');
   if(tags.some(t=>t===q))score=Math.max(score,55);
   else if(tags.some(t=>wordIn(t,q)||words.includes(t)||(q.length>=3&&t.includes(q))))score=Math.max(score,40);
   if(c.t===q||c.k===q)score=Math.max(score,35);
+  /* املای سرهم/جدا («چندگزینه» ↔ «چند گزینه»، «کدملی» ↔ «کد ملی»): مقایسهٔ بی‌فاصله فقط برای عبارت‌های ≥۴ نویسه */
+  const compact=q.replace(/ /g,'');
+  if(!score&&compact.length>=4&&[name].concat(tags).some(t=>t.replace(/ /g,'').includes(compact)))score=30;
   if(!score&&words.length>1&&words.every(w=>hay.some(h=>h.includes(w))))score=25;
   if(!score&&q.length>=3&&hay.some(h=>h.includes(q)))score=15;
   return score;
