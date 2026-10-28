@@ -651,7 +651,7 @@ function renderNav(){
       :`<a href="#${s.k}" data-sec="${s.k}" class="${active?'on':''}"${aria}${active?' aria-current="page"':''}>${ico(g?g.i:s.i,'nav-icon')}<span>${label}</span></a>`}).join('');
 }
 function renderBar(){
-  const s=secOf(S.sec);
+  const s=secOf(S.sec==='users'&&S.uHub==='reports'?'reports':S.sec);  /* سربرگ صفحه با زیرمقصد فعال گروه «مدیران» یکی است */
   const live=!IS_TEST&&!!SERVER_AUTH;
   /* در حالت سروری فهرست رویداد/کاربر محلی وجود ندارد؛ جعبهٔ جست‌وجوی بی‌اثر نشان داده نمی‌شود */
   const searchOn=live?false:S.sec==='events'?(!S.wiz.open&&!S.pmgr&&S.psec!=='edit')

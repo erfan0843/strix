@@ -111,6 +111,7 @@ console.log('── ناوبری مالک: ریل و نوار پایین طبق 
   click('#admNav [data-sec="reports"]');
   ok(await waitFor(()=>doc.querySelector('#admNav [data-sec="reports"].on')&&!doc.querySelector('#admNav [data-sec="users"].on')),'زیرمقصد «گزارش‌ها» مستقل باز می‌شود و فعال است');
   ok(doc.querySelector('#admNav [data-nav-group="people"].on')&&doc.querySelector('#admTabs [data-sec="users"].on'),'والد و زبانهٔ موبایل گروه، فعال‌بودن زیرمقصد را نشان می‌دهند');
+  ok(/گزارش‌ها/.test((doc.querySelector('.ph-title')||{}).textContent||''),'سربرگ صفحه روی زیرمقصد «گزارش‌ها» همان نام را دارد (نه «کاربران»)');
   click('#admNav [data-sec="users"]');
   ok(await waitFor(()=>doc.querySelector('#admNav [data-sec="users"].on')&&!doc.querySelector('#admNav [data-sec="reports"].on')),'زیرمقصد «کاربران» مستقل باز می‌شود');
   click('#admNav [data-sec="dash"]'); await waitFor(()=>doc.querySelector('#admNav [data-sec="dash"].on'));
