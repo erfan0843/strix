@@ -1,0 +1,69 @@
+PASS owner: ترتیب ریل ["dash","newev","events","users","reports","forms","settings"]
+PASS owner: گروه «مدیران» با دو زیرمقصد (کاربران، گزارش‌ها) {"head":"مدیران","kids":["users:open","reports:open"]}
+PASS owner: سرگروه «مدیران» دکمهٔ واقعی با aria-expanded=true و aria-controls است {"exp":"true","ctl":"navgrp-people","hidden":false}
+PASS owner: کلیک سرگروه، گروه را می‌بندد (aria-expanded=false، زیرمقصدها پنهان، فوکوس روی سرگروه) {"exp":"false","hidden":true,"focus":true,"kidsVisible":0}
+PASS owner: Enter روی سرگروه دوباره باز می‌کند
+PASS owner: «فرم‌ساز» در ریل → builder.html {"t":"فرم‌ساز","h":"builder.html"}
+PASS owner: کلیک «گزارش‌ها» → #reports، فعال، والد روشن، «کاربران» خاموش {"hash":"#reports","on":true,"grpOn":true,"usersOn":false,"tab":"گزارش‌ها"}
+PASS owner: کلیک «کاربران» → #users مستقل {"hash":"#users","on":true,"repOn":false}
+PASS owner: deep link #reports همچنان کار می‌کند
+PASS owner: deep link #users همچنان کار می‌کند
+PASS owner: گروه بسته‌شده با پیوند مستقیم #reports باز می‌شود و والد/زیرمقصد فعال‌اند {"exp":"true","on":true,"grpOn":true}
+PASS owner: تغییر هش از #reports به #users (پیوند قدیمی) همان صفحه را عوض می‌کند
+PASS owner: حالت تیره، سرگروه رنگ متن دارد (نه نامرئی) {"color":"rgb(191, 219, 255)","bg":"rgb(27, 33, 30)"}
+PASS owner: نوار پایین موبایل = داشبورد، رویدادها، مدیران، فرم‌ساز، تنظیمات ["dash:داشبورد:","events:رویدادها:","users:مدیران:مدیران","forms:فرم‌ساز:","settings:تنظیمات:"]
+PASS owner: موبایل ۳۹۰ بدون سرریز افقی و نوار پایین دیده می‌شود {"sw":390,"cw":390,"vis":true,"h":76.25}
+PASS owner: موبایل ۳۶۰ بدون سرریز افقی و برچسب زبانه‌ها بریده نمی‌شوند {"sw":360,"cw":360,"labels":true}
+PASS owner: زبانهٔ موبایل گروه → بخش کاربران با زیرزبانه‌های کاربران/گزارش‌ها
+PASS owner: زیرزبانهٔ «گزارش‌ها» در موبایل → #reports و زبانهٔ گروه فعال
+PASS owner: «فرم‌ساز» در منوی اصلی سایت (home.html) پس از تأیید سرور ["خانه","رویدادها","فرم‌ساز","ورود/ثبت‌نام"]
+PASS owner: منوی اصلی ۴زبانه‌ای بدون سرریز افقی {"sw":390,"cw":390}
+PASS owner: منوی اصلی در 1024 بدون سرریز، یک زبانهٔ «فرم‌ساز» با ارتفاع لمسی {"sw":1024,"cw":1024,"n":1,"tabH":59.5}
+PASS owner: منوی اصلی در 360 بدون سرریز، یک زبانهٔ «فرم‌ساز» با ارتفاع لمسی {"sw":360,"cw":360,"n":1,"tabH":59.5}
+PASS owner: «فرم‌ساز» در نوار پایین account.html هم هست (یک‌بار، به builder.html) {"n":1,"href":"builder.html","tabs":"4"}
+PASS owner: از صفحهٔ حساب، «فرم‌ساز» به builder.html می‌رسد
+PASS owner: events.html نیز دقیقاً یک زبانهٔ «فرم‌ساز» دارد (بدون تکرار)
+PASS owner: کلیک «فرم‌ساز» → builder.html (مرکز فرم‌ها)
+PASS owner: مرکز فرم‌ها برای نقش مجاز باز شد "http://127.0.0.1:8000/builder.html"
+PASS owner: راه بازگشت به پنل و راه «ساخت فرم» از مرکز فرم‌ها روشن است ["admin.html","create.html","create.html","admin.html"]
+PASS manager: ترتیب ریل ["dash","newev","events","users","reports","forms","settings"]
+PASS manager: گروه «مدیران» با دو زیرمقصد (کاربران، گزارش‌ها) {"head":"مدیران","kids":["users:open","reports:open"]}
+PASS manager: سرگروه «مدیران» دکمهٔ واقعی با aria-expanded=true و aria-controls است {"exp":"true","ctl":"navgrp-people","hidden":false}
+PASS manager: کلیک سرگروه، گروه را می‌بندد (aria-expanded=false، زیرمقصدها پنهان، فوکوس روی سرگروه) {"exp":"false","hidden":true,"focus":true,"kidsVisible":0}
+PASS manager: Enter روی سرگروه دوباره باز می‌کند
+PASS manager: «فرم‌ساز» در ریل → builder.html {"t":"فرم‌ساز","h":"builder.html"}
+PASS manager: کلیک «گزارش‌ها» → #reports، فعال، والد روشن، «کاربران» خاموش {"hash":"#reports","on":true,"grpOn":true,"usersOn":false,"tab":"گزارش‌ها"}
+PASS manager: کلیک «کاربران» → #users مستقل {"hash":"#users","on":true,"repOn":false}
+PASS manager: deep link #reports همچنان کار می‌کند
+PASS manager: deep link #users همچنان کار می‌کند
+PASS manager: گروه بسته‌شده با پیوند مستقیم #reports باز می‌شود و والد/زیرمقصد فعال‌اند {"exp":"true","on":true,"grpOn":true}
+PASS manager: تغییر هش از #reports به #users (پیوند قدیمی) همان صفحه را عوض می‌کند
+PASS manager: حالت تیره، سرگروه رنگ متن دارد (نه نامرئی) {"color":"rgb(191, 219, 255)","bg":"rgb(27, 33, 30)"}
+PASS manager: نوار پایین موبایل = داشبورد، رویدادها، مدیران، فرم‌ساز (تنظیمات برای مدیر قفل است) ["dash:داشبورد:","events:رویدادها:","users:مدیران:مدیران","forms:فرم‌ساز:"]
+PASS manager: موبایل ۳۹۰ بدون سرریز افقی و نوار پایین دیده می‌شود {"sw":390,"cw":390,"vis":true,"h":76.25}
+PASS manager: موبایل ۳۶۰ بدون سرریز افقی و برچسب زبانه‌ها بریده نمی‌شوند {"sw":360,"cw":360,"labels":true}
+PASS manager: زبانهٔ موبایل گروه → بخش کاربران با زیرزبانه‌های کاربران/گزارش‌ها
+PASS manager: زیرزبانهٔ «گزارش‌ها» در موبایل → #reports و زبانهٔ گروه فعال
+PASS manager: «فرم‌ساز» در منوی اصلی سایت (home.html) پس از تأیید سرور ["خانه","رویدادها","فرم‌ساز","حساب من"]
+PASS manager: منوی اصلی ۴زبانه‌ای بدون سرریز افقی {"sw":1440,"cw":1440}
+PASS manager: منوی اصلی در 1024 بدون سرریز، یک زبانهٔ «فرم‌ساز» با ارتفاع لمسی {"sw":1024,"cw":1024,"n":1,"tabH":59.5}
+PASS manager: منوی اصلی در 360 بدون سرریز، یک زبانهٔ «فرم‌ساز» با ارتفاع لمسی {"sw":360,"cw":360,"n":1,"tabH":59.5}
+PASS manager: «فرم‌ساز» در نوار پایین account.html هم هست (یک‌بار، به builder.html) {"n":1,"href":"builder.html","tabs":"4"}
+PASS manager: از صفحهٔ حساب، «فرم‌ساز» به builder.html می‌رسد
+PASS manager: events.html نیز دقیقاً یک زبانهٔ «فرم‌ساز» دارد (بدون تکرار)
+PASS manager: کلیک «فرم‌ساز» → builder.html (مرکز فرم‌ها)
+PASS manager: مرکز فرم‌ها برای نقش مجاز باز شد "http://127.0.0.1:8080/builder.html"
+PASS manager: راه بازگشت به پنل و راه «ساخت فرم» از مرکز فرم‌ها روشن است ["admin.html","create.html","create.html","admin.html"]
+PASS عضو: «فرم‌ساز» در منوی اصلی نیست (۳ زبانه، حساب من) ["خانه","رویدادها","حساب من"]
+PASS عضو: در account.html (نشست سروری عضو بدون fm_create) زبانهٔ «فرم‌ساز» ساخته نمی‌شود {"n":0,"src":"server","label":"حساب من"}
+PASS عضو: فراخوانی با آرایهٔ خالی (خروج) چیزی نمی‌شکند و زبانه‌ای نمی‌سازد
+PASS عضو: GET /api/forms از سرور بسته است (401/403)
+PASS عضو: GET /api/admin/users از سرور بسته است (401/403)
+PASS عضو: نشانی مستقیم builder.html فهرست فرمی نشان نمی‌دهد و به ورود ارجاع می‌دهد {"login":true,"list":0}
+PASS میهمان: «فرم‌ساز» در منوی اصلی نیست ["خانه","رویدادها","ورود/ثبت‌نام"]
+PASS میهمان: GET /api/forms بسته است (401)
+PASS میهمان: admin.html#reports به ورود کارکنان می‌رسد، نه داده
+PASS حالت بستهٔ گروه پس از بارگذاری دوباره روی همان مقصد (داشبورد) به یاد می‌ماند
+PASS صفحه‌کلید: Tab از رویدادها → سرگروه «مدیران» → کاربران → گزارش‌ها → فرم‌ساز ["people","users","reports","builder.html"]
+PASS صفحه‌کلید: Enter روی «فرم‌ساز» به مرکز فرم‌ها می‌رود
+TOTAL PASS 68 / FAIL 0

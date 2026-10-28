@@ -1,0 +1,33 @@
+#!/bin/bash
+set +e
+export NORA_E2E_LOGIN_FILE=<local>/nora-fixture/PREVIEW-LOGIN.local.md
+export NORA_QA_BROWSER=sparticuz NORA_QA_DEPENDENCIES=<local>/nora-node NORA_REPO_UI=<local>/strix/Final-Delivery/website/nora-ui
+source <local>/nora-preview/seed-ids.env; OUT=${1:-<local>/accept-run}; mkdir -p $OUT; cd <local>/nora-preview
+step(){ echo "=== $1 start $(date +%T)"; }
+killchrome(){ for p in $(ps -eo pid,comm | awk '$2 ~ /chrom/ {print $1}'); do kill -9 $p 2>/dev/null; done; sleep 1; }
+curl -s -o /dev/null -w "owner auth/me %{http_code}\n" http://127.0.0.1:8000/api/auth/me
+killchrome; step e2e-field-types; timeout 1500 node e2e-field-types.cjs $OUT/field-types > $OUT/field-types.log 2>&1; echo "e2e-field-types EXIT $?"; tail -1 $OUT/field-types.log
+killchrome; step e2e-rating; timeout 600 node e2e-rating.cjs $OUT/rating > $OUT/rating.log 2>&1; echo "e2e-rating EXIT $?"; tail -1 $OUT/rating.log
+killchrome; step e2e-length-integer; timeout 600 node e2e-length-integer.cjs $OUT/length-integer > $OUT/length-integer.log 2>&1; echo "e2e-length-integer EXIT $?"; tail -1 $OUT/length-integer.log
+killchrome; step e2e-picker-ux; timeout 600 node e2e-picker-ux.cjs $OUT/picker-ux > $OUT/picker-ux.log 2>&1; echo "e2e-picker-ux EXIT $?"; tail -1 $OUT/picker-ux.log
+killchrome; step e2e-question-redesign; timeout 600 node e2e-question-redesign.cjs $OUT/question-redesign > $OUT/question-redesign.log 2>&1; echo "e2e-question-redesign EXIT $?"; tail -1 $OUT/question-redesign.log
+killchrome; step e2e-field-engine; timeout 900 node e2e-field-engine.cjs $OUT/field-engine > $OUT/field-engine.log 2>&1; echo "e2e-field-engine EXIT $?"; tail -1 $OUT/field-engine.log
+killchrome; step e2e-event-file; timeout 900 node e2e-event-file.cjs $OUT/e2e-event-file > $OUT/e2e-event-file.log 2>&1; echo "e2e-event-file EXIT $?"; tail -3 $OUT/e2e-event-file.log
+export NORA_E2E_IDS=$OUT/e2e-event-file/ids.json
+killchrome; step e2e-duplicate; timeout 600 node e2e-duplicate.cjs $OUT/e2e-duplicate > $OUT/e2e-duplicate.log 2>&1; echo "e2e-duplicate EXIT $?"; tail -2 $OUT/e2e-duplicate.log
+killchrome; step e2e-receipt-restore; timeout 600 node e2e-receipt-restore.cjs $OUT/e2e-receipt > $OUT/e2e-receipt.log 2>&1; echo "e2e-receipt EXIT $?"; tail -2 $OUT/e2e-receipt.log
+killchrome; step e2e-deeplinks; timeout 900 node e2e-deeplinks.cjs $OUT/e2e-deeplinks > $OUT/e2e-deeplinks.log 2>&1; echo "e2e-deeplinks EXIT $?"; tail -1 $OUT/e2e-deeplinks.log
+killchrome; step e2e-roles; timeout 600 node e2e-event-file-roles.cjs $OUT/e2e-roles > $OUT/e2e-roles.log 2>&1; echo "e2e-roles EXIT $?"; tail -2 $OUT/e2e-roles.log
+killchrome; step e2e-builder-return; timeout 900 node e2e-builder-return.cjs $OUT/e2e-builder > $OUT/e2e-builder.log 2>&1; echo "e2e-builder EXIT $?"; tail -2 $OUT/e2e-builder.log
+killchrome; step a11y; timeout 600 node a11y-after.cjs $OUT/a11y > $OUT/a11y.log 2>&1; echo "a11y EXIT $?"; tail -2 $OUT/a11y.log
+killchrome; step e2e-nav; timeout 600 node e2e-nav.cjs $OUT/e2e-nav > $OUT/e2e-nav.log 2>&1; echo "e2e-nav EXIT $?"; tail -2 $OUT/e2e-nav.log
+killchrome; step e2e-builder-flows; timeout 600 node e2e-builder-flows.cjs $OUT/e2e-builder-flows > $OUT/e2e-builder-flows.log 2>&1; echo "e2e-builder-flows EXIT $?"; tail -2 $OUT/e2e-builder-flows.log
+killchrome
+step node-suite; cd <local>/strix/Final-Delivery/website/nora-ui; : > $OUT/node-suite.log
+for f in *.test.mjs; do NODE_OPTIONS=--max-old-space-size=3072 timeout 280 node $f > /tmp/nt.log 2>&1; rc=$?; echo "$f exit=$rc fail-marks=$(grep -c '✗' /tmp/nt.log)" >> $OUT/node-suite.log; if [ $rc -ne 0 ]; then echo "--- $f output tail" >> $OUT/node-suite.log; tail -15 /tmp/nt.log >> $OUT/node-suite.log; fi; done
+echo "node-suite done: $(grep -c 'exit=0' $OUT/node-suite.log)/$(grep -c 'exit=' $OUT/node-suite.log) exit 0"
+step pytest; cd <local>/strix/Final-Delivery/website/nora-ui/backend; timeout 600 <local>/venvs/nora/bin/python -m pytest -p no:cacheprovider -q -rs > $OUT/pytest.log 2>&1; echo "pytest EXIT $?"; tail -2 $OUT/pytest.log
+step mypy; cd <local>/strix/Final-Delivery/website/nora-ui; timeout 120 <local>/venvs/nora/bin/python tools/run-python-tests.py types > $OUT/mypy.log 2>&1; echo "mypy EXIT $?"; tail -2 $OUT/mypy.log
+step pg-migrations; cd <local>/strix/Final-Delivery/website/nora-ui/backend; NORA_TEST_POSTGRES_URL='postgresql://postgres:@/postgres?host=<local>/pgdata' PYTHONPATH=<local>/strix/Final-Delivery/website/nora-ui timeout 600 <local>/venvs/nora/bin/python -m pytest -p no:cacheprovider -q -rs tests/test_migrations_postgres.py > $OUT/pg.log 2>&1; echo "pg EXIT $?"; tail -2 $OUT/pg.log
+killchrome
+echo "=== ALL DONE $(date +%T)"

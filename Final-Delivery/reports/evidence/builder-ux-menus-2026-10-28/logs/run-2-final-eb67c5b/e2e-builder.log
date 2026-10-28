@@ -1,0 +1,36 @@
+PASS #edit=<id> opens the compact editor of that event
+PASS five-step rail is present (main/when/reg/notify/review)
+linked forms before: 5
+PASS title edited in the browser (unsaved)
+create link: create.html?ev=ev-4d3555d6f9&need=reg&name=%D8%B1%D9%88%DB%8C%D8%AF%D8%A7%D8%AF+%D8%A7%D9%84%D9%81+%28%D9%BE%D8%B1%D9%88%D9%86%D8%AF%D9%87%29+143203&back=admin.html%23edit%3Dev-4d3555d6f9%26sec%3Dreg%26from%3Dbuilder&cap=50
+PASS create-form link carries ev, need=reg and a local back to the editor section
+PASS builder opened in the same tab with the event context
+PASS primary button reads «ذخیره و بازگشت به رویداد»
+PASS return chip points back to the editor (local href only)
+form title: ثبت‌نام آزمایشی mvs846td
+PASS after the server confirmed the save, the browser returned to admin.html#edit=<id> (hash then normalised to the editor route)
+PASS editor reopened on the same event
+linked forms after: 6
+PASS the new form is linked and listed under this event (count +1)
+PASS text typed before leaving was restored (not saved, visibly flagged)
+server forms linked to A: ["ثبت‌نام آزمایشی mvs846td:draft","نسخهٔ مدیر (آزمون مرورگر):draft","ثبت‌نام دورهٔ بعد (آزمون مرورگر):draft","نظرسنجی الف 143203:published","فرم ثبت‌نام الف 143203:published","آزمون الف 143203:draft"]
+PASS server lists the new draft form with ev=<A> (no duplicate created)
+PASS cancel leaves the editor and clears the #edit hash
+PASS edit link of the linked form carries the same editor back-context
+PASS builder opened on the linked form (fid in URL)
+PASS edit mode: primary button still «ذخیره و بازگشت به رویداد»
+PASS editing the linked form and saving returns to the same editor section
+PASS no duplicate form after edit-save (same count, version bumped)
+url after first save: /create.html?ev=ev-4d3555d6f9&need=survey&name=x&back=admin.html%23edit%3Dev-4d3555d6f9%26sec%3Dreg%26from%3Dbuilder&fid=7fda4b4f-f79e-41e0-9a71-2c1d35811906
+PASS after the first save the builder URL is pinned with fid= (refresh reopens the same form)
+PASS reloading the pinned URL opens the saved form again in the builder (same fid, not a new form)
+published-form click toast:  ذخیره شد
+published PUT: 409 {"detail":{"code":"published_form_read_only","message":"ابتدا دریافت پاسخ را متوقف کنید."}}
+PASS server refuses editing a published form (PUT -> 409 published_form_read_only) regardless of the UI
+published-form save state: فرم سروری | آخرین وضعیت همگام‌شده: منتشرشده. دسترسی سروریِ مالک تأیید شد؛ تغییر وضعیت نیازمند ورود مالک است. | save disabled=true
+PASS published form: save is not possible (button disabled or 409 published_form_read_only), user stays in the builder, no redirect
+PASS foreign back= is ignored: no return href, plain save label
+parallel edit via API: 200
+PASS 409 version conflict: the browser stays in the builder and shows the conflict (no silent overwrite, no redirect)
+page errors: []
+TOTAL PASS 24 / FAIL 0
