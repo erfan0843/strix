@@ -1056,16 +1056,14 @@ function accountEntryHref(next='account.html'){
   /* «ورود/ثبت‌نام» ابتدا نمای امن مهمان را باز می‌کند؛ فقط بخش شخصی، ورود واقعی می‌خواهد. */
   return next;
 }
-/* صفحه‌های عمومی (خانه، رویدادها، پشتیبانی…): وضعیت ورود فقط از سرور خوانده می‌شود (کوکی httpOnly)
-   تا برچسب نوار پایین برای عضوِ واردشده «حساب من» باشد. صفحه‌های حساب و ورود خودشان این را مدیریت می‌کنند
-   و این بررسی چیزی جز برچسب/aria نوار را تغییر نمی‌دهد (منبع دادهٔ صفحه را «سروری» نمی‌کند). */
+/* صفحه‌های عمومی: وضعیت ورود فقط از سرور (کوکی httpOnly) برای برچسب «حساب من» و زبانهٔ «فرم‌ساز» (fm_create)؛
+   صفحهٔ ورود خودش مدیریت می‌کند؛ منبع دادهٔ صفحه «سروری» نمی‌شود و پیوند، مجوز نمی‌سازد. */
 let serverNavSession=false, serverNavPerms=[];
-/* زبانهٔ «فرم‌ساز» فقط با مجوز fm_create از سرور؛ پیوند مجوز نمی‌سازد */
 function probeAccountNavigation(){
   if(NORA_TEST_FIXTURE_MODE||window.NORA_ACCOUNT_SOURCE==='server'||typeof fetch!=='function') return;
   if(!document.querySelector('.tabbar [data-account-nav-label]')) return;
   if(/(?:^|\/)login\.html$/.test(location.pathname)||location.protocol==='file:') return;
-  /* صفحهٔ حساب نشست عضو را خودش می‌خواند و مجوزها را می‌دهد؛ این‌جا فقط نشست مالک (بدون حساب عضو) کاوش می‌شود */
+  /* صفحهٔ حساب نشست عضو را خودش می‌دهد؛ این‌جا فقط نشست مالک کاوش می‌شود */
   const accountPage=/(?:^|\/)account\.html$/.test(location.pathname);
   (accountPage?Promise.resolve(null):sessionJson('/api/account/me')).then(d=>d&&d.authenticated===true?d:sessionJson('/api/auth/me').then(o=>o&&o.authenticated===true&&o.role==='owner'?Object.assign(o,{staffOnly:true}):null))
     .then(d=>{ if(!d) return; if(!d.staffOnly) serverNavSession=true; serverNavPerms=Array.isArray(d.permissions)?d.permissions:[]; updateAccountNavigation() });
@@ -1074,8 +1072,7 @@ function sessionJson(path){
   return fetch(path,{method:'GET',credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}})
     .then(r=>r&&r.ok?r.json().catch(()=>null):null).catch(()=>null);
 }
-/* perms (اختیاری): صفحهٔ حساب که خودش /api/account/me را می‌خواند، مجوزهای همان پاسخ را می‌دهد تا زبانهٔ «فرم‌ساز»
-   آن‌جا هم از منبع سرور ساخته شود؛ آرایهٔ خالی (خروج/انقضا) زبانه را برمی‌دارد. فراخوانی از رویداد، آرایه نیست و دست نمی‌زند. */
+/* perms (اختیاری، از account.js): مجوزهای پاسخ سرور؛ آرایهٔ خالی زبانهٔ «فرم‌ساز» را برمی‌دارد */
 function updateAccountNavigation(perms){
   if(Array.isArray(perms)) serverNavPerms=perms;
   const user=sessUser(), first=accountFirstName(user), authenticated=!!user||window.NORA_ACCOUNT_SOURCE==='server'||serverNavSession;
@@ -1090,7 +1087,7 @@ function updateAccountNavigation(perms){
     const have=bar.querySelector('[data-forms-nav]');
     if(forms===!!have) return;
     if(have) have.remove();
-    else{const a=document.createElement('a'), small=document.createElement('small'); a.href='builder.html'; a.setAttribute('data-forms-nav','');
+    else{const a=document.createElement('a'), small=document.createElement('small'); a.href='builder.html'; a.dataset.formsNav='';
       small.textContent='فرم‌ساز'; a.append(tabIcon('article'),small); bar.insertBefore(a,bar.querySelector('[data-account-nav]'))}
     bar.setAttribute('data-tabs',String(bar.querySelectorAll('a').length));
   });
@@ -1656,15 +1653,9 @@ function levelOf(points){
   return {cur:cur, next:next};
 }
 
-/* ════════════════════
-   کارت رویداد با پوستر، یک کارت، مشترک خانه و صفحهٔ رویدادها
-   ────────────────────
-   هر رویداد می‌تواند «پوستر» داشته باشد؛ اگر داشت همان نشان داده می‌شود وگرنه
-   گرادیان و آیکون خودِ رویداد می‌آید. برگزارشده‌ها هم با همین کارت ساخته
-   می‌شوند، فقط با نشان «برگزار شد» و دکمهٔ خرید بازپخش.
-   ورودی دوم (o) ظاهر کارت را می‌سازد: attr، badge، meta، note، person،
-   price، free، bar، cta، ctaKind، ctaIcon، past، cls.
-   ════════════════════ */
+/* ── کارت رویداد با پوستر؛ یک کارت مشترک خانه/رویدادها ──
+   پوستر اگر بود نمایش داده می‌شود وگرنه گرادیان + آیکون رویداد؛ برگزارشده‌ها همین کارت با نشان «برگزار شد» و دکمهٔ بازپخش.
+   ورودی دوم (o): attr، badge، meta، note، person، price، free، bar، cta، ctaKind، ctaIcon، past، cls. */
 const escH=t=>String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const playerIcon=name=>`<svg class="i" aria-hidden="true"><use href="#${escH(name)}"/></svg>`;
 function evPosterCard(e,o){
